@@ -44,56 +44,69 @@ def read_input_file(filename):
             
     return T, M, tag_reads
 
-def plot_tag_reads(T, M, tag_reads):
-    plt.figure(figsize=(15, 6))  # 调整图形大小
+def plot_tag_reads_request_count(T, M, tag_reads):
+    plt.figure(figsize=(15, 6))
     
+    # 定义不同的颜色、线型和标记
+    colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', 
+              '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf']  # 不同的颜色
+    line_styles = ['-', '--', '-.', ':']  # 不同的线型
+    markers = ['o', 's', '^', 'v', 'D', 'p', '*', 'h']  # 不同的标记
+
     # 创建时间轴
     time_axis = np.arange(0, T+105, 1)
     
     # 为每个标签绘制折线
-    for tag in range(1, M+1):
+    for tag in range(1, M + 1):
         reads = tag_reads[tag]
-        # 使用更小的窗口来平滑曲线
         window_size = 50
-        smoothed_reads = -np.convolve(reads, np.ones(window_size)/window_size, mode='valid')
+        smoothed_reads = np.convolve(reads, np.ones(window_size)/window_size, mode='valid')
         
         plt.plot(time_axis[window_size-1:], smoothed_reads, 
-                color='blue',          # 蓝色线条
-                linewidth=1.5,         # 线条粗细，调整为1.5
-                linestyle='-',         # 实线
-                marker='.',            # 小圆点作为标记
-                markersize=3,          # 标记大小设为3
-                markevery=200,         # 每200个点标记一次
-                markerfacecolor='red', # 标记点为红色
-                markeredgecolor='red', # 标记边缘为红色
-                alpha=0.8              # 轻微透明度
+                color=colors[(tag-1) % len(colors)],        # 循环使用颜色
+                linewidth=1.5,
+                linestyle=line_styles[(tag-1) % len(line_styles)],  # 循环使用线型
+                marker=markers[(tag-1) % len(markers)],     # 循环使用标记
+                markersize=4,
+                markevery=500,                             # 减少标记密度
+                label=f'标签 {tag}',                        # 添加图例标签
+                alpha=0.8
         )
     
     # 设置坐标轴和网格
-    plt.grid(True, linestyle='-', alpha=0.2)  # 浅色网格
-    plt.xlim(0, T)                            # X轴范围
+    plt.grid(True, linestyle='-', alpha=0.2)
+    plt.xlim(0, T)
     
     # 设置刻度
-    x_ticks = np.arange(0, T+1, 21600)        # 每21600一个刻度
+    x_ticks = np.arange(0, T+1, 21600)
     plt.xticks(x_ticks, x_ticks)
     
     # 移除上边框和右边框
     plt.gca().spines['top'].set_visible(False)
     plt.gca().spines['right'].set_visible(False)
     
+    # 添加图例
+    plt.legend(bbox_to_anchor=(1.05, 1),  # 将图例放在图形右侧
+              loc='upper left',
+              borderaxespad=0.,
+              frameon=False)              # 不显示图例边框
+    
+    # 调整布局以适应图例
+    plt.tight_layout()
+    
     # 保存图片
-    plt.savefig('read_patterns.png', 
-                dpi=300,              # 高分辨率
-                bbox_inches='tight',   # 自动调整边距
-                pad_inches=0.1        # 边距大小
+    plt.savefig('read_request_count_patterns.png', 
+                dpi=300,
+                bbox_inches='tight',
+                pad_inches=0.1
     )
     plt.close()
 
 def main():
     filename = 'data/sample_practice.in'
     T, M, tag_reads = read_input_file(filename)
-    plot_tag_reads(T, M, tag_reads)
-    print("可视化结果已保存为 'read_patterns.png'")
+    plot_tag_reads_request_count(T, M, tag_reads)
+    print("可视化结果已保存为 'read_request_count_patterns.png'")
 
 if __name__ == "__main__":
     main()
