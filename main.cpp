@@ -1,6 +1,4 @@
-#include <cstdio>
-#include <cassert>
-#include <cstdlib>
+#include <bits/stdc++.h>
 
 #define MAX_DISK_NUM (10 + 1)
 #define MAX_DISK_SIZE (16384 + 1)
@@ -9,6 +7,8 @@
 #define REP_NUM (3)
 #define FRE_PER_SLICING (1800)
 #define EXTRA_TIME (105)
+
+#define MAX_OBJECT_SIZE (5 + 1)
 
 typedef struct Request_ {
     int object_id;
@@ -104,8 +104,23 @@ void do_object_write(int* object_unit, int* disk_unit, int size, int object_id)
     assert(current_write_point == size);
 }
 
+/*存储磁盘的每一段*/
+struct spare_block {
+    int l, r, len;
+    inline bool operator < (const spare_block &ano) {
+        return len < ano.len;
+    }
+};
+
+std::multiset<spare_block> remain[MAX_DISK_NUM];
 void write_action()
 {
+    int n_write;
+    scanf("%d", &n_write);
+    for (int i = 1; i <= n_write; ++i) {
+
+    }
+    /*
     int n_write;
     scanf("%d", &n_write);
     for (int i = 1; i <= n_write; i++) {
@@ -129,9 +144,12 @@ void write_action()
             printf("\n");
         }
     }
-
+    */
     fflush(stdout);
 }
+
+/*存储每个对象的unit没有解决的request*/
+std::queue<int> unsolve_request[MAX_OBJECT_NUM][MAX_OBJECT_SIZE];
 
 void read_action()
 {
