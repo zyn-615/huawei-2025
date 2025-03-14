@@ -32,7 +32,7 @@ struct _Object {
     int tag;
 };
 
-//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!注意，request加了复数
+//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!注意，objects加了复数
 _Object objects[MAX_REQUEST_NUM];
 
 int T, M, N, V, G;
@@ -62,7 +62,7 @@ inline void do_object_delete(int object_id)
     for (int i = 1; i <= objects[object_id].size; ++i) {
         while (!unsolve_request[object_id][i].empty()) {
             int now_request = unsolve_request[object_id][i].front();
-            
+
             if (request_rest_unit[now_request] != -1) {
                 abort_request.push_back(now_request);
                 request_rest_unit[now_request] = -1;
