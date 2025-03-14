@@ -7,7 +7,6 @@
 #define REP_NUM (3)
 #define FRE_PER_SLICING (1800)
 #define EXTRA_TIME (105)
-
 #define MAX_OBJECT_SIZE (5 + 1)
 
 typedef struct Request_ {
@@ -27,9 +26,23 @@ typedef struct Object_ {
 Request request[MAX_REQUEST_NUM];
 Object object[MAX_OBJECT_NUM];
 
+struct _Object {
+    std::pair <int, int> unit_pos[REP_NUM + 1][MAX_OBJECT_SIZE];
+    int size;
+    int tag;
+};
+
+//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!注意，request加了复数
+_Object objects[MAX_REQUEST_NUM];
+
 int T, M, N, V, G;
 int disk[MAX_DISK_NUM][MAX_DISK_SIZE];
 int disk_point[MAX_DISK_NUM];
+
+/*存储每个对象的unit没有解决的request*/
+std::queue<int> unsolve_request[MAX_OBJECT_NUM][MAX_OBJECT_SIZE];
+short request_rest_unit[MAX_REQUEST_NUM];
+std::vector <int> solved_request;
 
 void timestamp_action()
 {
@@ -38,6 +51,24 @@ void timestamp_action()
     printf("TIMESTAMP %d\n", timestamp);
 
     fflush(stdout);
+}
+
+std::vector <int> abort_request;
+inline void do_object_delete(int object_id) 
+{
+    //delete pos
+
+    //find abort req
+    for (int i = 1; i <= objects[object_id].size; ++i) {
+        while (!unsolve_request[object_id][i].empty()) {
+            int now_request = unsolve_request[object_id][i].front();
+            
+            if (request_rest_unit[now_request] != -1) {
+                abort_request.push_back(now_request);
+                request_rest_unit[now_request] = -1;
+            }
+        }
+    }
 }
 
 void do_object_delete(const int* object_unit, int* disk_unit, int size)
@@ -69,21 +100,26 @@ void delete_action()
         }
     }
 
-    printf("%d\n", abort_num);
-    for (int i = 1; i <= n_delete; i++) {
-        int id = _id[i];
-        int current_id = object[id].last_request_point;
-        while (current_id != 0) {
-            if (request[current_id].is_done == false) {
-                printf("%d\n", current_id);
-            }
-            current_id = request[current_id].prev_id;
-        }
-        for (int j = 1; j <= REP_NUM; j++) {
-            do_object_delete(object[id].unit[j], disk[object[id].replica[j]], object[id].size);
-        }
-        object[id].is_delete = true;
+    printf("%d\n", abort_request.size());
+    for (int req_id : abort_request) {
+        printf("%d\n", req_id);
     }
+
+    // printf("%d\n", abort_num);
+    // for (int i = 1; i <= n_delete; i++) {
+    //     int id = _id[i];
+    //     int current_id = object[id].last_request_point;
+    //     while (current_id != 0) {
+    //         if (request[current_id].is_done == false) {
+    //             printf("%d\n", current_id);
+    //         }
+    //         current_id = request[current_id].prev_id;
+    //     }
+    //     for (int j = 1; j <= REP_NUM; j++) {
+    //         do_object_delete(object[id].unit[j], disk[object[id].replica[j]], object[id].size);
+    //     }
+    //     object[id].is_delete = true;
+    // }
 
     fflush(stdout);
 }
@@ -113,6 +149,7 @@ struct spare_block {
 };
 
 std::multiset<spare_block> remain[MAX_DISK_NUM];
+
 void write_action()
 {
     int n_write;
@@ -148,8 +185,18 @@ void write_action()
     fflush(stdout);
 }
 
-/*存储每个对象的unit没有解决的request*/
-std::queue<int> unsolve_request[MAX_OBJECT_NUM][MAX_OBJECT_SIZE];
+inline void read_unit(int id, int unit_id) 
+{
+    while (!unsolve_request[id][unit_id].empty()) {
+        int now_request = unsolve_request[id][unit_id].front();
+        --request_rest_unit[now_request];
+        if (!request_rest_unit[now_request]) {
+            solved_request.push_back(now_request);
+        }
+
+        unsolve_request[id][unit_id].pop();
+    }
+}
 
 void read_action()
 {
@@ -164,44 +211,55 @@ void read_action()
         request[request_id].is_done = false;
     }
 
-    static int current_request = 0;
-    static int current_phase = 0;
-    if (!current_request && n_read > 0) {
-        current_request = request_id;
-    }
-    if (!current_request) {
-        for (int i = 1; i <= N; i++) {
-            printf("#\n");
-        }
-        printf("0\n");
-    } else {
-        current_phase++;
-        object_id = request[current_request].object_id;
-        for (int i = 1; i <= N; i++) {
-            if (i == object[object_id].replica[1]) {
-                if (current_phase % 2 == 1) {
-                    printf("j %d\n", object[object_id].unit[1][current_phase / 2 + 1]);
-                } else {
-                    printf("r#\n");
-                }
-            } else {
-                printf("#\n");
-            }
-        }
+    //磁头移动操作
 
-        if (current_phase == object[object_id].size * 2) {
-            if (object[object_id].is_delete) {
-                printf("0\n");
-            } else {
-                printf("1\n%d\n", current_request);
-                request[current_request].is_done = true;
-            }
-            current_request = 0;
-            current_phase = 0;
-        } else {
-            printf("0\n");
-        }
+
+    //solved request
+    printf("%d\n", solved_request.size());
+    for (int request_id : solved_request) {
+        printf("%d\n", request_id);
     }
+
+    solved_request.clear();
+
+    // static int current_request = 0;
+    // static int current_phase = 0;
+    // if (!current_request && n_read > 0) {
+    //     current_request = request_id;
+    // }
+    // if (!current_request) {
+    //     for (int i = 1; i <= N; i++) {
+    //         printf("#\n");
+    //     }
+    //     printf("0\n");
+    // } else {
+    //     current_phase++;
+    //     object_id = request[current_request].object_id;
+    //     for (int i = 1; i <= N; i++) {
+    //         if (i == object[object_id].replica[1]) {
+    //             if (current_phase % 2 == 1) {
+    //                 printf("j %d\n", object[object_id].unit[1][current_phase / 2 + 1]);
+    //             } else {
+    //                 printf("r#\n");
+    //             }
+    //         } else {
+    //             printf("#\n");
+    //         }
+    //     }
+
+    //     if (current_phase == object[object_id].size * 2) {
+    //         if (object[object_id].is_delete) {
+    //             printf("0\n");
+    //         } else {
+    //             printf("1\n%d\n", current_request);
+    //             request[current_request].is_done = true;
+    //         }
+    //         current_request = 0;
+    //         current_phase = 0;
+    //     } else {
+    //         printf("0\n");
+    //     }
+    // }
 
     fflush(stdout);
 }
