@@ -18,6 +18,10 @@ def read_input_file(filename):
         current_time = 1
         write_tags = {}
         size_tags = {}
+        tag_cnt = {i: 0 for i in range(1, M + 1)}
+        tag_exsit_time = {i: 0 for i in range(1, M + 1)}
+        write_time = {}
+
         while current_time <= T + 105:
             # 时间戳
             timestamp = int(f.readline().split()[1])
@@ -25,14 +29,18 @@ def read_input_file(filename):
             # 删除操作
             n_delete = int(f.readline())
             for _ in range(n_delete):
-                f.readline()  # 跳过删除的对象ID
+                obj_id = int(f.readline())  # 跳过删除的对象ID
+                if obj_id in write_tags:
+                    tag_exsit_time[write_tags[obj_id]] += timestamp - write_time[obj_id]
                 
             # 写入操作
             n_write = int(f.readline())
             for _ in range(n_write):
                 obj_id, obj_size, obj_tag = map(int, f.readline().split())
                 write_tags[obj_id] = obj_tag
-                size_tags[obj_id] = obj_size  # 修复：存储对象大小
+                size_tags[obj_id] = obj_size 
+                tag_cnt[obj_tag] += 1
+                write_time[obj_id] = timestamp
                 
             # 读取操作
             n_read = int(f.readline())
@@ -41,11 +49,15 @@ def read_input_file(filename):
                 if obj_id in write_tags:
                     tag = write_tags[obj_id]
                     tag_reads[tag][current_time] += 1
-                    tag_size[tag][current_time] += size_tags[obj_id]  # 修复：使用对象大小
+                    tag_size[tag][current_time] += size_tags[obj_id]
             
             current_time += 1
-            
-    return T, M, tag_reads, tag_size
+        
+        for i in range(1, M + 1):
+            if tag_cnt[i] != 0:
+                tag_exsit_time[i] /= tag_cnt[i]
+
+    return T, M, tag_reads, tag_size, tag_exsit_time
 
 def plot_tag_reads_request_count(T, M, tag_reads):
     plt.figure(figsize=(15, 6))
@@ -165,11 +177,45 @@ def plot_tag_reads_request_size(T, M, tag_size):
     plt.clf()
     plt.close()
 
+def plot_tag_existence_time(T, M, tag_exsit_time):
+    # 生成标签存在时间的柱形图
+    labels = [f'标签 {i}' for i in range(1, M + 1)]
+    exist_times = [tag_exsit_time[i] for i in range(1, M + 1)]
+
+    plt.figure(figsize=(10, 6))
+    plt.bar(labels, exist_times, color='skyblue')
+
+    # 设置标题和标签
+    plt.title('标签存在时间柱形图')
+    plt.xlabel('标签')
+    plt.ylabel('存在时间')
+
+    # 旋转x轴标签以防止重叠
+    plt.xticks(rotation=45, ha='right')
+
+    # 移除上边框和右边框
+    plt.gca().spines['top'].set_visible(False)
+    plt.gca().spines['right'].set_visible(False)
+
+    # 调整布局以适应标签
+    plt.tight_layout()
+
+    # 保存图片
+    plt.savefig('tag_existence_time_bar_chart.png', 
+                dpi=300,
+                bbox_inches='tight',
+                pad_inches=0.1
+    )
+    plt.clf()
+    plt.close()
+
+
 def main():
     filename = 'data/sample_practice.in'
-    T, M, tag_reads, tag_size = read_input_file(filename)
+    T, M, tag_reads, tag_size, tag_exsit_time = read_input_file(filename)
     plot_tag_reads_request_count(T, M, tag_reads)
     plot_tag_reads_request_size(T, M, tag_size)
+    plot_tag_existence_time(T, M, tag_exsit_time)
     print("可视化结果已保存为 'read_request_count_patterns.png' 和 'read_request_size_patterns.png'")
 
 if __name__ == "__main__":
