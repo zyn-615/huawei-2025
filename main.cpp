@@ -27,13 +27,21 @@ Request request[MAX_REQUEST_NUM];
 Object object[MAX_OBJECT_NUM];
 
 struct _Object {
-    std::pair <int, int> unit_pos[REP_NUM + 1][MAX_OBJECT_SIZE];
-    int size;
-    int tag;
+    //(磁盘编号，磁盘内位置)
+    std::pair <char, short> unit_pos[REP_NUM + 1][MAX_OBJECT_SIZE];
+    char size;
+    char tag;
+    //读入的时候注意赋值给char型
 };
 
+struct _Request {
+    int object_id;
+};
+
+_Request requests[MAX_REQUEST_NUM];
+
 //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!注意，objects加了复数
-_Object objects[MAX_REQUEST_NUM];
+_Object objects[MAX_OBJECT_NUM];
 
 int T, M, N, V, G;
 int disk[MAX_DISK_NUM][MAX_DISK_SIZE];
@@ -41,7 +49,7 @@ int disk_point[MAX_DISK_NUM];
 
 /*存储每个对象的unit没有解决的request*/
 std::queue<int> unsolve_request[MAX_OBJECT_NUM][MAX_OBJECT_SIZE];
-short request_rest_unit[MAX_REQUEST_NUM];
+char request_rest_unit[MAX_REQUEST_NUM];
 std::vector <int> solved_request;
 
 void timestamp_action()
@@ -53,6 +61,7 @@ void timestamp_action()
     fflush(stdout);
 }
 
+/*未完成的请求*/
 std::vector <int> abort_request;
 inline void do_object_delete(int object_id) 
 {
@@ -198,6 +207,14 @@ inline void read_unit(int id, int unit_id)
     }
 }
 
+inline void update_unsolved_request(int request_id, int object_id) 
+{
+    request_rest_unit[request_id] = objects[object_id].size;
+    for (int i = 1; i <= objects[object_id].size; ++i) {
+        unsolve_request[object_id][i].push(request_id);
+    }
+}
+
 void read_action()
 {
     int n_read;
@@ -205,10 +222,13 @@ void read_action()
     scanf("%d", &n_read);
     for (int i = 1; i <= n_read; i++) {
         scanf("%d%d", &request_id, &object_id);
-        request[request_id].object_id = object_id;
-        request[request_id].prev_id = object[object_id].last_request_point;
-        object[object_id].last_request_point = request_id;
-        request[request_id].is_done = false;
+        requests[request_id].object_id = object_id;
+        update_unsolved_request(request_id, object_id);
+
+        // request[request_id].object_id = object_id;
+        // request[request_id].prev_id = object[object_id].last_request_point;
+        // object[object_id].last_request_point = request_id;
+        // request[request_id].is_done = false;
     }
 
     //磁头移动操作
