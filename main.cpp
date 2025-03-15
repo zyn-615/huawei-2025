@@ -31,6 +31,7 @@ struct _Object {
     std::pair <char, short> unit_pos[REP_NUM + 1][MAX_OBJECT_SIZE];
     char size;
     char tag;
+    //读入的时候注意赋值给char型
 };
 
 struct _Request {
