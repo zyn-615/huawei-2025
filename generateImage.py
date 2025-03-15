@@ -275,14 +275,87 @@ def plot_tag_existence_size(T, M, tag_exsit_size):
     plt.clf()
     plt.close()
 
+def plot_tag_read_density(T, M, tag_reads, tag_exist_size):
+    plt.figure(figsize=(15, 6))
+    
+    # 定义不同的颜色、线型和标记
+    colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', 
+              '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf']
+    line_styles = ['-', '--', '-.', ':']
+    markers = ['o', 's', '^', 'v', 'D', 'p', '*', 'h']
+
+    # 创建时间轴
+    time_axis = np.arange(0, T+105, 1)
+    
+    # 为每个标签计算并绘制读取密度
+    for tag in range(1, M + 1):
+        # 计算读取密度：读取次数/存在大小
+        density = []
+        for t in range(len(time_axis)):
+            if tag_exist_size[tag][t] != 0:  # 避免除以0
+                density.append(tag_reads[tag][t] / tag_exist_size[tag][t])
+            else:
+                density.append(0)
+        
+        # 平滑处理
+        window_size = 50
+        smoothed_density = np.convolve(density, np.ones(window_size)/window_size, mode='valid')
+        
+        plt.plot(time_axis[window_size-1:], smoothed_density,
+                color=colors[(tag-1) % len(colors)],
+                linewidth=1.5,
+                linestyle=line_styles[(tag-1) % len(line_styles)],
+                marker=markers[(tag-1) % len(markers)],
+                markersize=4,
+                markevery=500,
+                label=f'标签 {tag}',
+                alpha=0.8
+        )
+    
+    # 设置坐标轴和网格
+    plt.grid(True, linestyle='-', alpha=0.2)
+    plt.xlim(0, T)
+    
+    # 设置标题和标签
+    plt.title('标签读取密度随时间变化')
+    plt.xlabel('时间')
+    plt.ylabel('读取密度 (读取次数/存在大小)')
+    
+    # 设置刻度
+    x_ticks = np.arange(0, T+1, 21600)
+    plt.xticks(x_ticks, x_ticks)
+    
+    # 移除上边框和右边框
+    plt.gca().spines['top'].set_visible(False)
+    plt.gca().spines['right'].set_visible(False)
+    
+    # 添加图例
+    plt.legend(bbox_to_anchor=(1.05, 1),
+              loc='upper left',
+              borderaxespad=0.,
+              frameon=False)
+    
+    # 调整布局
+    plt.tight_layout()
+    
+    # 保存图片
+    plt.savefig('tag_read_density_patterns.png',
+                dpi=300,
+                bbox_inches='tight',
+                pad_inches=0.1
+    )
+    plt.clf()
+    plt.close()
+
 def main():
     filename = 'data/sample_practice.in'
-    T, M, tag_reads, tag_size, tag_exsit_time, tag_exsit_size = read_input_file(filename)
+    T, M, tag_reads, tag_size, tag_exsit_time, tag_exist_size = read_input_file(filename)
     plot_tag_reads_request_count(T, M, tag_reads)
     plot_tag_reads_request_size(T, M, tag_size)
     plot_tag_existence_time(T, M, tag_exsit_time)
-    plot_tag_existence_size(T, M, tag_exsit_size)
-    print("可视化结果已保存为 'read_request_count_patterns.png' 和 'read_request_size_patterns.png'")
+    plot_tag_existence_size(T, M, tag_exist_size)
+    plot_tag_read_density(T, M, tag_reads, tag_exist_size)
+    print("可视化结果已保存为图片文件")
 
 if __name__ == "__main__":
     main()
