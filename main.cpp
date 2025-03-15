@@ -27,9 +27,10 @@ Request request[MAX_REQUEST_NUM];
 Object object[MAX_OBJECT_NUM];
 
 struct _Object {
-    std::pair <int, int> unit_pos[REP_NUM + 1][MAX_OBJECT_SIZE];
-    int size;
-    int tag;
+    //(磁盘编号，磁盘内位置)
+    std::pair <char, short> unit_pos[REP_NUM + 1][MAX_OBJECT_SIZE];
+    char size;
+    char tag;
 };
 
 struct _Request {
