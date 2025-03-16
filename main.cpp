@@ -28,9 +28,9 @@ const int READ_ROUND_TIME = 5; //一轮读取的时间
 
 struct _Object {
     //(磁盘编号，磁盘内位置)
-    std::pair <int, int> unit_pos[REP_NUM + 1][MAX_OBJECT_SIZE];
-    int size;
-    int tag;
+    std::pair <char, short> unit_pos[REP_NUM + 1][MAX_OBJECT_SIZE];
+    char size;
+    char tag;
     //读入的时候注意赋值给char型
 };
 
@@ -267,7 +267,7 @@ Predict Info[MAX_TAG_NUM][MAX_STAGE];
 
 /*存储每个对象的unit没有解决的request*/
 std::queue<int> unsolve_request[MAX_OBJECT_NUM][MAX_OBJECT_SIZE];
-int request_rest_unit[MAX_REQUEST_NUM];
+char request_rest_unit[MAX_REQUEST_NUM];
 std::vector <int> solved_request;
 
 /*从x到y的距离*/
@@ -433,16 +433,16 @@ void write_action()
 }
 
 //use
-inline void read_unit(int object_id, int unit_id) 
+inline void read_unit(int id, int unit_id) 
 {
-    while (!unsolve_request[object_id][unit_id].empty()) {
-        int now_request = unsolve_request[object_id][unit_id].front();
+    while (!unsolve_request[id][unit_id].empty()) {
+        int now_request = unsolve_request[id][unit_id].front();
         --request_rest_unit[now_request];
         if (!request_rest_unit[now_request]) {
             solved_request.push_back(now_request);
         }
 
-        unsolve_request[object_id][unit_id].pop();
+        unsolve_request[id][unit_id].pop();
     }
 }
 
@@ -450,7 +450,6 @@ inline void read_unit(int object_id, int unit_id)
 inline void update_unsolved_request(int request_id, int object_id) 
 {
     request_rest_unit[request_id] = objects[object_id].size;
-    std::cerr << "update_unsolved_request : " << request_id << " " << request_rest_unit[request_id] << std::endl;
 
     for (int j = 1; j <= objects[object_id].size; ++j) {
         unsolve_request[object_id][j].push(request_id);       
@@ -463,7 +462,7 @@ inline void update_unsolved_request(int request_id, int object_id)
 }
 
 //指针进行一次jump
-void do_pointer_jump(DISK &cur_disk, int destination) 
+void do_pointer_jump(DISK cur_disk, int destination) 
 {
     printf("j %d\n", destination);
     cur_disk.pointer = destination;
@@ -583,7 +582,7 @@ void read_action(int time)
     for (int cur_disk_id = 1; cur_disk_id <= N; ++cur_disk_id) {
         // std::cerr << "cur_disk_id: " << cur_disk_id << std::endl;
         DISK &cur_disk = disk[cur_disk_id];
-        if (time % READ_ROUND_TIME == 1000000) {
+        if (time % READ_ROUND_TIME == 1) {
             int p = cur_disk.max_density.find_max_point();
             // std::cerr << "max_point: " << p << std::endl;
             if (p == -1 || get_dist(cur_disk.pointer, p) <= G) { //如果距离足够近
@@ -605,7 +604,6 @@ void read_action(int time)
         std::cerr << request_id << " ";
         printf("%d\n", request_id);
     }
-    std::cerr << std::endl;
 
     solved_request.clear();
     fflush(stdout);
