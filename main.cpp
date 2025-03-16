@@ -290,10 +290,10 @@ void init()
 
 void timestamp_action()
 {
+    std::cerr << "TIMESTAMP" << std::endl;
     int timestamp;
     scanf("%*s%d", &timestamp);
     printf("TIMESTAMP %d\n", timestamp);
-
     fflush(stdout);
 }
 
@@ -361,17 +361,19 @@ void delete_action()
     static int _id[MAX_OBJECT_NUM];
 
     scanf("%d", &n_delete);
-    // std::cerr << "statDelete : " << n_delete << std::endl;
+    std::cerr << "statDelete : " << n_delete << std::endl;
     for (int i = 1; i <= n_delete; i++) {
         scanf("%d", &_id[i]);
-        // std::cerr << "delete : " << _id[i] << std::endl;
+        std::cerr << "delete : " << _id[i] << std::endl;
         do_object_delete(_id[i]);
     }
     
-    // std::cerr << "END" << std::endl;
+    std::cerr << "END" << std::endl;
     printf("%ld\n", abort_request.size());
-    // std::cerr << "NOWNOW :: " << abort_request.size() << std::endl;
+    std::cerr << "NOWNOW :: " << abort_request.size() << std::endl;
     for (int req_id : abort_request) {
+        std::cerr << "abort_request : " << req_id << " " << request_rest_unit[req_id] << std::endl;
+        assert(request_rest_unit[req_id] == 0); 
         printf("%d\n", req_id);
     }
 
@@ -612,7 +614,7 @@ void read_action(int time)
 
 int main()
 {
-    // std::cerr << "start input global information" << std::endl;
+    std::cerr << "start input global information" << std::endl;
     scanf("%d%d%d%d%d", &T, &M, &N, &V, &G);
     for (int i = 1; i <= M; i++) {
         for (int j = 1; j <= (T - 1) / FRE_PER_SLICING + 1; j++) {
@@ -631,7 +633,7 @@ int main()
             scanf("%*d");
         }
     }
-    // std::cerr << "end input global information" << std::endl;
+    std::cerr << "end input global information" << std::endl;
     init();
     printf("OK\n");
     fflush(stdout);
