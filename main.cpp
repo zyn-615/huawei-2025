@@ -484,6 +484,7 @@ int do_pointer_read(DISK &cur_disk)
     printf("r");
     cur_disk.pointer = (cur_disk.pointer + 1) % V + 1;
     ++cur_disk.last_read_cnt;
+    cur_disk.last_read_cost = read_cost;
     return 1;
 }
 
