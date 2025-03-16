@@ -435,16 +435,16 @@ void write_action()
 }
 
 //use
-inline void read_unit(int id, int unit_id) 
+inline void read_unit(int object_id, int unit_id) 
 {
-    while (!unsolve_request[id][unit_id].empty()) {
-        int now_request = unsolve_request[id][unit_id].front();
+    while (!unsolve_request[object_id][unit_id].empty()) {
+        int now_request = unsolve_request[object_id][unit_id].front();
         --request_rest_unit[now_request];
         if (!request_rest_unit[now_request]) {
             solved_request.push_back(now_request);
         }
 
-        unsolve_request[id][unit_id].pop();
+        unsolve_request[object_id][unit_id].pop();
     }
 }
 
