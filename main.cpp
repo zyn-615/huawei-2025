@@ -375,15 +375,6 @@ void do_object_write(int* object_unit, int* disk_unit, int size, int object_id)
     assert(current_write_point == size);
 }
 */
-/*存储磁盘的每一段*/
-struct spare_block {
-    int l, r, len;
-    inline bool operator < (const spare_block &ano) {
-        return len < ano.len;
-    }
-};
-
-std::multiset<spare_block> remain[MAX_DISK_NUM];
 
 //no
 void write_action()
@@ -564,44 +555,45 @@ void read_action(int time)
 
     solved_request.clear();
 
-    // static int current_request = 0;
-    // static int current_phase = 0;
-    // if (!current_request && n_read > 0) {
-    //     current_request = request_id;
-    // }
-    // if (!current_request) {
-    //     for (int i = 1; i <= N; i++) {
-    //         printf("#\n");
-    //     }
-    //     printf("0\n");
-    // } else {
-    //     current_phase++;
-    //     object_id = request[current_request].object_id;
-    //     for (int i = 1; i <= N; i++) {
-    //         if (i == object[object_id].replica[1]) {
-    //             if (current_phase % 2 == 1) {
-    //                 printf("j %d\n", object[object_id].unit[1][current_phase / 2 + 1]);
-    //             } else {
-    //                 printf("r#\n");
-    //             }
-    //         } else {
-    //             printf("#\n");
-    //         }
-    //     }
+    /*
+    static int current_request = 0;
+    static int current_phase = 0;
+    if (!current_request && n_read > 0) {
+        current_request = request_id;
+    }
+    if (!current_request) {
+        for (int i = 1; i <= N; i++) {
+            printf("#\n");
+        }
+        printf("0\n");
+    } else {
+        current_phase++;
+        object_id = request[current_request].object_id;
+        for (int i = 1; i <= N; i++) {
+            if (i == object[object_id].replica[1]) {
+                if (current_phase % 2 == 1) {
+                    printf("j %d\n", object[object_id].unit[1][current_phase / 2 + 1]);
+                } else {
+                    printf("r#\n");
+                }
+            } else {
+                printf("#\n");
+            }
+        }
 
-    //     if (current_phase == object[object_id].size * 2) {
-    //         if (object[object_id].is_delete) {
-    //             printf("0\n");
-    //         } else {
-    //             printf("1\n%d\n", current_request);
-    //             request[current_request].is_done = true;
-    //         }
-    //         current_request = 0;
-    //         current_phase = 0;
-    //     } else {
-    //         printf("0\n");
-    //     }
-    // }
+        if (current_phase == object[object_id].size * 2) {
+            if (object[object_id].is_delete) {
+                printf("0\n");
+            } else {
+                printf("1\n%d\n", current_request);
+                request[current_request].is_done = true;
+            }
+            current_request = 0;
+            current_phase = 0;
+        } else {
+            printf("0\n");
+        }
+    }*/
 
     fflush(stdout);
 }
