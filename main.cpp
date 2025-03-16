@@ -47,7 +47,7 @@ _Request requests[MAX_REQUEST_NUM];
 _Object objects[MAX_OBJECT_NUM];
 
 int T, M, N, V, G;
-int disk[MAX_DISK_NUM][MAX_DISK_SIZE];
+// int disk[MAX_DISK_NUM][MAX_DISK_SIZE];
 int disk_point[MAX_DISK_NUM];
 
 struct Segment_tree_max {
@@ -67,37 +67,46 @@ struct Segment_tree_max {
     Node seg[MAX_DISK_SIZE << 2];
     int add_tag[MAX_DISK_SIZE << 2];
 
-    inline void apply(int o, int now_ad) {
+    inline void apply(int o, int now_ad) 
+    {
         add_tag[o] += now_ad;
         seg[o] = seg[o] + now_ad;
     }
 
-    inline void push_down(int o) {
+    inline void push_down(int o) 
+    {
         if (!add_tag[o]) return ;
         apply(o << 1, add_tag[o]);
         apply(o << 1 | 1, add_tag[o]);
         add_tag[o] = 0;
     }
 
-    inline void push_up(int o) {
+    inline void push_up(int o) 
+    {
         seg[o] = std::max(seg[o << 1], seg[o << 1 | 1]);
     }
     
-    void modify(int o, int l, int r, int p, int v) {
+    //返回差值，方便后面维护density
+    int modify(int o, int l, int r, int p, int v) 
+    {
         if (l == r) {
+            int pre = seg[o].max;
             seg[o] = Node(v, l);
-            return ;
+            return v - pre;
         }
         
         push_down(o);
-        int mid = l + r >> 1;
+        int mid = l + r >> 1, res = 0;
         if (p <= mid)
-            modify(o << 1, l, mid, p, v);
-        else modify(o << 1 | 1, mid + 1, r, p, v);
+            res = modify(o << 1, l, mid, p, v);
+        else res = modify(o << 1 | 1, mid + 1, r, p, v);
+
         push_up(o);
+        return res;
     }
 
-    void add(int o, int l, int r, int x, int y, int ad) {
+    void add(int o, int l, int r, int x, int y, int ad) 
+    {
         if (x <= l && y >= r) {
             return apply(o, ad);
         }
@@ -111,7 +120,8 @@ struct Segment_tree_max {
         push_up(o);
     }
 
-    Node query_max(int o, int l, int r, int x, int y) {
+    Node query_max(int o, int l, int r, int x, int y) 
+    {
         if (x <= l && y >= r) return seg[o];
         push_down(o);
         int mid = l + r >> 1;
@@ -124,7 +134,8 @@ struct Segment_tree_max {
         return res;    
     }
 
-    int find_next(int o, int l, int r, int x, int y, int lim) {
+    int find_next(int o, int l, int r, int x, int y, int lim) 
+    {
         if (seg[o].max < lim) return -1;
         if (l == r) return l;
 
@@ -142,14 +153,16 @@ struct Segment_tree_max {
 
 struct Segment_tree_add {
     int seg[MAX_DISK_SIZE << 2];
-    void set_one(int o, int l, int r) {
+    void set_one(int o, int l, int r) 
+    {
         if (l == r) return seg[o] = 1, void();
         int mid = l + r >> 1;
         set_one(o << 1, l, mid), set_one(o << 1 | 1, mid + 1, r);
         seg[o] = seg[o << 1] + seg[o << 1 | 1];
     }
 
-    int add_unit(int o, int l, int r, int p) {
+    int add_unit(int o, int l, int r, int p) 
+    {
         if (seg[o] < p) return -1;
         if (l == r) {
             seg[o] = 0;
@@ -167,7 +180,8 @@ struct Segment_tree_add {
         return res;
     }
 
-    void delete_unit(int o, int l, int r, int p) {
+    void delete_unit(int o, int l, int r, int p)
+    {
         if (l == r) return seg[o] = 1, void();
         int mid = l + r >> 1;
         if (p <= mid) 
@@ -177,7 +191,8 @@ struct Segment_tree_add {
         return;
     }
 
-    int find_next(int o, int l, int r, int x, int y) {
+    int find_next(int o, int l, int r, int x, int y)
+    {
         if (seg[o] == 0) return -1;
         if (l == r) return l;
 
@@ -199,6 +214,8 @@ struct DISK {
     int test_density_len = 300;
 };
 
+DISK disk[MAX_DISK_NUM];
+
 /*存储每个对象的unit没有解决的request*/
 std::queue<int> unsolve_request[MAX_OBJECT_NUM][MAX_OBJECT_SIZE];
 char request_rest_unit[MAX_REQUEST_NUM];
@@ -218,6 +235,25 @@ std::vector <int> abort_request;
 inline void do_object_delete(int object_id) 
 {
     //delete pos
+    for (int i = 1; i <= 3; ++i) {
+        for (int j = 1; j <= objects[object_id].size; ++j) {
+            auto [disk_id, pos] = objects[object_id].unit_pos[i][j];
+
+            //维护空位置
+            disk[disk_id].empty_pos.delete_unit(1, 1, MAX_DISK_SIZE - 1, pos);
+            //清除request
+            int pre_request = disk[disk_id].request_num.modify(1, 1, MAX_DISK_SIZE - 1, pos, 0); //注意，这个是负数
+
+            //维护density
+            int pre_pos = std::max(1, i - disk[disk_id].test_density_len + 1);
+            disk[disk_id].max_density.add(1, 1, MAX_DISK_SIZE - 1, pre_pos, pos, pre_request);
+            
+            if (pre_pos != i - disk[disk_id].test_density_len + 1) {
+                int rest_num = disk[disk_id].test_density_len - pos;
+                disk[disk_id].max_density.add(1, 1, MAX_DISK_SIZE - 1, MAX_DISK_SIZE - 1 - rest_num + 1, MAX_DISK_SIZE - 1, pre_request);
+            }
+        }
+    }
 
     //find abort req
     for (int i = 1; i <= objects[object_id].size; ++i) {
