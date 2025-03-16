@@ -4,3 +4,10 @@ interactor/
 PDF/
 demos/
 .vscode/
+
+# cmake
+cmake_install.cmake
+Makefile
+result.txt
+CMakeCache.txt
+CMakeFiles
