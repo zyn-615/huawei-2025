@@ -50,7 +50,97 @@ int T, M, N, V, G;
 int disk[MAX_DISK_NUM][MAX_DISK_SIZE];
 int disk_point[MAX_DISK_NUM];
 
-struct Segment_tree {
+struct Segment_tree_max {
+    struct Node {
+        int max, pos;
+        Node() {}
+        Node(int _max, int _pos) : max(_max), pos(_pos) {}
+        friend Node operator + (const Node& x, const int& num) {
+            return Node(x.max + num, x.pos);
+        }
+
+        friend bool operator < (const Node& x, const Node& y) {
+            return x.max < y.max;
+        }
+    };
+
+    Node seg[MAX_DISK_SIZE << 2];
+    int add_tag[MAX_DISK_SIZE << 2];
+
+    inline void apply(int o, int now_ad) {
+        add_tag[o] += now_ad;
+        seg[o] = seg[o] + now_ad;
+    }
+
+    inline void push_down(int o) {
+        if (!add_tag[o]) return ;
+        apply(o << 1, add_tag[o]);
+        apply(o << 1 | 1, add_tag[o]);
+        add_tag[o] = 0;
+    }
+
+    inline void push_up(int o) {
+        seg[o] = std::max(seg[o << 1], seg[o << 1 | 1]);
+    }
+    
+    void modify(int o, int l, int r, int p, int v) {
+        if (l == r) {
+            seg[o] = Node(v, l);
+            return ;
+        }
+        
+        push_down(o);
+        int mid = l + r >> 1;
+        if (p <= mid)
+            modify(o << 1, l, mid, p, v);
+        else modify(o << 1 | 1, mid + 1, r, p, v);
+        push_up(o);
+    }
+
+    void add(int o, int l, int r, int x, int y, int ad) {
+        if (x <= l && y >= r) {
+            return apply(o, ad);
+        }
+
+        int mid = l + r >> 1;
+        push_down(o);
+        if (x <= mid)
+            add(o << 1, l, mid, x, y, ad);
+        if (y > mid)
+            add(o << 1 | 1, mid + 1, r, x, y, ad);
+        push_up(o);
+    }
+
+    Node query_max(int o, int l, int r, int x, int y) {
+        if (x <= l && y >= r) return seg[o];
+        push_down(o);
+        int mid = l + r >> 1;
+        Node res = Node(-1, -1);
+
+        if (x <= mid)
+            res = query_max(o << 1, l, mid, x, y);
+        if (y > mid)
+            res = std::max(res, query_max(o << 1 | 1, mid + 1, r, x, y));
+        return res;    
+    }
+
+    int find_next(int o, int l, int r, int x, int y, int lim) {
+        if (seg[o].max < lim) return -1;
+        if (l == r) return l;
+
+        int mid = l + r >> 1;
+        int best = -1;
+        push_down(o);
+        if (x <= mid) 
+            best = find_next(o << 1, l, r, x, y, lim);
+        if (best == -1 && y > mid) 
+            best = find_next(o << 1 | 1, mid + 1, r, x, y, lim);
+
+        return best;
+    }
+};
+
+struct Segment_tree_add {
     int seg[MAX_DISK_SIZE << 2];
     void set_one(int o, int l, int r) {
         if (l == r) return seg[o] = 1, void();
@@ -102,8 +192,11 @@ struct Segment_tree {
 };
 
 struct DISK {
-    Segment_tree empty_pos;
-    int tag_order[MAX_TAG_NUM + 1];
+    Segment_tree_add empty_pos; //维护空位置
+    Segment_tree_max request_num; //维护每个点的request数量
+    Segment_tree_max max_density; //用于获取每个段的request总和
+    int tag_order[MAX_TAG_NUM + 1]; //每个标签在这个磁盘的固定顺序
+    int test_density_len = 300;
 };
 
 /*存储每个对象的unit没有解决的request*/
