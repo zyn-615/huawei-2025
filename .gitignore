@@ -8,3 +8,10 @@ build/
 replay/
 code_craft.exe
 result.txt
+
+# cmake
+cmake_install.cmake
+Makefile
+result.txt
+CMakeCache.txt
+CMakeFiles/
