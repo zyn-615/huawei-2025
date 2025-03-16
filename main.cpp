@@ -8,7 +8,9 @@
 #define FRE_PER_SLICING (1800)
 #define EXTRA_TIME (105)
 #define MAX_OBJECT_SIZE (5 + 1)
+#define MAX_TAG_NUM (16)
 
+/*
 typedef struct Request_ {
     int object_id;
     int prev_id;
@@ -24,7 +26,8 @@ typedef struct Object_ {
 } Object;
 
 Request request[MAX_REQUEST_NUM];
-Object object[MAX_OBJECT_NUM];
+Object object[MAX_OBJECT_NUM];    
+*/
 
 struct _Object {
     //(磁盘编号，磁盘内位置)
@@ -46,6 +49,62 @@ _Object objects[MAX_OBJECT_NUM];
 int T, M, N, V, G;
 int disk[MAX_DISK_NUM][MAX_DISK_SIZE];
 int disk_point[MAX_DISK_NUM];
+
+struct Segment_tree {
+    int seg[MAX_DISK_SIZE << 2];
+    void set_one(int o, int l, int r) {
+        if (l == r) return seg[o] = 1, void();
+        int mid = l + r >> 1;
+        set_one(o << 1, l, mid), set_one(o << 1 | 1, mid + 1, r);
+        seg[o] = seg[o << 1] + seg[o << 1 | 1];
+    }
+
+    int add_unit(int o, int l, int r, int p) {
+        if (seg[o] < p) return -1;
+        if (l == r) {
+            seg[o] = 0;
+            return l;
+        }
+
+        int mid = l + r >> 1;
+        int res = -1;
+        res = add_unit(o << 1, l, mid, p);
+        if (res == -1) {
+            res = add_unit(o << 1 | 1, mid + 1, r, p - seg[o << 1]);
+        }
+
+        seg[o] = seg[o << 1] + seg[o << 1 | 1];
+        return res;
+    }
+
+    void delete_unit(int o, int l, int r, int p) {
+        if (l == r) return seg[o] = 1, void();
+        int mid = l + r >> 1;
+        if (p <= mid) 
+            delete_unit(o << 1, l, mid, p);
+        else delete_unit(o << 1 | 1, mid + 1, r, p);
+        seg[o] = seg[o << 1] + seg[o << 1 | 1];
+        return;
+    }
+
+    int find_next(int o, int l, int r, int x, int y) {
+        if (seg[o] == 0) return -1;
+        if (l == r) return l;
+
+        int mid = l + r >> 1;
+        int res = -1;
+        if (x <= mid)
+            res = find_next(o << 1, l, mid, x, y);
+        if (y > mid && res == -1)
+            res = find_next(o << 1 | 1, mid + 1, r, x, y);
+        return res;
+    }
+};
+
+struct DISK {
+    Segment_tree empty_pos;
+    int tag_order[MAX_TAG_NUM + 1];
+};
 
 /*存储每个对象的unit没有解决的request*/
 std::queue<int> unsolve_request[MAX_OBJECT_NUM][MAX_OBJECT_SIZE];
@@ -80,13 +139,14 @@ inline void do_object_delete(int object_id)
     }
 }
 
+/*
 void do_object_delete(const int* object_unit, int* disk_unit, int size)
 {
     for (int i = 1; i <= size; i++) {
         disk_unit[object_unit[i]] = 0;
     }
 }
-
+*/
 void delete_action()
 {
     int n_delete;
@@ -98,6 +158,7 @@ void delete_action()
         scanf("%d", &_id[i]);
     }
 
+    /*
     for (int i = 1; i <= n_delete; i++) {
         int id = _id[i];
         int current_id = object[id].last_request_point;
@@ -114,25 +175,26 @@ void delete_action()
         printf("%d\n", req_id);
     }
 
-    // printf("%d\n", abort_num);
-    // for (int i = 1; i <= n_delete; i++) {
-    //     int id = _id[i];
-    //     int current_id = object[id].last_request_point;
-    //     while (current_id != 0) {
-    //         if (request[current_id].is_done == false) {
-    //             printf("%d\n", current_id);
-    //         }
-    //         current_id = request[current_id].prev_id;
-    //     }
-    //     for (int j = 1; j <= REP_NUM; j++) {
-    //         do_object_delete(object[id].unit[j], disk[object[id].replica[j]], object[id].size);
-    //     }
-    //     object[id].is_delete = true;
-    // }
-
+    printf("%d\n", abort_num);
+    for (int i = 1; i <= n_delete; i++) {
+        int id = _id[i];
+        int current_id = object[id].last_request_point;
+        while (current_id != 0) {
+            if (request[current_id].is_done == false) {
+                printf("%d\n", current_id);
+            }
+            current_id = request[current_id].prev_id;
+        }
+        for (int j = 1; j <= REP_NUM; j++) {
+            do_object_delete(object[id].unit[j], disk[object[id].replica[j]], object[id].size);
+        }
+        object[id].is_delete = true;
+    }
+*/
     fflush(stdout);
 }
 
+/*
 void do_object_write(int* object_unit, int* disk_unit, int size, int object_id)
 {
     int current_write_point = 0;
@@ -148,7 +210,7 @@ void do_object_write(int* object_unit, int* disk_unit, int size, int object_id)
 
     assert(current_write_point == size);
 }
-
+*/
 /*存储磁盘的每一段*/
 struct spare_block {
     int l, r, len;
@@ -159,6 +221,7 @@ struct spare_block {
 
 std::multiset<spare_block> remain[MAX_DISK_NUM];
 
+//no
 void write_action()
 {
     int n_write;
@@ -194,6 +257,7 @@ void write_action()
     fflush(stdout);
 }
 
+//use
 inline void read_unit(int id, int unit_id) 
 {
     while (!unsolve_request[id][unit_id].empty()) {
@@ -207,6 +271,7 @@ inline void read_unit(int id, int unit_id)
     }
 }
 
+//use
 inline void update_unsolved_request(int request_id, int object_id) 
 {
     request_rest_unit[request_id] = objects[object_id].size;
@@ -284,6 +349,7 @@ void read_action()
     fflush(stdout);
 }
 
+/*
 void clean()
 {
     for (auto& obj : object) {
@@ -295,6 +361,7 @@ void clean()
         }
     }
 }
+*/
 
 int main()
 {
@@ -302,7 +369,7 @@ int main()
 
     for (int i = 1; i <= M; i++) {
         for (int j = 1; j <= (T - 1) / FRE_PER_SLICING + 1; j++) {
-            scanf("%*d");
+            scanf("%*d"); 
         }
     }
 
@@ -331,7 +398,7 @@ int main()
         write_action();
         read_action();
     }
-    clean();
+    // clean();
 
     return 0;
 }
