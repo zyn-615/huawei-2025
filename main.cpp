@@ -583,7 +583,7 @@ void read_action(int time)
     for (int cur_disk_id = 1; cur_disk_id <= N; ++cur_disk_id) {
         // std::cerr << "cur_disk_id: " << cur_disk_id << std::endl;
         DISK &cur_disk = disk[cur_disk_id];
-        if (time % READ_ROUND_TIME == 1) {
+        if (time % READ_ROUND_TIME == 1000000) {
             int p = cur_disk.max_density.find_max_point();
             // std::cerr << "max_point: " << p << std::endl;
             if (p == -1 || get_dist(cur_disk.pointer, p) <= G) { //如果距离足够近
