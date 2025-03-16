@@ -601,8 +601,10 @@ void read_action(int time)
     printf("%ld\n", solved_request.size());
     // std::cerr << "SOLSOLSOLS : " << solved_request.size() << std::endl;
     for (int request_id : solved_request) {
+        std::cerr << request_id << " ";
         printf("%d\n", request_id);
     }
+    std::cerr << std::endl;
 
     solved_request.clear();
     fflush(stdout);
@@ -642,20 +644,20 @@ int main()
     }
 
     for (int t = 1; t <= T + EXTRA_TIME; t++) {
-        // std::cerr << "start time " << t << std::endl;
-        // std::cerr << "start timestamp_action" <<std::endl;
+        std::cerr << "start time " << t << std::endl;
+        std::cerr << "start timestamp_action" <<std::endl;
         timestamp_action();
-        // std::cerr << "end timestamp_action" <<std::endl;
-        // std::cerr << "start delete_action" <<std::endl;
+        std::cerr << "end timestamp_action" <<std::endl;
+        std::cerr << "start delete_action" <<std::endl;
         delete_action();
-        // std::cerr << "end delete_action" <<std::endl;
-        // std::cerr << "start write_action" <<std::endl;
+        std::cerr << "end delete_action" <<std::endl;
+        std::cerr << "start write_action" <<std::endl;
         write_action();
-        // std::cerr << "end write_action" <<std::endl;
-        // std::cerr << "start read_action" <<std::endl;
+        std::cerr << "end write_action" <<std::endl;
+        std::cerr << "start read_action" <<std::endl;
         read_action(t);
-        // std::cerr << "end read_action" <<std::endl;
-        // std::cerr << "end time " << t << std::endl;
+        std::cerr << "end read_action" <<std::endl;
+        std::cerr << "end time " << t << std::endl;
     }
 
     return 0;
