@@ -505,6 +505,8 @@ void read_without_jump(DISK &cur_disk)
 {
     while (cur_disk.rest_token > 0) {
         int nxt_p = cur_disk.request_num.find_next(cur_disk.pointer, 1);
+        if (nxt_p == -1)
+            break;
         if (chosse_pass(cur_disk, nxt_p)) {
             while (cur_disk.rest_token > 0 && cur_disk.pointer < nxt_p)
                 do_pointer_pass(cur_disk);
@@ -544,7 +546,7 @@ void read_action(int time)
         DISK &cur_disk = disk[cur_disk_id];
         if (time % READ_ROUND_TIME == 1) {
             int p = cur_disk.max_density.find_max_point();
-            if (get_dist(cur_disk.pointer, p) <= G) { //如果距离足够近
+            if (p == -1 || get_dist(cur_disk.pointer, p) <= G) { //如果距离足够近
                 read_without_jump(cur_disk);
             }
             else
