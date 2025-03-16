@@ -444,7 +444,7 @@ inline void update_unsolved_request(int request_id, int object_id)
     }
 }
 
-//进行一次jump
+//指针进行一次jump
 void do_pointer_jump(DISK cur_disk, int destination) 
 {
     printf("j %d\n", destination);
@@ -455,7 +455,7 @@ void do_pointer_jump(DISK cur_disk, int destination)
 }
 
 /*
-进行一次pass
+指针进行一次pass
 1 success
 0 fail
 */
@@ -471,7 +471,7 @@ int do_pointer_pass(DISK &cur_disk)
     return 1;
 }
 /*
-进行一次read
+指针进行一次read
 1 success
 0 fail
 */
