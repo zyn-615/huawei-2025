@@ -301,7 +301,8 @@ void timestamp_action()
 std::vector <int> abort_request;
 
 //维护density
-inline void modify_max_density(int disk_id, int pos, int delta_request) {
+inline void modify_max_density(int disk_id, int pos, int delta_request) 
+{
     int pre_pos = std::max(1, pos - disk[disk_id].test_density_len + 1);
     disk[disk_id].max_density.add(1, 1, V, pre_pos, pos, delta_request);
     
@@ -311,12 +312,14 @@ inline void modify_max_density(int disk_id, int pos, int delta_request) {
     }
 }
 
-inline void modify_unit_request(int disk_id, int pos, int value) {
+inline void modify_unit_request(int disk_id, int pos, int value) 
+{
     int delta_request = disk[disk_id].request_num.modify(1, 1, V, pos, value);
     modify_max_density(disk_id, pos, delta_request);
 }
 
-inline void add_unit_request(int disk_id, int pos) {
+inline void add_unit_request(int disk_id, int pos) 
+{
     disk[disk_id].request_num.add(1, 1, V, pos, pos, 1);
     modify_max_density(disk_id, pos, 1);
 }
@@ -324,7 +327,7 @@ inline void add_unit_request(int disk_id, int pos) {
 inline void do_object_delete(int object_id) 
 {
     //delete pos
-    for (int i = 1; i <= 3; ++i) {
+    for (int i = 1; i <= REP_NUM; ++i) {
         for (int j = 1; j <= objects[object_id].size; ++j) {
             auto [disk_id, pos] = objects[object_id].unit_pos[i][j];
 
@@ -345,6 +348,8 @@ inline void do_object_delete(int object_id)
                 abort_request.push_back(now_request);
                 request_rest_unit[now_request] = -1;
             }
+
+            unsolve_request[object_id][i].pop();
         }
     }
 }
@@ -356,16 +361,21 @@ void delete_action()
     static int _id[MAX_OBJECT_NUM];
 
     scanf("%d", &n_delete);
+    // std::cerr << "statDelete : " << n_delete << std::endl;
     for (int i = 1; i <= n_delete; i++) {
         scanf("%d", &_id[i]);
+        // std::cerr << "delete : " << _id[i] << std::endl;
         do_object_delete(_id[i]);
     }
-
+    
+    // std::cerr << "END" << std::endl;
     printf("%ld\n", abort_request.size());
+    // std::cerr << "NOWNOW :: " << abort_request.size() << std::endl;
     for (int req_id : abort_request) {
         printf("%d\n", req_id);
     }
 
+    abort_request.clear();
     fflush(stdout);
 }
 
@@ -493,8 +503,10 @@ int do_pointer_read(DISK &cur_disk)
     //清除request
     int& pos = cur_disk.pointer;
     auto [object_id, unit_id] = cur_disk.unit_object[pos];
+    
     if (object_id != 0) {
-        for (int i = 1; i <= 3; ++i) {
+        read_unit(object_id, unit_id);
+        for (int i = 1; i <= REP_NUM; ++i) {
             auto [disk_id, unit_pos] = objects[object_id].unit_pos[i][unit_id];
             modify_unit_request(disk_id, unit_pos, 0);
         }
@@ -523,13 +535,13 @@ bool chosse_pass(DISK &cur_disk, int destination)
 void read_without_jump(DISK &cur_disk)
 {
     while (cur_disk.rest_token > 0) {
-        std::cerr << "cur_disk.rest_token: " << cur_disk.rest_token << std::endl;
-        std::cerr << "cur_disk.point: " << cur_disk.pointer << std::endl;
+        // std::cerr << "cur_disk.rest_token: " << cur_disk.rest_token << std::endl;
+        // std::cerr << "cur_disk.point: " << cur_disk.pointer << std::endl;
         int nxt_p = cur_disk.request_num.find_next(cur_disk.pointer, 1);
-        std::cerr << "nxt_p: " << nxt_p << std::endl;
+        // std::cerr << "nxt_p: " << nxt_p << std::endl;
         if (nxt_p == -1)
             break;
-        std::cerr << "choose_pass? " << chosse_pass(cur_disk, nxt_p) << std::endl;
+        // std::cerr << "choose_pass? " << chosse_pass(cur_disk, nxt_p) << std::endl;
         if (chosse_pass(cur_disk, nxt_p)) {
             while (cur_disk.pointer != nxt_p)
                 if (!do_pointer_pass(cur_disk))
@@ -557,24 +569,24 @@ void read_action(int time)
     scanf("%d", &n_read);
     for (int i = 1; i <= n_read; i++) {
         scanf("%d%d", &request_id, &object_id);
-        std::cerr << "request_id : " << request_id << " " << "ob : " << object_id << std::endl;
+        // std::cerr << "request_id : " << request_id << " " << "ob : " << object_id << std::endl;
         requests[request_id].object_id = object_id;
         update_unsolved_request(request_id, object_id);
     }
 
-    std::cerr << "in read_action: finish read" << std::endl;
-    std::cerr << "in read_action: start move pointer" << std::endl;
+    // std::cerr << "in read_action: finish read" << std::endl;
+    // std::cerr << "in read_action: start move pointer" << std::endl;
 
     //磁头移动操作
     const int DIST_NOT_JUMP = G;
     for (int cur_disk_id = 1; cur_disk_id <= N; ++cur_disk_id) {
-        std::cerr << "cur_disk_id: " << cur_disk_id << std::endl;
+        // std::cerr << "cur_disk_id: " << cur_disk_id << std::endl;
         DISK &cur_disk = disk[cur_disk_id];
         if (time % READ_ROUND_TIME == 1) {
             int p = cur_disk.max_density.find_max_point();
-            std::cerr << "max_point: " << p << std::endl;
+            // std::cerr << "max_point: " << p << std::endl;
             if (p == -1 || get_dist(cur_disk.pointer, p) <= G) { //如果距离足够近
-                std::cerr << "start read_without_jump" << std::endl;
+                // std::cerr << "start read_without_jump" << std::endl;
                 read_without_jump(cur_disk);
             }
             else
@@ -583,10 +595,11 @@ void read_action(int time)
         else
             read_without_jump(cur_disk);
     }
-    std::cerr << "in read_action: end move pointer" << std::endl;
+    // std::cerr << "in read_action: end move pointer" << std::endl;
 
     //solved request
     printf("%ld\n", solved_request.size());
+    // std::cerr << "SOLSOLSOLS : " << solved_request.size() << std::endl;
     for (int request_id : solved_request) {
         printf("%d\n", request_id);
     }
@@ -597,7 +610,7 @@ void read_action(int time)
 
 int main()
 {
-    std::cerr << "start input global information" << std::endl;
+    // std::cerr << "start input global information" << std::endl;
     scanf("%d%d%d%d%d", &T, &M, &N, &V, &G);
     for (int i = 1; i <= M; i++) {
         for (int j = 1; j <= (T - 1) / FRE_PER_SLICING + 1; j++) {
@@ -616,7 +629,7 @@ int main()
             scanf("%*d");
         }
     }
-    std::cerr << "end input global information" << std::endl;
+    // std::cerr << "end input global information" << std::endl;
     init();
     printf("OK\n");
     fflush(stdout);
@@ -629,20 +642,20 @@ int main()
     }
 
     for (int t = 1; t <= T + EXTRA_TIME; t++) {
-        std::cerr << "start time " << t << std::endl;
-        std::cerr << "start timestamp_action" <<std::endl;
+        // std::cerr << "start time " << t << std::endl;
+        // std::cerr << "start timestamp_action" <<std::endl;
         timestamp_action();
-        std::cerr << "end timestamp_action" <<std::endl;
-        std::cerr << "start delete_action" <<std::endl;
+        // std::cerr << "end timestamp_action" <<std::endl;
+        // std::cerr << "start delete_action" <<std::endl;
         delete_action();
-        std::cerr << "end delete_action" <<std::endl;
-        std::cerr << "start write_action" <<std::endl;
+        // std::cerr << "end delete_action" <<std::endl;
+        // std::cerr << "start write_action" <<std::endl;
         write_action();
-        std::cerr << "end write_action" <<std::endl;
-        std::cerr << "start read_action" <<std::endl;
+        // std::cerr << "end write_action" <<std::endl;
+        // std::cerr << "start read_action" <<std::endl;
         read_action(t);
-        std::cerr << "end read_action" <<std::endl;
-        std::cerr << "end time " << t << std::endl;
+        // std::cerr << "end read_action" <<std::endl;
+        // std::cerr << "end time " << t << std::endl;
     }
 
     return 0;
