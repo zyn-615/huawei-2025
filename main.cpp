@@ -24,7 +24,7 @@
 #define MAX_TAG_NUM (16 + 1)
 #define MAX_STAGE (50)
 
-const int READ_ROUND_TIME = 5; //一轮读取的时间
+const int READ_ROUND_TIME = 7; //一轮读取的时间
 
 struct _Object {
     //(磁盘编号，磁盘内位置)
@@ -493,6 +493,16 @@ int do_pointer_pass(DISK &cur_disk)
 1 success
 0 fail
 */
+
+inline void read_unit_update(int object_id, int unit_id) 
+{
+    read_unit(object_id, unit_id);
+    for (int i = 1; i <= REP_NUM; ++i) {
+        auto [disk_id, unit_pos] = objects[object_id].unit_pos[i][unit_id];
+        modify_unit_request(disk_id, unit_pos, 0);
+    }
+}
+
 int do_pointer_read(DISK &cur_disk) 
 {
     int read_cost = cur_disk.last_read_cnt?
@@ -506,11 +516,7 @@ int do_pointer_read(DISK &cur_disk)
     auto [object_id, unit_id] = cur_disk.unit_object[pos];
     
     if (object_id != 0) {
-        read_unit(object_id, unit_id);
-        for (int i = 1; i <= REP_NUM; ++i) {
-            auto [disk_id, unit_pos] = objects[object_id].unit_pos[i][unit_id];
-            modify_unit_request(disk_id, unit_pos, 0);
-        }
+        read_unit_update(object_id, unit_id);
     }
 
     pos = pos % V + 1;
