@@ -518,10 +518,6 @@ void read_action(int time)
         scanf("%d%d", &request_id, &object_id);
         requests[request_id].object_id = object_id;
         update_unsolved_request(request_id, object_id);
-        // request[request_id].object_id = object_id;
-        // request[request_id].prev_id = object[object_id].last_request_point;
-        // object[object_id].last_request_point = request_id;
-        // request[request_id].is_done = false;
     }
 
     //磁头移动操作
@@ -547,63 +543,8 @@ void read_action(int time)
     }
 
     solved_request.clear();
-
-    /*
-    static int current_request = 0;
-    static int current_phase = 0;
-    if (!current_request && n_read > 0) {
-        current_request = request_id;
-    }
-    if (!current_request) {
-        for (int i = 1; i <= N; i++) {
-            printf("#\n");
-        }
-        printf("0\n");
-    } else {
-        current_phase++;
-        object_id = request[current_request].object_id;
-        for (int i = 1; i <= N; i++) {
-            if (i == object[object_id].replica[1]) {
-                if (current_phase % 2 == 1) {
-                    printf("j %d\n", object[object_id].unit[1][current_phase / 2 + 1]);
-                } else {
-                    printf("r#\n");
-                }
-            } else {
-                printf("#\n");
-            }
-        }
-
-        if (current_phase == object[object_id].size * 2) {
-            if (object[object_id].is_delete) {
-                printf("0\n");
-            } else {
-                printf("1\n%d\n", current_request);
-                request[current_request].is_done = true;
-            }
-            current_request = 0;
-            current_phase = 0;
-        } else {
-            printf("0\n");
-        }
-    }*/
-
     fflush(stdout);
 }
-
-/*
-void clean()
-{
-    for (auto& obj : object) {
-        for (int i = 1; i <= REP_NUM; i++) {
-            if (obj.unit[i] == nullptr)
-                continue;
-            free(obj.unit[i]);
-            obj.unit[i] = nullptr;
-        }
-    }
-}
-*/
 
 int main()
 {
@@ -642,7 +583,6 @@ int main()
         write_action();
         read_action(t);
     }
-    // clean();
 
     return 0;
 }
