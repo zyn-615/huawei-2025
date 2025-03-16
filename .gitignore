@@ -4,10 +4,13 @@ interactor/
 PDF/
 demos/
 .vscode/
-
-# cmake
+build/
+replay/
+code_craft.exe
+result.txt
 cmake_install.cmake
 Makefile
 result.txt
 CMakeCache.txt
+CMakeFiles/
 CMakeFiles/
