@@ -502,6 +502,7 @@ int do_pointer_read(DISK &cur_disk)
 
     pos = (pos + 1) % V + 1;
     ++cur_disk.last_read_cnt;
+    cur_disk.rest_token -= read_cost;
     cur_disk.last_read_cost = read_cost;
     return 1;
 }
@@ -528,16 +529,19 @@ void read_without_jump(DISK &cur_disk)
         std::cerr << "nxt_p: " << nxt_p << std::endl;
         if (nxt_p == -1)
             break;
+        std::cerr << "choose_pass? " << chosse_pass(cur_disk, nxt_p) << std::endl;
         if (chosse_pass(cur_disk, nxt_p)) {
-            while (cur_disk.rest_token > 0 && cur_disk.pointer < nxt_p)
-                do_pointer_pass(cur_disk);
-            do_pointer_read(cur_disk);    
+            while (cur_disk.pointer != nxt_p)
+                if (!do_pointer_pass(cur_disk))
+                    break;
         }
         else {
-            while (cur_disk.pointer <= nxt_p)
+            while (cur_disk.pointer != nxt_p)
                 if (!do_pointer_read(cur_disk))
                     break;
         }
+        if (!do_pointer_read(cur_disk))
+            break;
     }
     printf("#\n");
     //int p = disk[cur_disk].request_num.find_next()
