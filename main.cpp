@@ -538,9 +538,12 @@ void read_action(int time)
     scanf("%d", &n_read);
     for (int i = 1; i <= n_read; i++) {
         scanf("%d%d", &request_id, &object_id);
+        std::cerr << "request_id : " << request_id << " " << "ob : " << object_id << std::endl;
         requests[request_id].object_id = object_id;
         update_unsolved_request(request_id, object_id);
     }
+
+    std::cerr << "finish read in read_action" << std::endl;
 
     //磁头移动操作
     const int DIST_NOT_JUMP = G;
