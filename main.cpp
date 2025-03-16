@@ -8,7 +8,8 @@
 #define FRE_PER_SLICING (1800)
 #define EXTRA_TIME (105)
 #define MAX_OBJECT_SIZE (5 + 1)
-#define MAX_TAG_NUM (16)
+#define MAX_TAG_NUM (16 + 1)
+#define MAX_STAGE (50)
 
 const int READ_ROUND_TIME = 5; //一轮读取的时间
 
@@ -206,12 +207,21 @@ struct DISK {
     int last_read_cnt = 0; //上一次操作往前连续读取的次数
     int last_read_cost = -1; //-1: 上一次不为读取操作 否则为上一次读取操作的花费
     int rest_token;
-    int tag_order[MAX_TAG_NUM + 1]; //每个标签在这个磁盘的固定顺序
-    int tag_distribution[MAX_TAG_NUM + 1];
+    int tag_order[MAX_TAG_NUM]; //每个标签在这个磁盘的固定顺序
+    int tag_distribution[MAX_TAG_NUM];
+    std::pair <int, int> unit_object[MAX_DISK_SIZE];
     int test_density_len = 300;
 };
 
 DISK disk[MAX_DISK_NUM];
+
+struct Predict {
+    int add_object;
+    int delete_object;
+    int read_object;
+};
+
+Predict Info[MAX_TAG_NUM][MAX_STAGE];
 
 /*存储每个对象的unit没有解决的request*/
 std::queue<int> unsolve_request[MAX_OBJECT_NUM][MAX_OBJECT_SIZE];
@@ -247,6 +257,19 @@ void timestamp_action()
 
 /*未完成的请求*/
 std::vector <int> abort_request;
+
+inline void delete_unit_request(int disk_id, int pos) {
+    int pre_request = disk[disk_id].request_num.modify(1, 1, V, pos, 0); //注意，这个是负数
+    //维护density
+    int pre_pos = std::max(1, pos - disk[disk_id].test_density_len + 1);
+    disk[disk_id].max_density.add(1, 1, V, pre_pos, pos, pre_request);
+    
+    if (pre_pos != pos - disk[disk_id].test_density_len + 1) {
+        int rest_num = disk[disk_id].test_density_len - pos;
+        disk[disk_id].max_density.add(1, 1, V, V - rest_num + 1, V, pre_request);
+    }
+}
+
 inline void do_object_delete(int object_id) 
 {
     //delete pos
@@ -257,16 +280,8 @@ inline void do_object_delete(int object_id)
             //维护空位置
             disk[disk_id].empty_pos.delete_unit(1, 1, V, pos);
             //清除request
-            int pre_request = disk[disk_id].request_num.modify(1, 1, V, pos, 0); //注意，这个是负数
-
-            //维护density
-            int pre_pos = std::max(1, i - disk[disk_id].test_density_len + 1);
-            disk[disk_id].max_density.add(1, 1, V, pre_pos, pos, pre_request);
-            
-            if (pre_pos != i - disk[disk_id].test_density_len + 1) {
-                int rest_num = disk[disk_id].test_density_len - pos;
-                disk[disk_id].max_density.add(1, 1, V, V - rest_num + 1, V, pre_request);
-            }
+            delete_unit_request(disk_id, pos);
+            disk[disk_id].unit_object[pos] = {0, 0};
         }
     }
 
@@ -275,7 +290,7 @@ inline void do_object_delete(int object_id)
         while (!unsolve_request[object_id][i].empty()) {
             int now_request = unsolve_request[object_id][i].front();
 
-            if (request_rest_unit[now_request] != -1) {
+            if (request_rest_unit[now_request] > 0) {
                 abort_request.push_back(now_request);
                 request_rest_unit[now_request] = -1;
             }
@@ -446,7 +461,18 @@ int do_pointer_read(DISK &cur_disk)
     if (cur_disk.rest_token < read_cost)
         return 0;
     printf("r");
-    cur_disk.pointer = (cur_disk.pointer + 1) % V + 1;
+    
+    //清除request
+    int& pos = cur_disk.pointer;
+    auto [object_id, unit_id] = cur_disk.unit_object[pos];
+    if (object_id != 0) {
+        for (int i = 1; i <= 3; ++i) {
+            auto [disk_id, unit_pos] = objects[object_id].unit_pos[i][unit_id];
+            delete_unit_request(disk_id, unit_pos);
+        }
+    }
+
+    pos = (pos + 1) % V + 1;
     ++cur_disk.last_read_cnt;
     cur_disk.last_read_cost = read_cost;
     return 1;
