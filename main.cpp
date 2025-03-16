@@ -197,6 +197,10 @@ struct Segment_tree_add {
             res = find_next(o << 1 | 1, mid + 1, r, x, y);
         return res;
     }
+
+    inline int query_rest_unit() {
+        return seg[1];
+    }
 };
 
 struct DISK {
@@ -258,16 +262,25 @@ void timestamp_action()
 /*未完成的请求*/
 std::vector <int> abort_request;
 
-inline void delete_unit_request(int disk_id, int pos) {
-    int pre_request = disk[disk_id].request_num.modify(1, 1, V, pos, 0); //注意，这个是负数
-    //维护density
+//维护density
+inline void modify_max_density(int disk_id, int pos, int delta_request) {
     int pre_pos = std::max(1, pos - disk[disk_id].test_density_len + 1);
-    disk[disk_id].max_density.add(1, 1, V, pre_pos, pos, pre_request);
+    disk[disk_id].max_density.add(1, 1, V, pre_pos, pos, delta_request);
     
     if (pre_pos != pos - disk[disk_id].test_density_len + 1) {
         int rest_num = disk[disk_id].test_density_len - pos;
-        disk[disk_id].max_density.add(1, 1, V, V - rest_num + 1, V, pre_request);
+        disk[disk_id].max_density.add(1, 1, V, V - rest_num + 1, V, delta_request);
     }
+}
+
+inline void modify_unit_request(int disk_id, int pos, int value) {
+    int delta_request = disk[disk_id].request_num.modify(1, 1, V, pos, value);
+    modify_max_density(disk_id, pos, delta_request);
+}
+
+inline void add_unit_request(int disk_id, int pos) {
+    disk[disk_id].request_num.add(1, 1, V, pos, pos, 1);
+    modify_max_density(disk_id, pos, 1);
 }
 
 inline void do_object_delete(int object_id) 
@@ -280,7 +293,7 @@ inline void do_object_delete(int object_id)
             //维护空位置
             disk[disk_id].empty_pos.delete_unit(1, 1, V, pos);
             //清除request
-            delete_unit_request(disk_id, pos);
+            modify_unit_request(disk_id, pos, 0);
             disk[disk_id].unit_object[pos] = {0, 0};
         }
     }
@@ -346,23 +359,11 @@ void delete_action()
     fflush(stdout);
 }
 
-/*
-void do_object_write(int* object_unit, int* disk_unit, int size, int object_id)
-{
-    int current_write_point = 0;
-    for (int i = 1; i <= V; i++) {
-        if (disk_unit[i] == 0) {
-            disk_unit[i] = object_id;
-            object_unit[++current_write_point] = i;
-            if (current_write_point == size) {
-                break;
-            }
-        }
-    }
-
-    assert(current_write_point == size);
+inline void write_unit(int object_id, int unit_id, int disk_id, int write_pos, int repeat_id) {
+    disk[disk_id].empty_pos.add_unit(1, 1, V, write_pos);
+    disk[disk_id].unit_object[write_pos] = {object_id, unit_id};
+    objects[object_id].unit_pos[repeat_id][unit_id] = {disk_id, write_pos};
 }
-*/
 
 //no
 void write_action()
@@ -370,33 +371,30 @@ void write_action()
     int n_write;
     scanf("%d", &n_write);
     for (int i = 1; i <= n_write; ++i) {
+        int id, size, tag;
+        scanf("%d %d %d", &id, &size, &tag);
+        objects[id].size = size;
+        objects[id].tag = tag;
 
-    }
-    /*
-    int n_write;
-    scanf("%d", &n_write);
-    for (int i = 1; i <= n_write; i++) {
-        int id, size;
-        scanf("%d%d%*d", &id, &size);
-        object[id].last_request_point = 0;
-        for (int j = 1; j <= REP_NUM; j++) {
-            object[id].replica[j] = (id + j) % N + 1;
-            object[id].unit[j] = static_cast<int*>(malloc(sizeof(int) * (size + 1)));
-            object[id].size = size;
-            object[id].is_delete = false;
-            do_object_write(object[id].unit[j], disk[object[id].replica[j]], size, id);
-        }
-
-        printf("%d\n", id);
-        for (int j = 1; j <= REP_NUM; j++) {
-            printf("%d", object[id].replica[j]);
-            for (int k = 1; k <= size; k++) {
-                printf(" %d", object[id].unit[j][k]);
+        std::vector <int> pos(N);
+        std::iota(pos.begin(), pos.end(), 1);
+        std::random_shuffle(pos.begin(), pos.end());
+        int now = 0;
+        for (int j = 1; j <= 3; ++j) {
+            int disk_id = pos[now];
+            while (disk[disk_id].empty_pos.query_rest_unit() < size) {
+                disk_id = pos[++now];
             }
-            printf("\n");
+
+            for (int k = 1, pre = 0; k <= size; ++k) {
+                int nxt = disk[disk_id].empty_pos.find_next(1, 1, V, pre + 1, V);
+                write_unit(id, disk_id, k, nxt, j);
+                pre = nxt;
+            }
+
+            disk_id = pos[++now];
         }
     }
-    */
     fflush(stdout);
 }
 
@@ -418,8 +416,14 @@ inline void read_unit(int id, int unit_id)
 inline void update_unsolved_request(int request_id, int object_id) 
 {
     request_rest_unit[request_id] = objects[object_id].size;
-    for (int i = 1; i <= objects[object_id].size; ++i) {
-        unsolve_request[object_id][i].push(request_id);
+
+    for (int j = 1; j <= objects[object_id].size; ++j) {
+        unsolve_request[object_id][j].push(request_id);       
+
+        for (int i = 1; i <= 3; ++i) {
+            auto [disk_id, unit_id] = objects[object_id].unit_pos[i][j];
+            add_unit_request(disk_id, unit_id);
+        }
     }
 }
 
@@ -468,7 +472,7 @@ int do_pointer_read(DISK &cur_disk)
     if (object_id != 0) {
         for (int i = 1; i <= 3; ++i) {
             auto [disk_id, unit_pos] = objects[object_id].unit_pos[i][unit_id];
-            delete_unit_request(disk_id, unit_pos);
+            modify_unit_request(disk_id, unit_pos, 0);
         }
     }
 
@@ -543,7 +547,7 @@ void read_action(int time)
     }
 
     //solved request
-    printf("%ld\n", solved_request.size());
+    printf("%d\n", solved_request.size());
     for (int request_id : solved_request) {
         printf("%d\n", request_id);
     }
