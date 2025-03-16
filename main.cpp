@@ -522,7 +522,10 @@ bool chosse_pass(DISK &cur_disk, int destination)
 void read_without_jump(DISK &cur_disk)
 {
     while (cur_disk.rest_token > 0) {
+        std::cerr << "cur_disk.rest_token: " << cur_disk.rest_token << std::endl;
+        std::cerr << "cur_disk.point: " << cur_disk.pointer << std::endl;
         int nxt_p = cur_disk.request_num.find_next(cur_disk.pointer, 1);
+        std::cerr << "nxt_p: " << nxt_p << std::endl;
         if (nxt_p == -1)
             break;
         if (chosse_pass(cur_disk, nxt_p)) {
@@ -567,6 +570,7 @@ void read_action(int time)
             int p = cur_disk.max_density.find_max_point();
             std::cerr << "max_point: " << p << std::endl;
             if (p == -1 || get_dist(cur_disk.pointer, p) <= G) { //如果距离足够近
+                std::cerr << "start read_without_jump" << std::endl;
                 read_without_jump(cur_disk);
             }
             else
