@@ -62,6 +62,18 @@ struct Segment_tree_max {
     Node seg[MAX_DISK_SIZE << 2];
     int add_tag[MAX_DISK_SIZE << 2];
 
+    void build(int o, int l, int r) {
+        if (l == r) {
+            seg[o].pos = l;
+            return ;
+        }
+
+        int mid = l + r >> 1;
+        build(o << 1, l, mid);
+        build(o << 1 | 1, mid + 1, r);
+        seg[o] = seg[o << 1];
+    }
+
     inline void apply(int o, int now_ad) 
     {
         add_tag[o] += now_ad;
@@ -432,7 +444,7 @@ inline void update_unsolved_request(int request_id, int object_id)
     for (int j = 1; j <= objects[object_id].size; ++j) {
         unsolve_request[object_id][j].push(request_id);       
 
-        for (int i = 1; i <= 3; ++i) {
+        for (int i = 1; i <= REP_NUM; ++i) {
             auto [disk_id, unit_id] = objects[object_id].unit_pos[i][j];
             add_unit_request(disk_id, unit_id);
         }
@@ -604,6 +616,8 @@ int main()
     for (int i = 1; i <= N; i++) {
         disk[i].pointer = 1;
         disk[i].empty_pos.set_one(1, 1, V);
+        disk[i].request_num.build(1, 1, V);
+        disk[i].max_density.build(1, 1, V);
     }
 
     for (int t = 1; t <= T + EXTRA_TIME; t++) {
