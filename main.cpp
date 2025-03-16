@@ -445,7 +445,7 @@ inline void update_unsolved_request(int request_id, int object_id)
 }
 
 //进行一次jump
-void do_jump(DISK cur_disk, int destination) 
+void do_pointer_jump(DISK cur_disk, int destination) 
 {
     printf("j %d\n", destination);
     cur_disk.pointer = destination;
@@ -459,7 +459,7 @@ void do_jump(DISK cur_disk, int destination)
 1 success
 0 fail
 */
-int do_pass(DISK &cur_disk) 
+int do_pointer_pass(DISK &cur_disk) 
 {
     if (!cur_disk.rest_token)
         return 0;
@@ -475,7 +475,7 @@ int do_pass(DISK &cur_disk)
 1 success
 0 fail
 */
-int do_read(DISK &cur_disk) 
+int do_pointer_read(DISK &cur_disk) 
 {
     int read_cost = cur_disk.last_read_cnt?
         std::max(16, (cur_disk.last_read_cost * 4 + 5 - 1) / 5) : 64;
@@ -506,12 +506,12 @@ void read_without_jump(DISK &cur_disk)
         int nxt_p = cur_disk.request_num.find_next(cur_disk.pointer, 1);
         if (chosse_pass(cur_disk, nxt_p)) {
             while (cur_disk.rest_token > 0 && cur_disk.pointer < nxt_p)
-                do_pass(cur_disk);
-            do_read(cur_disk);    
+                do_pointer_pass(cur_disk);
+            do_pointer_read(cur_disk);    
         }
         else {
             while (cur_disk.pointer <= nxt_p)
-                if (!do_read(cur_disk))
+                if (!do_pointer_read(cur_disk))
                     break;
         }
     }
@@ -546,9 +546,8 @@ void read_action(int time)
             if (get_dist(cur_disk.pointer, p) <= G) { //如果距离足够近
                 read_without_jump(cur_disk);
             }
-            else {
-                printf("j %d\n", p);
-            }
+            else
+                do_pointer_jump(cur_disk, p);
         }
         else
             read_without_jump(cur_disk);
