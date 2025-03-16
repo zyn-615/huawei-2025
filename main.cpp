@@ -10,25 +10,6 @@
 #define MAX_OBJECT_SIZE (5 + 1)
 #define MAX_TAG_NUM (16)
 
-/*
-typedef struct Request_ {
-    int object_id;
-    int prev_id;
-    bool is_done;
-} Request;
-
-typedef struct Object_ {
-    int replica[REP_NUM + 1];
-    int* unit[REP_NUM + 1];
-    int size;
-    int last_request_point;
-    bool is_delete;
-} Object;
-
-Request request[MAX_REQUEST_NUM];
-Object object[MAX_OBJECT_NUM];    
-*/
-
 const int READ_ROUND_TIME = 5; //一轮读取的时间
 
 struct _Object {
@@ -49,8 +30,6 @@ _Request requests[MAX_REQUEST_NUM];
 _Object objects[MAX_OBJECT_NUM];
 
 int T, M, N, V, G;
-// int disk[MAX_DISK_NUM][MAX_DISK_SIZE];
-//int disk_point[MAX_DISK_NUM];
 
 struct Segment_tree_max {
     struct Node {
@@ -228,6 +207,7 @@ struct DISK {
     int last_read_cost = -1; //-1: 上一次不为读取操作 否则为上一次读取操作的花费
     int rest_token;
     int tag_order[MAX_TAG_NUM + 1]; //每个标签在这个磁盘的固定顺序
+    int tag_distribution[MAX_TAG_NUM + 1];
     int test_density_len = 300;
 };
 
@@ -574,7 +554,6 @@ int main()
 
     for (int i = 1; i <= N; i++) {
         disk[i].pointer = 1;
-        //disk_point[i] = 1;
     }
 
     for (int t = 1; t <= T + EXTRA_TIME; t++) {
