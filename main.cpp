@@ -205,7 +205,7 @@ struct Segment_tree_add {
         }
 
         int mid = l + r >> 1;
-        if (p <= v)
+        if (p <= mid)
             modify(o << 1, l, mid, p, v);
         else modify(o << 1 | 1, mid + 1, r, p, v);
         seg[o] = seg[o << 1] + seg[o << 1 | 1];
