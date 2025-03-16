@@ -1,3 +1,0 @@
-/mnt/e/huawei/2025ruan/CMakeFiles/code_craft.dir
-/mnt/e/huawei/2025ruan/CMakeFiles/edit_cache.dir
-/mnt/e/huawei/2025ruan/CMakeFiles/rebuild_cache.dir
