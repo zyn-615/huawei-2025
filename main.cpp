@@ -275,17 +275,17 @@ inline void do_object_delete(int object_id)
             auto [disk_id, pos] = objects[object_id].unit_pos[i][j];
 
             //维护空位置
-            disk[disk_id].empty_pos.delete_unit(1, 1, MAX_DISK_SIZE - 1, pos);
+            disk[disk_id].empty_pos.delete_unit(1, 1, V, pos);
             //清除request
-            int pre_request = disk[disk_id].request_num.modify(1, 1, MAX_DISK_SIZE - 1, pos, 0); //注意，这个是负数
+            int pre_request = disk[disk_id].request_num.modify(1, 1, V, pos, 0); //注意，这个是负数
 
             //维护density
             int pre_pos = std::max(1, i - disk[disk_id].test_density_len + 1);
-            disk[disk_id].max_density.add(1, 1, MAX_DISK_SIZE - 1, pre_pos, pos, pre_request);
+            disk[disk_id].max_density.add(1, 1, V, pre_pos, pos, pre_request);
             
             if (pre_pos != i - disk[disk_id].test_density_len + 1) {
                 int rest_num = disk[disk_id].test_density_len - pos;
-                disk[disk_id].max_density.add(1, 1, MAX_DISK_SIZE - 1, MAX_DISK_SIZE - 1 - rest_num + 1, MAX_DISK_SIZE - 1, pre_request);
+                disk[disk_id].max_density.add(1, 1, V, V - rest_num + 1, V, pre_request);
             }
         }
     }
@@ -303,14 +303,6 @@ inline void do_object_delete(int object_id)
     }
 }
 
-/*
-void do_object_delete(const int* object_unit, int* disk_unit, int size)
-{
-    for (int i = 1; i <= size; i++) {
-        disk_unit[object_unit[i]] = 0;
-    }
-}
-*/
 void delete_action()
 {
     int n_delete;
@@ -320,6 +312,7 @@ void delete_action()
     scanf("%d", &n_delete);
     for (int i = 1; i <= n_delete; i++) {
         scanf("%d", &_id[i]);
+        do_object_delete(_id[i]);
     }
 
     /*
