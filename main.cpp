@@ -186,6 +186,19 @@ struct Segment_tree_add {
         return res;
     }
 
+    void modify(int o, int l, int r, int p, int v) {
+        if (l == r) {
+            seg[o] += v;
+            return ;
+        }
+
+        int mid = l + r >> 1;
+        if (p <= v)
+            modify(o << 1, l, mid, p, v);
+        else modify(o << 1 | 1, mid + 1, r, p, v);
+        seg[o] = seg[o << 1] + seg[o << 1 | 1];
+    }
+
     void delete_unit(int o, int l, int r, int p)
     {
         if (l == r) return seg[o] = 1, void();
@@ -341,39 +354,12 @@ void delete_action()
         printf("%d\n", req_id);
     }
 
-    /*
-    for (int i = 1; i <= n_delete; i++) {
-        int id = _id[i];
-        int current_id = object[id].last_request_point;
-        while (current_id != 0) {
-            if (request[current_id].is_done == false) {
-                abort_num++;
-            }
-            current_id = request[current_id].prev_id;
-        }
-    }
-
-    printf("%d\n", abort_num);
-    for (int i = 1; i <= n_delete; i++) {
-        int id = _id[i];
-        int current_id = object[id].last_request_point;
-        while (current_id != 0) {
-            if (request[current_id].is_done == false) {
-                printf("%d\n", current_id);
-            }
-            current_id = request[current_id].prev_id;
-        }
-        for (int j = 1; j <= REP_NUM; j++) {
-            do_object_delete(object[id].unit[j], disk[object[id].replica[j]], object[id].size);
-        }
-        object[id].is_delete = true;
-    }
-*/
     fflush(stdout);
 }
 
 inline void write_unit(int object_id, int unit_id, int disk_id, int write_pos, int repeat_id) {
-    disk[disk_id].empty_pos.add_unit(1, 1, V, write_pos);
+    disk[disk_id].empty_pos.add_unit(1, 1, V, 1);
+    // disk[disk_id].empty_pos.modify(1, 1, V, write_pos, -1);
     disk[disk_id].unit_object[write_pos] = {object_id, unit_id};
     objects[object_id].unit_pos[repeat_id][unit_id] = {disk_id, write_pos};
 }
@@ -396,6 +382,7 @@ void write_action()
         std::random_shuffle(pos.begin(), pos.end());
         int now = 0;
         printf("%d\n", id);
+        std::cerr << "object_id : " << id << std::endl;
         for (int j = 1; j <= 3; ++j) {
             int disk_id = pos[now];
             while (disk[disk_id].empty_pos.query_rest_unit() < size) {
@@ -404,13 +391,16 @@ void write_action()
             }
             
             printf("%d ", disk_id);
+            std::cerr << "disk_id : " << disk_id << " ";
             for (int k = 1, pre = 0; k <= size; ++k) {
                 int nxt = disk[disk_id].empty_pos.find_next(1, 1, V, pre + 1, V);
                 write_unit(id, disk_id, k, nxt, j);
                 pre = nxt;
                 printf("%d ", nxt);
+                std::cerr << nxt << " ";
             }
 
+            std::cerr << std::endl;
             printf("\n");
             disk_id = pos[++now];
         }
