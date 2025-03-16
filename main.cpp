@@ -28,9 +28,9 @@ const int READ_ROUND_TIME = 5; //一轮读取的时间
 
 struct _Object {
     //(磁盘编号，磁盘内位置)
-    std::pair <char, short> unit_pos[REP_NUM + 1][MAX_OBJECT_SIZE];
-    char size;
-    char tag;
+    std::pair <int, int> unit_pos[REP_NUM + 1][MAX_OBJECT_SIZE];
+    int size;
+    int tag;
     //读入的时候注意赋值给char型
 };
 
@@ -267,7 +267,7 @@ Predict Info[MAX_TAG_NUM][MAX_STAGE];
 
 /*存储每个对象的unit没有解决的request*/
 std::queue<int> unsolve_request[MAX_OBJECT_NUM][MAX_OBJECT_SIZE];
-char request_rest_unit[MAX_REQUEST_NUM];
+int request_rest_unit[MAX_REQUEST_NUM];
 std::vector <int> solved_request;
 
 /*从x到y的距离*/
@@ -452,6 +452,7 @@ inline void read_unit(int object_id, int unit_id)
 inline void update_unsolved_request(int request_id, int object_id) 
 {
     request_rest_unit[request_id] = objects[object_id].size;
+    std::cerr << "update_unsolved_request : " << request_id << " " << request_rest_unit[request_id] << std::endl;
 
     for (int j = 1; j <= objects[object_id].size; ++j) {
         unsolve_request[object_id][j].push(request_id);       
