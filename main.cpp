@@ -323,6 +323,11 @@ void delete_action()
         do_object_delete(_id[i]);
     }
 
+    printf("%ld\n", abort_request.size());
+    for (int req_id : abort_request) {
+        printf("%d\n", req_id);
+    }
+
     /*
     for (int i = 1; i <= n_delete; i++) {
         int id = _id[i];
@@ -333,11 +338,6 @@ void delete_action()
             }
             current_id = request[current_id].prev_id;
         }
-    }
-
-    printf("%d\n", abort_request.size());
-    for (int req_id : abort_request) {
-        printf("%d\n", req_id);
     }
 
     printf("%d\n", abort_num);
@@ -370,7 +370,9 @@ void write_action()
 {
     int n_write;
     scanf("%d", &n_write);
+    std::cerr << "n_write: " << n_write << std::endl;
     for (int i = 1; i <= n_write; ++i) {
+        std::cerr << "write : "  << i << std::endl;
         int id, size, tag;
         scanf("%d %d %d", &id, &size, &tag);
         objects[id].size = size;
@@ -385,6 +387,7 @@ void write_action()
             int disk_id = pos[now];
             while (disk[disk_id].empty_pos.query_rest_unit() < size) {
                 disk_id = pos[++now];
+                assert(now < N);
             }
             
             printf("%d ", disk_id);
@@ -551,7 +554,7 @@ void read_action(int time)
     }
 
     //solved request
-    printf("%d\n", solved_request.size());
+    printf("%ld\n", solved_request.size());
     for (int request_id : solved_request) {
         printf("%d\n", request_id);
     }
@@ -588,6 +591,7 @@ int main()
 
     for (int i = 1; i <= N; i++) {
         disk[i].pointer = 1;
+        disk[i].empty_pos.set_one(1, 1, V);
     }
 
     for (int t = 1; t <= T + EXTRA_TIME; t++) {
