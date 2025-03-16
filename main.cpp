@@ -1,4 +1,15 @@
-#include <bits/stdc++.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <algorithm>
+#include <vector>
+#include <queue>
+#include <map>
+#include <unordered_map>
+#include <set>
+#include <utility>
+#include <functional>
+#include <numeric>
 
 #define MAX_DISK_NUM (10 + 1)
 #define MAX_DISK_SIZE (16384 + 1)

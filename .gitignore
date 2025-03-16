@@ -4,3 +4,7 @@ interactor/
 PDF/
 demos/
 .vscode/
+build/
+replay/
+code_craft.exe
+result.txt
