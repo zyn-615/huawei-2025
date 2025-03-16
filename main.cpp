@@ -391,9 +391,9 @@ void write_action()
 {
     int n_write;
     scanf("%d", &n_write);
-    std::cerr << "n_write: " << n_write << std::endl;
+    // std::cerr << "n_write: " << n_write << std::endl;
     for (int i = 1; i <= n_write; ++i) {
-        std::cerr << "write : "  << i << std::endl;
+        // std::cerr << "write : "  << i << std::endl;
         int id, size, tag;
         scanf("%d %d %d", &id, &size, &tag);
         objects[id].size = size;
@@ -404,7 +404,7 @@ void write_action()
         std::random_shuffle(pos.begin(), pos.end());
         int now = 0;
         printf("%d\n", id);
-        std::cerr << "object_id : " << id << std::endl;
+        // std::cerr << "object_id : " << id << std::endl;
         for (int j = 1; j <= 3; ++j) {
             int disk_id = pos[now];
             while (disk[disk_id].empty_pos.query_rest_unit() < size) {
@@ -413,7 +413,7 @@ void write_action()
             }
             
             printf("%d ", disk_id);
-            std::cerr << "disk_id : " << disk_id << " ";
+            // std::cerr << "disk_id : " << disk_id << " ";
             for (int k = 1, pre = 0; k <= size; ++k) {
                 int nxt = disk[disk_id].empty_pos.find_next(1, 1, V, 1, V);
                 // int nxt = disk[disk_id].empty_pos.add_unit(1, 1, V, 1);
@@ -421,10 +421,10 @@ void write_action()
                 write_unit(id, disk_id, k, nxt, j);
                 pre = nxt;
                 printf("%d ", nxt);
-                std::cerr << nxt << " ";
+                // std::cerr << nxt << " ";
             }
 
-            std::cerr << std::endl;
+            // std::cerr << std::endl;
             printf("\n");
             disk_id = pos[++now];
         }
@@ -450,7 +450,7 @@ inline void read_unit(int object_id, int unit_id)
 inline void update_unsolved_request(int request_id, int object_id) 
 {
     request_rest_unit[request_id] = objects[object_id].size;
-    std::cerr << "update_unsolved_request : " << request_id << " " << request_rest_unit[request_id] << std::endl;
+    // std::cerr << "update_unsolved_request : " << request_id << " " << request_rest_unit[request_id] << std::endl;
 
     for (int j = 1; j <= objects[object_id].size; ++j) {
         unsolve_request[object_id][j].push(request_id);       
@@ -482,7 +482,7 @@ int do_pointer_pass(DISK &cur_disk)
     if (!cur_disk.rest_token)
         return 0;
     printf("p");
-    cur_disk.pointer = (cur_disk.pointer + 1) % V + 1;
+    cur_disk.pointer = cur_disk.pointer % V + 1;
     cur_disk.rest_token--;
     cur_disk.last_read_cnt = 0;
     cur_disk.last_read_cost = -1;
@@ -513,7 +513,7 @@ int do_pointer_read(DISK &cur_disk)
         }
     }
 
-    pos = (pos + 1) % V + 1;
+    pos = pos % V + 1;
     ++cur_disk.last_read_cnt;
     cur_disk.rest_token -= read_cost;
     cur_disk.last_read_cost = read_cost;
@@ -602,10 +602,10 @@ void read_action(int time)
     printf("%ld\n", solved_request.size());
     // std::cerr << "SOLSOLSOLS : " << solved_request.size() << std::endl;
     for (int request_id : solved_request) {
-        std::cerr << request_id << " ";
+        // std::cerr << request_id << " ";
         printf("%d\n", request_id);
     }
-    std::cerr << std::endl;
+    // std::cerr << std::endl;
 
     solved_request.clear();
     fflush(stdout);
@@ -645,20 +645,20 @@ int main()
     }
 
     for (int t = 1; t <= T + EXTRA_TIME; t++) {
-        std::cerr << "start time " << t << std::endl;
-        std::cerr << "start timestamp_action" <<std::endl;
+        // std::cerr << "start time " << t << std::endl;
+        // std::cerr << "start timestamp_action" <<std::endl;
         timestamp_action();
-        std::cerr << "end timestamp_action" <<std::endl;
-        std::cerr << "start delete_action" <<std::endl;
+        // std::cerr << "end timestamp_action" <<std::endl;
+        // std::cerr << "start delete_action" <<std::endl;
         delete_action();
-        std::cerr << "end delete_action" <<std::endl;
-        std::cerr << "start write_action" <<std::endl;
+        // std::cerr << "end delete_action" <<std::endl;
+        // std::cerr << "start write_action" <<std::endl;
         write_action();
-        std::cerr << "end write_action" <<std::endl;
-        std::cerr << "start read_action" <<std::endl;
+        // std::cerr << "end write_action" <<std::endl;
+        // std::cerr << "start read_action" <<std::endl;
         read_action(t);
-        std::cerr << "end read_action" <<std::endl;
-        std::cerr << "end time " << t << std::endl;
+        // std::cerr << "end read_action" <<std::endl;
+        // std::cerr << "end time " << t << std::endl;
     }
 
     return 0;
