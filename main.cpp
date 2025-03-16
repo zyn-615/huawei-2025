@@ -29,6 +29,8 @@ Request request[MAX_REQUEST_NUM];
 Object object[MAX_OBJECT_NUM];    
 */
 
+const int READ_ROUND_TIME = 5; //一轮读取的时间
+
 struct _Object {
     //(磁盘编号，磁盘内位置)
     std::pair <char, short> unit_pos[REP_NUM + 1][MAX_OBJECT_SIZE];
@@ -48,7 +50,7 @@ _Object objects[MAX_OBJECT_NUM];
 
 int T, M, N, V, G;
 // int disk[MAX_DISK_NUM][MAX_DISK_SIZE];
-int disk_point[MAX_DISK_NUM];
+//int disk_point[MAX_DISK_NUM];
 
 struct Segment_tree_max {
     struct Node {
@@ -134,6 +136,10 @@ struct Segment_tree_max {
         return res;    
     }
 
+    int find_max_point() {
+        return query_max(1, 1, V, 1, V).pos;
+    }
+
     int find_next(int o, int l, int r, int x, int y, int lim) 
     {
         if (seg[o].max < lim) return -1;
@@ -148,6 +154,13 @@ struct Segment_tree_max {
             best = find_next(o << 1 | 1, mid + 1, r, x, y, lim);
 
         return best;
+    }
+
+    int find_next(int p, int lim) {
+        int nxt = find_next(1, 1, V, p + 1, V, lim);
+        if (nxt != -1)
+            return nxt;
+        return find_next(1, 1, V, 1, p, lim);
     }
 };
 
@@ -210,6 +223,10 @@ struct DISK {
     Segment_tree_add empty_pos; //维护空位置
     Segment_tree_max request_num; //维护每个点的request数量
     Segment_tree_max max_density; //用于获取每个段的request总和
+    int pointer; //这个磁盘指针的位置
+    int last_read_cnt = 0; //上一次操作往前连续读取的次数
+    int last_read_cost = -1; //-1: 上一次不为读取操作 否则为上一次读取操作的花费
+    int rest_token;
     int tag_order[MAX_TAG_NUM + 1]; //每个标签在这个磁盘的固定顺序
     int test_density_len = 300;
 };
@@ -220,6 +237,24 @@ DISK disk[MAX_DISK_NUM];
 std::queue<int> unsolve_request[MAX_OBJECT_NUM][MAX_OBJECT_SIZE];
 char request_rest_unit[MAX_REQUEST_NUM];
 std::vector <int> solved_request;
+
+/*从x到y的距离*/
+inline int get_dist(int x, int y) 
+{
+    return x <= y? y - x: V - x + y;
+}
+
+/*预处理操作*/
+void init() 
+{
+    /*
+    read_cost[0] = read_cost[1] = 64;
+    for (int i = 2; i < 9; ++i) {
+        read_cost[i] = read
+    }
+    for (int i = 8; i >= )
+    */
+}
 
 void timestamp_action()
 {
@@ -409,8 +444,86 @@ inline void update_unsolved_request(int request_id, int object_id)
     }
 }
 
-void read_action()
+//进行一次jump
+void do_jump(DISK cur_disk, int destination) 
 {
+    printf("j %d\n", destination);
+    cur_disk.pointer = destination;
+    cur_disk.rest_token = 0;
+    cur_disk.last_read_cnt = 0;
+    cur_disk.last_read_cost = -1;
+}
+
+/*
+进行一次pass
+1 success
+0 fail
+*/
+int do_pass(DISK &cur_disk) 
+{
+    if (!cur_disk.rest_token)
+        return 0;
+    printf("p");
+    cur_disk.pointer = (cur_disk.pointer + 1) % V + 1;
+    cur_disk.rest_token--;
+    cur_disk.last_read_cnt = 0;
+    cur_disk.last_read_cost = -1;
+    return 1;
+}
+/*
+进行一次read
+1 success
+0 fail
+*/
+int do_read(DISK &cur_disk) 
+{
+    int read_cost = cur_disk.last_read_cnt?
+        std::max(16, (cur_disk.last_read_cost * 4 + 5 - 1) / 5) : 64;
+    if (cur_disk.rest_token < read_cost)
+        return 0;
+    printf("r");
+    cur_disk.pointer = (cur_disk.pointer + 1) % V + 1;
+    ++cur_disk.last_read_cnt;
+    return 1;
+}
+
+/*
+1 选择pass
+0 选择read
+*/
+bool chosse_pass(DISK &cur_disk, int destination)
+{
+    const int DIST_MIN_PASS = 8;
+    int dist = get_dist(cur_disk.pointer, destination);
+    if (dist < DIST_MIN_PASS)
+        return 0;
+    return 1;
+}
+
+void read_without_jump(DISK &cur_disk)
+{
+    while (cur_disk.rest_token > 0) {
+        int nxt_p = cur_disk.request_num.find_next(cur_disk.pointer, 1);
+        if (chosse_pass(cur_disk, nxt_p)) {
+            while (cur_disk.rest_token > 0 && cur_disk.pointer < nxt_p)
+                do_pass(cur_disk);
+            do_read(cur_disk);    
+        }
+        else {
+            while (cur_disk.pointer <= nxt_p)
+                if (!do_read(cur_disk))
+                    break;
+        }
+    }
+    printf("#\n");
+    //int p = disk[cur_disk].request_num.find_next()
+}
+
+void read_action(int time)
+{
+    for (int cur_disk_id = 1; cur_disk_id <= N; ++cur_disk_id)
+        disk[cur_disk_id].rest_token = G;
+
     int n_read;
     int request_id, object_id;
     scanf("%d", &n_read);
@@ -418,7 +531,6 @@ void read_action()
         scanf("%d%d", &request_id, &object_id);
         requests[request_id].object_id = object_id;
         update_unsolved_request(request_id, object_id);
-
         // request[request_id].object_id = object_id;
         // request[request_id].prev_id = object[object_id].last_request_point;
         // object[object_id].last_request_point = request_id;
@@ -426,10 +538,24 @@ void read_action()
     }
 
     //磁头移动操作
-
+    const int DIST_NOT_JUMP = G;
+    for (int cur_disk_id = 1; cur_disk_id <= N; ++cur_disk_id) {
+        DISK &cur_disk = disk[cur_disk_id];
+        if (time % READ_ROUND_TIME == 1) {
+            int p = cur_disk.max_density.find_max_point();
+            if (get_dist(cur_disk.pointer, p) <= G) { //如果距离足够近
+                read_without_jump(cur_disk);
+            }
+            else {
+                printf("j %d\n", p);
+            }
+        }
+        else
+            read_without_jump(cur_disk);
+    }
 
     //solved request
-    printf("%d\n", solved_request.size());
+    printf("%ld\n", solved_request.size());
     for (int request_id : solved_request) {
         printf("%d\n", request_id);
     }
@@ -514,18 +640,20 @@ int main()
         }
     }
 
+    init();
     printf("OK\n");
     fflush(stdout);
 
     for (int i = 1; i <= N; i++) {
-        disk_point[i] = 1;
+        disk[i].pointer = 1;
+        //disk_point[i] = 1;
     }
 
     for (int t = 1; t <= T + EXTRA_TIME; t++) {
         timestamp_action();
         delete_action();
         write_action();
-        read_action();
+        read_action(t);
     }
     // clean();
 
