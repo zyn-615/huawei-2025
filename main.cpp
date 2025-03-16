@@ -358,7 +358,7 @@ void delete_action()
 }
 
 inline void write_unit(int object_id, int unit_id, int disk_id, int write_pos, int repeat_id) {
-    disk[disk_id].empty_pos.add_unit(1, 1, V, 1);
+    // disk[disk_id].empty_pos.add_unit(1, 1, V, 1);
     // disk[disk_id].empty_pos.modify(1, 1, V, write_pos, -1);
     disk[disk_id].unit_object[write_pos] = {object_id, unit_id};
     objects[object_id].unit_pos[repeat_id][unit_id] = {disk_id, write_pos};
@@ -393,7 +393,8 @@ void write_action()
             printf("%d ", disk_id);
             std::cerr << "disk_id : " << disk_id << " ";
             for (int k = 1, pre = 0; k <= size; ++k) {
-                int nxt = disk[disk_id].empty_pos.find_next(1, 1, V, pre + 1, V);
+                // int nxt = disk[disk_id].empty_pos.find_next(1, 1, V, pre + 1, V);
+                int nxt = disk[disk_id].empty_pos.add_unit(1, 1, V, 1);
                 write_unit(id, disk_id, k, nxt, j);
                 pre = nxt;
                 printf("%d ", nxt);
