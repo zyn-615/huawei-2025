@@ -162,7 +162,7 @@ struct Segment_tree_max {
     }
 
     int find_next(int p, int lim) {
-        int nxt = find_next(1, 1, V, p + 1, V, lim);
+        int nxt = find_next(1, 1, V, p, V, lim);
         if (nxt != -1)
             return nxt;
         return find_next(1, 1, V, 1, p, lim);
