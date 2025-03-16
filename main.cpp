@@ -543,14 +543,17 @@ void read_action(int time)
         update_unsolved_request(request_id, object_id);
     }
 
-    std::cerr << "finish read in read_action" << std::endl;
+    std::cerr << "in read_action: finish read" << std::endl;
+    std::cerr << "in read_action: start move pointer" << std::endl;
 
     //磁头移动操作
     const int DIST_NOT_JUMP = G;
     for (int cur_disk_id = 1; cur_disk_id <= N; ++cur_disk_id) {
+        std::cerr << "cur_disk_id: " << cur_disk_id << std::endl;
         DISK &cur_disk = disk[cur_disk_id];
         if (time % READ_ROUND_TIME == 1) {
             int p = cur_disk.max_density.find_max_point();
+            std::cerr << "max_point: " << p << std::endl;
             if (p == -1 || get_dist(cur_disk.pointer, p) <= G) { //如果距离足够近
                 read_without_jump(cur_disk);
             }
@@ -560,6 +563,7 @@ void read_action(int time)
         else
             read_without_jump(cur_disk);
     }
+    std::cerr << "in read_action: end move pointer" << std::endl;
 
     //solved request
     printf("%ld\n", solved_request.size());
