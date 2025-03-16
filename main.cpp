@@ -540,6 +540,7 @@ void read_action(int time)
         requests[request_id].object_id = object_id;
         update_unsolved_request(request_id, object_id);
     }
+    std::cerr << "finish read in read_action" << std::endl;
 
     //磁头移动操作
     const int DIST_NOT_JUMP = G;
