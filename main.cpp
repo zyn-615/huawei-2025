@@ -380,18 +380,22 @@ void write_action()
         std::iota(pos.begin(), pos.end(), 1);
         std::random_shuffle(pos.begin(), pos.end());
         int now = 0;
+        printf("%d\n", id);
         for (int j = 1; j <= 3; ++j) {
             int disk_id = pos[now];
             while (disk[disk_id].empty_pos.query_rest_unit() < size) {
                 disk_id = pos[++now];
             }
-
+            
+            printf("%d ", disk_id);
             for (int k = 1, pre = 0; k <= size; ++k) {
                 int nxt = disk[disk_id].empty_pos.find_next(1, 1, V, pre + 1, V);
                 write_unit(id, disk_id, k, nxt, j);
                 pre = nxt;
+                printf("%d ", nxt);
             }
 
+            printf("\n");
             disk_id = pos[++now];
         }
     }
