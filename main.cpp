@@ -154,7 +154,7 @@ struct Segment_tree_max {
         int best = -1;
         push_down(o);
         if (x <= mid) 
-            best = find_next(o << 1, l, r, x, y, lim);
+            best = find_next(o << 1, l, mid, x, y, lim);
         if (best == -1 && y > mid) 
             best = find_next(o << 1 | 1, mid + 1, r, x, y, lim);
 
