@@ -391,18 +391,22 @@ void write_action()
         std::iota(pos.begin(), pos.end(), 1);
         std::random_shuffle(pos.begin(), pos.end());
         int now = 0;
+        printf("%d\n", id);
         for (int j = 1; j <= 3; ++j) {
             int disk_id = pos[now];
             while (disk[disk_id].empty_pos.query_rest_unit() < size) {
                 disk_id = pos[++now];
             }
-
+            
+            printf("%d ", disk_id);
             for (int k = 1, pre = 0; k <= size; ++k) {
                 int nxt = disk[disk_id].empty_pos.find_next(1, 1, V, pre + 1, V);
                 write_unit(id, disk_id, k, nxt, j);
                 pre = nxt;
+                printf("%d ", nxt);
             }
 
+            printf("\n");
             disk_id = pos[++now];
         }
     }
@@ -569,8 +573,8 @@ void read_action(int time)
 
 int main()
 {
+    std::cerr << "start input global information" << std::endl;
     scanf("%d%d%d%d%d", &T, &M, &N, &V, &G);
-
     for (int i = 1; i <= M; i++) {
         for (int j = 1; j <= (T - 1) / FRE_PER_SLICING + 1; j++) {
             scanf("%*d"); 
@@ -588,7 +592,7 @@ int main()
             scanf("%*d");
         }
     }
-
+    std::cerr << "end input global information" << std::endl;
     init();
     printf("OK\n");
     fflush(stdout);
@@ -598,10 +602,20 @@ int main()
     }
 
     for (int t = 1; t <= T + EXTRA_TIME; t++) {
+        std::cerr << "start time " << t << std::endl;
+        std::cerr << "start timestamp_action" <<std::endl;
         timestamp_action();
+        std::cerr << "end timestamp_action" <<std::endl;
+        std::cerr << "start delete_action" <<std::endl;
         delete_action();
+        std::cerr << "end delete_action" <<std::endl;
+        std::cerr << "start write_action" <<std::endl;
         write_action();
+        std::cerr << "end write_action" <<std::endl;
+        std::cerr << "start read_action" <<std::endl;
         read_action(t);
+        std::cerr << "end read_action" <<std::endl;
+        std::cerr << "end time " << t << std::endl;
     }
 
     return 0;
