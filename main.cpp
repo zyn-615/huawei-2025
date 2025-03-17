@@ -27,6 +27,7 @@
 #define MAX_STAGE (50)
 
 const int READ_ROUND_TIME = 6; //一轮读取的时间
+const int PRE_DISTRIBUTION_TIME = 8;
 
 struct _Object {
     //(磁盘编号，磁盘内位置)
@@ -402,7 +403,7 @@ void init()
             disk[i].inner_tag_inverse[j] = RAND() & 1;
         }
 
-        int stage = std::min(3, all_stage);
+        int stage = std::min(PRE_DISTRIBUTION_TIME, all_stage);
         distribute_tag_in_disk(i, stage);
     }
     
@@ -427,7 +428,7 @@ void timestamp_action()
     scanf("%*s%d", &timestamp);
     printf("TIMESTAMP %d\n", timestamp);
 
-    if (get_now_stage(timestamp) > 3 && get_now_stage(timestamp) != get_now_stage(timestamp - 1)) {
+    if (get_now_stage(timestamp) > PRE_DISTRIBUTION_TIME && get_now_stage(timestamp) != get_now_stage(timestamp - 1)) {
         for (int i = 1; i <= N; ++i) {
             distribute_tag_in_disk(i, get_now_stage(timestamp));
         }
