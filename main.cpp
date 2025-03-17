@@ -336,6 +336,12 @@ inline void get_next_pos(int& x)
     x = x % V + 1;
 }
 
+inline void get_pre_pos(int& x) 
+{
+    if (x == 1) x = V;
+    else --x;
+}
+
 /*从x到y的距离*/
 inline int get_dist(int x, int y) 
 {
@@ -554,8 +560,14 @@ void write_action()
 
             for (int k = 1, pre = 0; k <= size; ++k) {
                 // int nxt = disk[disk_id].empty_pos.find_next(1, 1, V, 1, V);
-                int nxt = disk[disk_id].empty_pos.find_next(disk[disk_id].tag_distribution_pointer[tag]);
-                get_next_pos(disk[disk_id].tag_distribution_pointer[tag]);
+                int nxt = 0;
+                if (!disk[disk_id].inner_tag_inverse[tag]) {
+                    nxt = disk[disk_id].empty_pos.find_next(disk[disk_id].tag_distribution_pointer[tag]);
+                    get_next_pos(disk[disk_id].tag_distribution_pointer[tag]);
+                } else {
+                    nxt = disk[disk_id].empty_pos.find_pre(disk[disk_id].tag_distribution_pointer[tag]);
+                    get_pre_pos(disk[disk_id].tag_distribution_pointer[tag]);
+                }
                 // assert(disk[disk_id].empty_pos.find_next(1, 1, V, 1, V) == nxt + 1);
                 write_unit(id, disk_id, k, nxt, j);
                 pre = nxt;
