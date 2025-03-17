@@ -24,7 +24,7 @@
 #define MAX_TAG_NUM (16 + 1)
 #define MAX_STAGE (50)
 
-const int READ_ROUND_TIME = 7; //一轮读取的时间
+const int READ_ROUND_TIME = 6; //一轮读取的时间
 
 struct _Object {
     //(磁盘编号，磁盘内位置)
@@ -37,6 +37,8 @@ struct _Object {
 struct _Request {
     int object_id;
 };
+
+int tag_size_in_disk[MAX_TAG_NUM][MAX_DISK_NUM];
 
 _Request requests[MAX_REQUEST_NUM];
 
@@ -279,6 +281,11 @@ inline int get_dist(int x, int y)
 /*预处理操作*/
 void init() 
 {
+    for (int i = 1; i <= M; ++i) {
+        for (int j = 1; j <= N; ++j) {
+            tag_size_in_disk[i][j] = 0;
+        }
+    }
     /*
     read_cost[0] = read_cost[1] = 64;
     for (int i = 2; i < 9; ++i) {
@@ -336,6 +343,9 @@ inline void do_object_delete(int object_id)
             //清除request
             modify_unit_request(disk_id, pos, 0);
             disk[disk_id].unit_object[pos] = {0, 0};
+
+            tag_size_in_disk[objects[object_id].tag][disk_id] -= 1;
+            //更新tag_set
         }
     }
 
@@ -401,7 +411,9 @@ void write_action()
 
         std::vector <int> pos(N);
         std::iota(pos.begin(), pos.end(), 1);
-        std::random_shuffle(pos.begin(), pos.end());
+        std::sort(pos.begin(), pos.end(),[&](int x,int y){
+            return tag_size_in_disk[tag][x] < tag_size_in_disk[tag][y];
+        });
         int now = 0;
         printf("%d\n", id);
         // std::cerr << "object_id : " << id << std::endl;
@@ -414,6 +426,9 @@ void write_action()
             
             printf("%d ", disk_id);
             // std::cerr << "disk_id : " << disk_id << " ";
+
+            tag_size_in_disk[tag][disk_id] += size;
+
             for (int k = 1, pre = 0; k <= size; ++k) {
                 int nxt = disk[disk_id].empty_pos.find_next(1, 1, V, 1, V);
                 // int nxt = disk[disk_id].empty_pos.add_unit(1, 1, V, 1);
@@ -426,7 +441,7 @@ void write_action()
 
             // std::cerr << std::endl;
             printf("\n");
-            disk_id = pos[++now];
+            now += 1;
         }
     }
     fflush(stdout);
@@ -477,7 +492,7 @@ void do_pointer_jump(DISK &cur_disk, int destination)
 1 success
 0 fail
 */
-int do_pointer_pass(DISK &cur_disk) 
+int do_pointer_pass(DISK &cur_disk)
 {
     if (!cur_disk.rest_token)
         return 0;
@@ -623,18 +638,21 @@ int main()
     scanf("%d%d%d%d%d", &T, &M, &N, &V, &G);
     for (int i = 1; i <= M; i++) {
         for (int j = 1; j <= (T - 1) / FRE_PER_SLICING + 1; j++) {
-            scanf("%*d"); 
-        }
-    }
-
-    for (int i = 1; i <= M; i++) {
-        for (int j = 1; j <= (T - 1) / FRE_PER_SLICING + 1; j++) {
+            // scanf("%d",Info[i][j].delete_object); 
             scanf("%*d");
         }
     }
 
     for (int i = 1; i <= M; i++) {
         for (int j = 1; j <= (T - 1) / FRE_PER_SLICING + 1; j++) {
+            // scanf("%d",Info[i][j].add_object);
+            scanf("%*d");
+        }
+    }
+
+    for (int i = 1; i <= M; i++) {
+        for (int j = 1; j <= (T - 1) / FRE_PER_SLICING + 1; j++) {
+            // scanf("%d",Info[i][j].read_object);
             scanf("%*d");
         }
     }
