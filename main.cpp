@@ -39,6 +39,7 @@ struct _Object {
 struct _Request {
     int object_id;
     int request_time;
+    int request_id;
 };
 
 int tag_size_in_disk[MAX_TAG_NUM][MAX_DISK_NUM];
@@ -331,6 +332,7 @@ int max_cur_tag_size[MAX_STAGE][MAX_TAG_NUM];
 /*存储每个对象的unit没有解决的request*/
 std::queue<int> unsolve_request[MAX_OBJECT_NUM][MAX_OBJECT_SIZE];
 int request_rest_unit[MAX_REQUEST_NUM];
+int request_rest_unit_state[MAX_REQUEST_NUM];
 std::vector <int> solved_request;
 
 inline void get_next_pos(int& x) 
@@ -591,6 +593,7 @@ inline void read_unit(int object_id, int unit_id)
     while (!unsolve_request[object_id][unit_id].empty()) {
         int request_id = unsolve_request[object_id][unit_id].front();
         --request_rest_unit[request_id];
+        request_rest_unit_state[request_id] |= 1 << unit_id;
         if (!request_rest_unit[request_id]) {
             solved_request.push_back(request_id);
         }
@@ -732,6 +735,7 @@ void read_action(int time)
         // std::cerr << "request_id : " << request_id << " " << "ob : " << object_id << std::endl;
         requests[request_id].object_id = object_id;
         requests[request_id].request_time = time;
+        requests[request_id].request_id = request_id;
         request_queue_in_time_order_late.push(requests[request_id]);
         update_unsolved_request(request_id, object_id);
     }
@@ -778,6 +782,8 @@ inline void update_request_num(int time) {
         request_queue_in_time_order_early.push(now_request);
         for (int i = 1; i <= REP_NUM; ++i) {
             for (int j = 1; j <= objects[now_request.object_id].size; ++j) {
+                if(((1 << j) & request_rest_unit_state[now_request.request_time]) || request_rest_unit[now_request.request_id] <= 0)
+                    continue;
                 auto [disk_id, unit_id] = objects[now_request.object_id].unit_pos[i][j];
                 add_unit_request(disk_id, unit_id, -1);
             }
@@ -788,6 +794,8 @@ inline void update_request_num(int time) {
         request_queue_in_time_order_early.pop();
         for (int i = 1; i <= REP_NUM; ++i) {
             for (int j = 1; j <= objects[now_request.object_id].size; ++j) {
+                if(((1 << j) & request_rest_unit_state[now_request.request_id]) || request_rest_unit[now_request.request_id] <= 0)
+                    continue;
                 auto [disk_id, unit_id] = objects[now_request.object_id].unit_pos[i][j];
                 add_unit_request(disk_id, unit_id, -1);
             }
