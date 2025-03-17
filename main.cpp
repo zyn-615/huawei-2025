@@ -594,12 +594,14 @@ inline void read_unit(int object_id, int unit_id)
 {
     while (!unsolve_request[object_id][unit_id].empty()) {
         int request_id = unsolve_request[object_id][unit_id].front();
-        --request_rest_unit[request_id];
-        request_rest_unit_state[request_id] |= 1 << unit_id;
-        if (!request_rest_unit[request_id]) {
-            solved_request.push_back(request_id);
+        if(request_rest_unit[request_id] > 0)
+        {
+            --request_rest_unit[request_id];
+            request_rest_unit_state[request_id] |= 1 << unit_id;
+            if (!request_rest_unit[request_id]) {
+                solved_request.push_back(request_id);
+            }
         }
-
         unsolve_request[object_id][unit_id].pop();
     }
 }
@@ -783,8 +785,10 @@ inline void update_request_num(int time) {
         request_queue_in_time_order_late.pop();
         request_queue_in_time_order_early.push(now_request);
         for (int i = 1; i <= REP_NUM; ++i) {
+            if(request_rest_unit[now_request.request_id] <= 0)
+                continue;
             for (int j = 1; j <= objects[now_request.object_id].size; ++j) {
-                if(((1 << j) & request_rest_unit_state[now_request.request_time]) || request_rest_unit[now_request.request_id] <= 0)
+                if(((1 << j) & request_rest_unit_state[now_request.request_id]))
                     continue;
                 auto [disk_id, unit_id] = objects[now_request.object_id].unit_pos[i][j];
                 add_unit_request(disk_id, unit_id, -1);
@@ -795,8 +799,10 @@ inline void update_request_num(int time) {
         _Request now_request = request_queue_in_time_order_early.front();
         request_queue_in_time_order_early.pop();
         for (int i = 1; i <= REP_NUM; ++i) {
+            if(request_rest_unit[now_request.request_id] <= 0)
+                continue;
             for (int j = 1; j <= objects[now_request.object_id].size; ++j) {
-                if(((1 << j) & request_rest_unit_state[now_request.request_id]) || request_rest_unit[now_request.request_id] <= 0)
+                if(((1 << j) & request_rest_unit_state[now_request.request_id]))
                     continue;
                 auto [disk_id, unit_id] = objects[now_request.object_id].unit_pos[i][j];
                 add_unit_request(disk_id, unit_id, -1);
