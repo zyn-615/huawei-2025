@@ -38,11 +38,13 @@ struct _Object {
 
 struct _Request {
     int object_id;
+    int request_time;
 };
 
 int tag_size_in_disk[MAX_TAG_NUM][MAX_DISK_NUM];
 
 _Request requests[MAX_REQUEST_NUM];
+std::queue <_Request> request_queue_in_time_order;
 
 //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!注意，objects加了复数
 _Object objects[MAX_OBJECT_NUM];
@@ -450,7 +452,7 @@ inline void modify_max_density(int disk_id, int pos, int delta_request)
 inline void modify_unit_request(int disk_id, int pos, int value) 
 {
     int delta_request = disk[disk_id].request_num.modify(1, 1, V, pos, value);
-    modify_max_density(disk_id, pos, delta_request);
+    if(delta_request != 0) modify_max_density(disk_id, pos, delta_request);
 }
 
 inline void add_unit_request(int disk_id, int pos) 
@@ -729,6 +731,8 @@ void read_action(int time)
         scanf("%d%d", &request_id, &object_id);
         // std::cerr << "request_id : " << request_id << " " << "ob : " << object_id << std::endl;
         requests[request_id].object_id = object_id;
+        requests[request_id].request_time = time;
+        request_queue_in_time_order.push(requests[request_id]);
         update_unsolved_request(request_id, object_id);
     }
 
@@ -767,6 +771,18 @@ void read_action(int time)
     solved_request.clear();
     fflush(stdout);
 }
+inline void update_request_num(int time) {
+    while (!request_queue_in_time_order.empty() && request_queue_in_time_order.front().request_time < time - EXTRA_TIME) {
+        _Request now_request = request_queue_in_time_order.front();
+        request_queue_in_time_order.pop();
+        for (int i = 1; i <= REP_NUM; ++i) {
+            for (int j = 1; j <= objects[now_request.object_id].size; ++j) {
+                auto [disk_id, unit_id] = objects[now_request.object_id].unit_pos[i][j];
+                modify_unit_request(disk_id, unit_id, 0);
+            }
+        }
+    }
+}
 
 int main()
 {
@@ -801,6 +817,8 @@ int main()
     fflush(stdout);
 
     for (int t = 1; t <= T + EXTRA_TIME; t++) {
+
+        update_request_num(t);
         // std::cerr << "start time " << t << std::endl;
         // std::cerr << "start timestamp_action" <<std::endl;
         timestamp_action();
