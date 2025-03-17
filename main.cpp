@@ -28,6 +28,7 @@
 
 const int READ_ROUND_TIME = 6; //一轮读取的时间
 const int PRE_DISTRIBUTION_TIME = 8;
+const int TEST_DENSITY_LEN = 300;
 
 struct _Object {
     //(磁盘编号，磁盘内位置)
@@ -315,7 +316,7 @@ struct DISK {
     int tag_distribution_pointer[MAX_TAG_NUM];
     std::pair <int, int> unit_object[MAX_DISK_SIZE];
     bool inner_tag_inverse[MAX_TAG_NUM];
-    int test_density_len = 300;
+    int test_density_len = TEST_DENSITY_LEN;
 };
 
 DISK disk[MAX_DISK_NUM];
