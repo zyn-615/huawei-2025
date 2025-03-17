@@ -26,9 +26,9 @@
 #define MAX_TAG_NUM (16 + 1)
 #define MAX_STAGE (50)
 
-const int READ_ROUND_TIME = 8; //一轮读取的时间
+const int READ_ROUND_TIME = 5; //一轮读取的时间
 const int PRE_DISTRIBUTION_TIME = 8;
-const int TEST_DENSITY_LEN = 300;
+const int TEST_DENSITY_LEN = 256;
 
 struct _Object {
     //(磁盘编号，磁盘内位置)
@@ -692,7 +692,7 @@ int do_pointer_read(DISK &cur_disk)
 */
 bool chosse_pass(DISK &cur_disk, int destination)
 {
-    const int DIST_MIN_PASS = 8;
+    const int DIST_MIN_PASS = 6;
     int dist = get_dist(cur_disk.pointer, destination);
     if (dist < DIST_MIN_PASS)
         return 0;
