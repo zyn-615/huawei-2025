@@ -783,7 +783,7 @@ inline void update_request_num(int time) {
             }
         }
     }
-    while (!request_queue_in_time_order_early.empty() && request_queue_in_time_order_early.front().request_time < time - EXTRA_TIME / 2) {
+    while (!request_queue_in_time_order_early.empty() && request_queue_in_time_order_early.front().request_time < time - EXTRA_TIME) {
         _Request now_request = request_queue_in_time_order_early.front();
         request_queue_in_time_order_early.pop();
         for (int i = 1; i <= REP_NUM; ++i) {
