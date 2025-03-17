@@ -44,7 +44,7 @@ struct _Request {
 int tag_size_in_disk[MAX_TAG_NUM][MAX_DISK_NUM];
 
 _Request requests[MAX_REQUEST_NUM];
-std::queue <_Request> request_queue_in_time_order;
+std::queue <_Request> request_queue_in_time_order_early,request_queue_in_time_order_late;
 
 //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!注意，objects加了复数
 _Object objects[MAX_OBJECT_NUM];
@@ -732,7 +732,7 @@ void read_action(int time)
         // std::cerr << "request_id : " << request_id << " " << "ob : " << object_id << std::endl;
         requests[request_id].object_id = object_id;
         requests[request_id].request_time = time;
-        request_queue_in_time_order.push(requests[request_id]);
+        request_queue_in_time_order_late.push(requests[request_id]);
         update_unsolved_request(request_id, object_id);
     }
 
@@ -772,9 +772,20 @@ void read_action(int time)
     fflush(stdout);
 }
 inline void update_request_num(int time) {
-    while (!request_queue_in_time_order.empty() && request_queue_in_time_order.front().request_time < time - EXTRA_TIME) {
-        _Request now_request = request_queue_in_time_order.front();
-        request_queue_in_time_order.pop();
+    while (!request_queue_in_time_order_late.empty() && request_queue_in_time_order_late.front().request_time < time - EXTRA_TIME / 2) {
+        _Request now_request = request_queue_in_time_order_late.front();
+        request_queue_in_time_order_late.pop();
+        request_queue_in_time_order_early.push(now_request);
+        for (int i = 1; i <= REP_NUM; ++i) {
+            for (int j = 1; j <= objects[now_request.object_id].size; ++j) {
+                auto [disk_id, unit_id] = objects[now_request.object_id].unit_pos[i][j];
+                modify_unit_request(disk_id, unit_id, 1);
+            }
+        }
+    }
+    while (!request_queue_in_time_order_early.empty() && request_queue_in_time_order_early.front().request_time < time - EXTRA_TIME / 2) {
+        _Request now_request = request_queue_in_time_order_early.front();
+        request_queue_in_time_order_early.pop();
         for (int i = 1; i <= REP_NUM; ++i) {
             for (int j = 1; j <= objects[now_request.object_id].size; ++j) {
                 auto [disk_id, unit_id] = objects[now_request.object_id].unit_pos[i][j];
