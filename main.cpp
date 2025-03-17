@@ -12,6 +12,8 @@
 #include <numeric>
 #include <iostream>
 #include <cassert>
+#include <ctime>
+#include <random>
 
 #define MAX_DISK_NUM (10 + 1)
 #define MAX_DISK_SIZE (16384 + 1)
@@ -45,7 +47,7 @@ _Request requests[MAX_REQUEST_NUM];
 //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!注意，objects加了复数
 _Object objects[MAX_OBJECT_NUM];
 
-int T, M, N, V, G;
+int T, M, N, V, G, all_stage;
 
 struct Segment_tree_max {
     struct Node {
@@ -252,8 +254,9 @@ struct DISK {
     int last_read_cost = -1; //-1: 上一次不为读取操作 否则为上一次读取操作的花费
     int rest_token;
     int tag_order[MAX_TAG_NUM]; //每个标签在这个磁盘的固定顺序
-    int tag_distribution[MAX_TAG_NUM];
+    int tag_distribution_pointer[MAX_TAG_NUM];
     std::pair <int, int> unit_object[MAX_DISK_SIZE];
+    bool inner_tag_inverse[MAX_TAG_NUM];
     int test_density_len = 300;
 };
 
@@ -266,6 +269,7 @@ struct Predict {
 };
 
 Predict Info[MAX_TAG_NUM][MAX_STAGE];
+int max_cur_tag_size[MAX_STAGE][MAX_TAG_NUM];
 
 /*存储每个对象的unit没有解决的request*/
 std::queue<int> unsolve_request[MAX_OBJECT_NUM][MAX_OBJECT_SIZE];
@@ -278,15 +282,39 @@ inline int get_dist(int x, int y)
     return x <= y? y - x: V - x + y;
 }
 
+inline void distribute_tag_in_disk(int disk_id, int stage) {
+
+}
+
 /*预处理操作*/
 void init() 
 {
+    for (int i = 1; i <= all_stage; ++i) {
+        for (int j = 1; j <= M; ++j) {
+            max_cur_tag_size[i][j] = max_cur_tag_size[i - 1][j] - Info[i - 1][j].delete_object + Info[i][j].add_object;
+        }
+    }
+    
     for (int i = 1; i <= M; ++i) {
         for (int j = 1; j <= N; ++j) {
             tag_size_in_disk[i][j] = 0;
         }
     }
+
+    for (int i = 1; i <= N; i++) {
+        disk[i].pointer = 1;
+        disk[i].empty_pos.set_one(1, 1, V);
+        disk[i].request_num.build(1, 1, V);
+        disk[i].max_density.build(1, 1, V);
+        std::iota(disk[i].tag_order + 1, disk[i].tag_order + 1 + M, 1);
+        std::random_shuffle(disk[i].tag_order + 1, disk[i].tag_order + 1 + M);
+
+        int stage = std::min(3, all_stage);
+        distribute_tag_in_disk(i, stage);
+    }
+    
     /*
+    
     read_cost[0] = read_cost[1] = 64;
     for (int i = 2; i < 9; ++i) {
         read_cost[i] = read
@@ -411,9 +439,11 @@ void write_action()
 
         std::vector <int> pos(N);
         std::iota(pos.begin(), pos.end(), 1);
-        std::sort(pos.begin(), pos.end(),[&](int x,int y){
-            return tag_size_in_disk[tag][x] < tag_size_in_disk[tag][y];
-        });
+        std::random_shuffle(pos.begin(), pos.end());
+        // std::sort(pos.begin(), pos.end(),[&](int x,int y){
+            // return tag_size_in_disk[tag][x] < tag_size_in_disk[tag][y];
+        // });
+
         int now = 0;
         printf("%d\n", id);
         // std::cerr << "object_id : " << id << std::endl;
@@ -427,7 +457,7 @@ void write_action()
             printf("%d ", disk_id);
             // std::cerr << "disk_id : " << disk_id << " ";
 
-            tag_size_in_disk[tag][disk_id] += size;
+            // tag_size_in_disk[tag][disk_id] += size;
 
             for (int k = 1, pre = 0; k <= size; ++k) {
                 int nxt = disk[disk_id].empty_pos.find_next(1, 1, V, 1, V);
@@ -636,37 +666,33 @@ int main()
 {
     // std::cerr << "start input global information" << std::endl;
     scanf("%d%d%d%d%d", &T, &M, &N, &V, &G);
+    srand(time(0) ^ clock());
+
+    all_stage = (T - 1) / FRE_PER_SLICING + 1;
     for (int i = 1; i <= M; i++) {
-        for (int j = 1; j <= (T - 1) / FRE_PER_SLICING + 1; j++) {
-            // scanf("%d",Info[i][j].delete_object); 
-            scanf("%*d");
+        for (int j = 1; j <= all_stage; j++) {
+            scanf("%d", &Info[i][j].delete_object); 
+            // scanf("%*d");
         }
     }
 
     for (int i = 1; i <= M; i++) {
-        for (int j = 1; j <= (T - 1) / FRE_PER_SLICING + 1; j++) {
-            // scanf("%d",Info[i][j].add_object);
-            scanf("%*d");
+        for (int j = 1; j <= all_stage; j++) {
+            scanf("%d", &Info[i][j].add_object);
+            // scanf("%*d");
         }
     }
 
     for (int i = 1; i <= M; i++) {
-        for (int j = 1; j <= (T - 1) / FRE_PER_SLICING + 1; j++) {
-            // scanf("%d",Info[i][j].read_object);
-            scanf("%*d");
+        for (int j = 1; j <= all_stage; j++) {
+            scanf("%d", &Info[i][j].read_object);
+            // scanf("%*d");
         }
     }
     // std::cerr << "end input global information" << std::endl;
     init();
     printf("OK\n");
     fflush(stdout);
-
-    for (int i = 1; i <= N; i++) {
-        disk[i].pointer = 1;
-        disk[i].empty_pos.set_one(1, 1, V);
-        disk[i].request_num.build(1, 1, V);
-        disk[i].max_density.build(1, 1, V);
-    }
 
     for (int t = 1; t <= T + EXTRA_TIME; t++) {
         // std::cerr << "start time " << t << std::endl;
