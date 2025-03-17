@@ -26,7 +26,7 @@
 #define MAX_TAG_NUM (16 + 1)
 #define MAX_STAGE (50)
 
-const int READ_ROUND_TIME = 7; //一轮读取的时间
+const int READ_ROUND_TIME = 6; //一轮读取的时间
 
 struct _Object {
     //(磁盘编号，磁盘内位置)
@@ -455,10 +455,10 @@ inline void modify_unit_request(int disk_id, int pos, int value)
     if(delta_request != 0) modify_max_density(disk_id, pos, delta_request);
 }
 
-inline void add_unit_request(int disk_id, int pos) 
+inline void add_unit_request(int disk_id, int pos, int ad_num) 
 {
-    disk[disk_id].request_num.add(1, 1, V, pos, pos, 1);
-    modify_max_density(disk_id, pos, 1);
+    disk[disk_id].request_num.add(1, 1, V, pos, pos, ad_num);
+    modify_max_density(disk_id, pos, ad_num);
 }
 
 inline void do_object_delete(int object_id) 
@@ -610,7 +610,7 @@ inline void update_unsolved_request(int request_id, int object_id)
 
         for (int i = 1; i <= REP_NUM; ++i) {
             auto [disk_id, unit_id] = objects[object_id].unit_pos[i][j];
-            add_unit_request(disk_id, unit_id);
+            add_unit_request(disk_id, unit_id, 1);
         }
     }
 }
@@ -778,7 +778,7 @@ inline void update_request_num(int time) {
         for (int i = 1; i <= REP_NUM; ++i) {
             for (int j = 1; j <= objects[now_request.object_id].size; ++j) {
                 auto [disk_id, unit_id] = objects[now_request.object_id].unit_pos[i][j];
-                modify_unit_request(disk_id, unit_id, 0);
+                add_unit_request(disk_id, unit_id, -1);
             }
         }
     }
