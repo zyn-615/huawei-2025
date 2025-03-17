@@ -26,7 +26,7 @@
 #define MAX_TAG_NUM (16 + 1)
 #define MAX_STAGE (50)
 
-const int READ_ROUND_TIME = 6; //一轮读取的时间
+const int READ_ROUND_TIME = 8; //一轮读取的时间
 const int PRE_DISTRIBUTION_TIME = 8;
 const int TEST_DENSITY_LEN = 300;
 
