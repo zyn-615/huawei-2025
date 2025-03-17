@@ -26,7 +26,7 @@
 #define MAX_TAG_NUM (16 + 1)
 #define MAX_STAGE (50)
 
-const int READ_ROUND_TIME = 6; //一轮读取的时间
+const int READ_ROUND_TIME = 7; //一轮读取的时间
 
 struct _Object {
     //(磁盘编号，磁盘内位置)
@@ -228,6 +228,7 @@ struct Segment_tree_add {
 
     int find_next(int o, int l, int r, int x, int y)
     {
+        if (x > y) return -1;
         if (seg[o] == 0) return -1;
         if (l == r) return l;
 
@@ -240,8 +241,61 @@ struct Segment_tree_add {
         return res;
     }
 
-    inline int query_rest_unit() {
+    int find_pre(int o, int l, int r, int x, int y) 
+    {
+        if (x > y) return -1;
+        if (seg[o] == 0) return -1;
+        if (l == r) return l;
+
+        int mid = l + r >> 1;
+        int res = -1;
+        if (y > mid)
+            res = find_pre(o << 1 | 1, mid + 1, r, x, y);
+        if (x <= mid && res == -1)
+            res = find_pre(o << 1, l, mid, x, y);
+        return res;
+    }
+
+    int find_kth(int o, int l, int r, int x, int y, int k) 
+    {
+        if (seg[o] < k) return -1;
+        if (l == r) return l;
+
+        int mid = l + r >> 1;
+        int res = -1;
+
+        if (x <= mid)
+            res = find_kth(o << 1, l, mid, x, y, k);
+        if (y > mid && res == -1)
+            res = find_kth(o << 1 | 1, mid + 1, r, x, y, k - seg[o << 1]);
+        return res;
+    }
+
+    inline int query_rest_unit() 
+    {
         return seg[1];
+    }
+
+    inline int find_next(int x) 
+    {
+        int res = find_next(1, 1, V, x, V);
+        if (res == -1)
+            res = find_next(1, 1, V, 1, x);
+
+        return res;
+    }
+
+    inline int find_pre(int x) 
+    {
+        int res = find_pre(1, 1, V, 1, x);
+        if (res == -1)
+            res = find_pre(1, 1, V, x, V);
+        return res;
+    }
+
+    inline int find_kth(int k) 
+    {
+        return find_kth(1, 1, V, 1, V, k);
     }
 };
 
@@ -261,6 +315,7 @@ struct DISK {
 };
 
 DISK disk[MAX_DISK_NUM];
+std::mt19937 RAND(time(0));
 
 struct Predict {
     int add_object;
@@ -276,14 +331,39 @@ std::queue<int> unsolve_request[MAX_OBJECT_NUM][MAX_OBJECT_SIZE];
 int request_rest_unit[MAX_REQUEST_NUM];
 std::vector <int> solved_request;
 
+inline void get_next_pos(int& x) 
+{
+    x = x % V + 1;
+}
+
 /*从x到y的距离*/
 inline int get_dist(int x, int y) 
 {
     return x <= y? y - x: V - x + y;
 }
 
-inline void distribute_tag_in_disk(int disk_id, int stage) {
+inline void distribute_tag_in_disk(int disk_id, int stage) 
+{
+    int rest_unit = disk[disk_id].empty_pos.query_rest_unit();
+    for (int i = 1, pre_distribution = 0; i <= M; ++i) {
+        int cur_tag = disk[disk_id].tag_order[i];
+        int cur_tag_distribution = std::max(max_cur_tag_size[stage][cur_tag] / N, 10) + 5;
+        
+        if (pre_distribution + cur_tag_distribution > rest_unit) {
+            pre_distribution += cur_tag_distribution;
+            //这边如果满了，指针和前面一样
+            disk[disk_id].tag_distribution_pointer[cur_tag] = disk[disk_id].empty_pos.find_next(disk[disk_id].tag_distribution_pointer[disk[disk_id].tag_order[i - 1]]);
+            continue;
+        }
+        
+        if (!disk[disk_id].inner_tag_inverse[cur_tag]) {
+            disk[disk_id].tag_distribution_pointer[cur_tag] = disk[disk_id].empty_pos.find_kth(pre_distribution + 1);
+        } else {
+            disk[disk_id].tag_distribution_pointer[cur_tag] = disk[disk_id].empty_pos.find_kth(pre_distribution + cur_tag_distribution);
+        }
 
+        pre_distribution += cur_tag_distribution;
+    }
 }
 
 /*预处理操作*/
@@ -308,6 +388,9 @@ void init()
         disk[i].max_density.build(1, 1, V);
         std::iota(disk[i].tag_order + 1, disk[i].tag_order + 1 + M, 1);
         std::random_shuffle(disk[i].tag_order + 1, disk[i].tag_order + 1 + M);
+        for (int j = 1; j <= M; ++j) {
+            disk[i].inner_tag_inverse[j] = RAND() & 1;
+        }
 
         int stage = std::min(3, all_stage);
         distribute_tag_in_disk(i, stage);
@@ -323,11 +406,22 @@ void init()
     */
 }
 
+inline int get_now_stage(int now_time) 
+{
+    return (now_time + FRE_PER_SLICING - 1) / FRE_PER_SLICING;
+}
+
 void timestamp_action()
 {
     int timestamp;
     scanf("%*s%d", &timestamp);
     printf("TIMESTAMP %d\n", timestamp);
+
+    if (get_now_stage(timestamp) > 3 && get_now_stage(timestamp) != get_now_stage(timestamp - 1)) {
+        for (int i = 1; i <= N; ++i) {
+            distribute_tag_in_disk(i, get_now_stage(timestamp));
+        }
+    }
 
     fflush(stdout);
 }
@@ -418,13 +512,12 @@ void delete_action()
 }
 
 inline void write_unit(int object_id, int disk_id, int unit_id, int write_pos, int repeat_id) {
-    disk[disk_id].empty_pos.add_unit(1, 1, V, 1);
-    // disk[disk_id].empty_pos.modify(1, 1, V, write_pos, -1);
+    // disk[disk_id].empty_pos.add_unit(1, 1, V, 1);
+    disk[disk_id].empty_pos.modify(1, 1, V, write_pos, -1);
     disk[disk_id].unit_object[write_pos] = {object_id, unit_id};
     objects[object_id].unit_pos[repeat_id][unit_id] = {disk_id, write_pos};
 }
 
-//no
 void write_action()
 {
     int n_write;
@@ -439,15 +532,15 @@ void write_action()
 
         std::vector <int> pos(N);
         std::iota(pos.begin(), pos.end(), 1);
-        std::random_shuffle(pos.begin(), pos.end());
-        // std::sort(pos.begin(), pos.end(),[&](int x,int y){
-            // return tag_size_in_disk[tag][x] < tag_size_in_disk[tag][y];
-        // });
+        // std::random_shuffle(pos.begin(), pos.end());
+        std::sort(pos.begin(), pos.end(),[&](int x,int y){
+            return tag_size_in_disk[tag][x] < tag_size_in_disk[tag][y];
+        });
 
         int now = 0;
         printf("%d\n", id);
         // std::cerr << "object_id : " << id << std::endl;
-        for (int j = 1; j <= 3; ++j) {
+        for (int j = 1; j <= REP_NUM; ++j) {
             int disk_id = pos[now];
             while (disk[disk_id].empty_pos.query_rest_unit() < size) {
                 disk_id = pos[++now];
@@ -457,11 +550,12 @@ void write_action()
             printf("%d ", disk_id);
             // std::cerr << "disk_id : " << disk_id << " ";
 
-            // tag_size_in_disk[tag][disk_id] += size;
+            tag_size_in_disk[tag][disk_id] += size;
 
             for (int k = 1, pre = 0; k <= size; ++k) {
-                int nxt = disk[disk_id].empty_pos.find_next(1, 1, V, 1, V);
-                // int nxt = disk[disk_id].empty_pos.add_unit(1, 1, V, 1);
+                // int nxt = disk[disk_id].empty_pos.find_next(1, 1, V, 1, V);
+                int nxt = disk[disk_id].empty_pos.find_next(disk[disk_id].tag_distribution_pointer[tag]);
+                get_next_pos(disk[disk_id].tag_distribution_pointer[tag]);
                 // assert(disk[disk_id].empty_pos.find_next(1, 1, V, 1, V) == nxt + 1);
                 write_unit(id, disk_id, k, nxt, j);
                 pre = nxt;
