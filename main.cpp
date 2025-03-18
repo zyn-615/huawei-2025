@@ -29,7 +29,7 @@
 const int READ_ROUND_TIME = 15; //一轮读取的时间
 const int PRE_DISTRIBUTION_TIME = 32;
 const int TEST_DENSITY_LEN = 650;
-int DISK_MIN_PASS = 6;
+int DISK_MIN_PASS = 9;
 
 struct _Object {
     //(磁盘编号，磁盘内位置)
@@ -398,11 +398,11 @@ struct DISK {
 };
 
 DISK disk[MAX_DISK_NUM];
-std::mt19937 RAND(20250318);
+std::mt19937 RAND;
 
 inline int random(int l, int r)
 {
-    return RAND() % (r - l + 1) + l;
+    return rand() % (r - l + 1) + l;
 }
 
 struct Predict {
@@ -1061,7 +1061,7 @@ int main()
 {
     // std::cerr << "start input global information" << std::endl;
     scanf("%d%d%d%d%d", &T, &M, &N, &V, &G);
-    srand(20041111);
+    // srand(20041111);
     //srand(time(0) ^ clock());
 
     all_stage = (T - 1) / FRE_PER_SLICING + 1;
