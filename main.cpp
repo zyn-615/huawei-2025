@@ -377,11 +377,7 @@ struct DensityManager
         // std::cerr << "find_max_point end" << std::endl;
         
         if(max_point >= window_len) max_point = max_point - window_len + 1;
-        else
-        {
-            window_len -= max_point;
-            max_point = V - window_len + 1;
-        }
+        else max_point = max_point + V - window_len + 1;
 
         return max_point;
     }
