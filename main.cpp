@@ -26,9 +26,9 @@
 #define MAX_TAG_NUM (16 + 1)
 #define MAX_STAGE (50)
 
-const int READ_ROUND_TIME = 8; //一轮读取的时间
-const int PRE_DISTRIBUTION_TIME = 26;
-const int TEST_DENSITY_LEN = 350;
+const int READ_ROUND_TIME = 15; //一轮读取的时间
+const int PRE_DISTRIBUTION_TIME = 32;
+const int TEST_DENSITY_LEN = 650;
 int DISK_MIN_PASS = 9;
 
 struct _Object {
