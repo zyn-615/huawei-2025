@@ -833,7 +833,7 @@ void read_without_jump(DISK &cur_disk)
         assert(cur_request_num >= 0);
         assert(cur_request_num <= sum_of_request);
 
-        while(sum_of_request == 0 && have_rest_token)
+        while(cur_request_num == 0 && have_rest_token)
         {
             sum_of_request -= cur_request_num;
             if(!do_pointer_pass(cur_disk))
@@ -1003,7 +1003,7 @@ int main()
             scanf("%d", &Info[i][j].delete_object); 
             // scanf("%*d");
         }
-    }   
+    }
 
     for (int i = 1; i <= M; i++) {
         for (int j = 1; j <= all_stage; j++) {
