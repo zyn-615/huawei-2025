@@ -26,9 +26,10 @@
 #define MAX_TAG_NUM (16 + 1)
 #define MAX_STAGE (50)
 
+const double JUMP_VISCOSITY = 1.0;
 const int READ_ROUND_TIME = 10; //一轮读取的时间
 const int PRE_DISTRIBUTION_TIME = 8;
-const int TEST_DENSITY_LEN = 150;
+const int TEST_DENSITY_LEN = 300;
 int DISK_MIN_PASS = 8;
 
 struct _Object {
@@ -825,49 +826,47 @@ void read_without_jump(DISK &cur_disk)
     // std::cerr << "start: " << sum_of_request << std::endl;
 
     while (have_rest_token) {
-
-        assert(cur_request_num >= 0);
-        assert(cur_request_num <= sum_of_request);
-
-        while(cur_request_num == 0 && have_rest_token)
-        {
-            sum_of_request -= cur_request_num;
-            if(!do_pointer_pass(cur_disk))
+        if (sum_of_request == 0 || cur_disk.last_read_cnt == 0) {
+            assert(cur_request_num >= 0);
+            assert(cur_request_num <= sum_of_request);
+            while(cur_request_num == 0 && have_rest_token)
             {
-                have_rest_token = false;
-                break;
+                sum_of_request -= cur_request_num;
+                if(!do_pointer_pass(cur_disk))
+                {
+                    have_rest_token = false;
+                    break;
+                }
+
+                // std::cerr << "disk_pointer: " << cur_disk.rest_token << std::endl;
+                // std::cerr << "cur_request_num: " << cur_request_num << std::endl;
+
+                fast_pointer.to_nxt();
+                sum_of_request += cur_disk.max_density.get(fast_pointer.pointer);
+                cur_request_num = cur_disk.max_density.get(cur_disk.pointer);
             }
-
-            // std::cerr << "disk_pointer: " << cur_disk.rest_token << std::endl;
-            // std::cerr << "cur_request_num: " << cur_request_num << std::endl;
-
-            fast_pointer.to_nxt();
-            sum_of_request += cur_disk.max_density.get(fast_pointer.pointer);
-            cur_request_num = cur_disk.max_density.get(cur_disk.pointer);
         }
+            assert(cur_request_num >= 0);
+            assert(cur_request_num <= sum_of_request);
 
-        assert(cur_request_num >= 0);
-        assert(cur_request_num <= sum_of_request);
-
-        while(sum_of_request > 0 && have_rest_token)
-        {
-            sum_of_request -= cur_request_num;
-            if(!do_pointer_read(cur_disk))
+            while(sum_of_request > 0 && have_rest_token)
             {
-                have_rest_token = false;
-                break;
+                sum_of_request -= cur_request_num;
+                if(!do_pointer_read(cur_disk))
+                {
+                    have_rest_token = false;
+                    break;
+                }
+
+            //     // std::cerr << "disk_pointer: " << cur_disk.pointer << std::endl;
+
+                // std::cerr << "disk_rest_token: " << cur_disk.rest_token << std::endl;
+
+
+                fast_pointer.to_nxt();
+                sum_of_request += cur_disk.max_density.get(fast_pointer.pointer);
+                cur_request_num = cur_disk.max_density.get(cur_disk.pointer);
             }
-
-        //     // std::cerr << "disk_pointer: " << cur_disk.pointer << std::endl;
-
-            // std::cerr << "disk_rest_token: " << cur_disk.rest_token << std::endl;
-
-
-            fast_pointer.to_nxt();
-            sum_of_request += cur_disk.max_density.get(fast_pointer.pointer);
-            cur_request_num = cur_disk.max_density.get(cur_disk.pointer);
-        }
-
     }
 
     // while(cur_disk.rest_token > 0)
@@ -928,10 +927,13 @@ void read_action(int time)
         DISK &cur_disk = disk[cur_disk_id];
         if (time % READ_ROUND_TIME == 1) {
             int p = cur_disk.max_density.find_max_point();
+            /*
+            if (cur_disk.max_density.get(p) * JUMP_VISCOSITY <= cur_disk.max_density.get(cur_disk.pointer))
+                p = cur_disk.pointer;
+            */
+                // std::cerr << "max_point: " << p << std::endl;
 
-            // std::cerr << "max_point: " << p << std::endl;
-
-            if (p == -1 || get_dist(cur_disk.pointer, p) <= G) { //如果距离足够近
+            if (p == -1 || get_dist(cur_disk.pointer, p) <= G * 0.9) { //如果距离足够近
                 
                 // std::cerr << "start read_without_jump" << std::endl;
                 read_without_jump(cur_disk);
@@ -991,7 +993,8 @@ int main()
 {
     // std::cerr << "start input global information" << std::endl;
     scanf("%d%d%d%d%d", &T, &M, &N, &V, &G);
-    srand(time(0) ^ clock());
+    srand(20041111);
+    //srand(time(0) ^ clock());
 
     all_stage = (T - 1) / FRE_PER_SLICING + 1;
     for (int i = 1; i <= M; i++) {
