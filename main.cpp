@@ -26,9 +26,9 @@
 #define MAX_TAG_NUM (16 + 1)
 #define MAX_STAGE (50)
 
-const int READ_ROUND_TIME = 5; //一轮读取的时间
-const int PRE_DISTRIBUTION_TIME = 8;
-const int TEST_DENSITY_LEN = 256;
+const int READ_ROUND_TIME = 6; //一轮读取的时间
+const int PRE_DISTRIBUTION_TIME = 15;
+const int TEST_DENSITY_LEN = 100;
 
 struct _Object {
     //(磁盘编号，磁盘内位置)
@@ -322,6 +322,11 @@ struct DISK {
 DISK disk[MAX_DISK_NUM];
 std::mt19937 RAND(time(0));
 
+inline int random(int l, int r)
+{
+    return RAND() % (r - l + 1) + l;
+}
+
 struct Predict {
     int add_object;
     int delete_object;
@@ -330,6 +335,7 @@ struct Predict {
 
 Predict Info[MAX_TAG_NUM][MAX_STAGE];
 int max_cur_tag_size[MAX_STAGE][MAX_TAG_NUM];
+int all_tag_request[MAX_TAG_NUM], test_tag_request[MAX_TAG_NUM];
 
 /*存储每个对象的unit没有解决的request*/
 std::queue<int> unsolve_request[MAX_OBJECT_NUM][MAX_OBJECT_SIZE];
@@ -384,6 +390,7 @@ void init()
     for (int i = 1; i <= all_stage; ++i) {
         for (int j = 1; j <= M; ++j) {
             max_cur_tag_size[i][j] = max_cur_tag_size[i - 1][j] - Info[i - 1][j].delete_object + Info[i][j].add_object;
+            all_tag_request[j] += Info[i][j].read_object;
         }
     }
     
@@ -399,7 +406,17 @@ void init()
         disk[i].request_num.build(1, 1, V);
         disk[i].max_density.build(1, 1, V);
         std::iota(disk[i].tag_order + 1, disk[i].tag_order + 1 + M, 1);
-        std::random_shuffle(disk[i].tag_order + 1, disk[i].tag_order + 1 + M);
+        // std::random_shuffle(disk[i].tag_order + 1, disk[i].tag_order + 1 + M);
+
+        for (int j = 1; j <= M; ++j) {
+            test_tag_request[j] = max_cur_tag_size[all_stage][j] + ((RAND() & 1) ? 1 : -1) * random(500, 3000);
+            // test_tag_request[j] = all_tag_request[j] + ((RAND() & 1) ? 1 : -1) * random(50, 1000);
+        }
+
+        std::sort(disk[i].tag_order + 1, disk[i].tag_order + 1 + M, [&](const int a, const int b) {
+            return test_tag_request[a] > test_tag_request[b];
+        });
+
         for (int j = 1; j <= M; ++j) {
             disk[i].inner_tag_inverse[j] = RAND() & 1;
         }
@@ -569,10 +586,10 @@ void write_action()
                 int nxt = 0;
                 if (!disk[disk_id].inner_tag_inverse[tag]) {
                     nxt = disk[disk_id].empty_pos.find_next(disk[disk_id].tag_distribution_pointer[tag]);
-                    get_next_pos(disk[disk_id].tag_distribution_pointer[tag]);
+                    // get_next_pos(disk[disk_id].tag_distribution_pointer[tag]);
                 } else {
                     nxt = disk[disk_id].empty_pos.find_pre(disk[disk_id].tag_distribution_pointer[tag]);
-                    get_pre_pos(disk[disk_id].tag_distribution_pointer[tag]);
+                    // get_pre_pos(disk[disk_id].tag_distribution_pointer[tag]);
                 }
                 // assert(disk[disk_id].empty_pos.find_next(1, 1, V, 1, V) == nxt + 1);
                 write_unit(id, disk_id, k, nxt, j);
