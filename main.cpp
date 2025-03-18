@@ -26,11 +26,10 @@
 #define MAX_TAG_NUM (16 + 1)
 #define MAX_STAGE (50)
 
-
-const int READ_ROUND_TIME = 7; //一轮读取的时间
-const int PRE_DISTRIBUTION_TIME = 8;
-const int TEST_DENSITY_LEN = 300;
-int DISK_MIN_PASS = 6;
+const int READ_ROUND_TIME = 12; //一轮读取的时间
+const int PRE_DISTRIBUTION_TIME = 15;
+const int TEST_DENSITY_LEN = 350;
+int DISK_MIN_PASS = 8;
 
 struct _Object {
     //(磁盘编号，磁盘内位置)
@@ -378,11 +377,7 @@ struct DensityManager
         // std::cerr << "find_max_point end" << std::endl;
         
         if(max_point >= window_len) max_point = max_point - window_len + 1;
-        else
-        {
-            window_len -= max_point;
-            max_point = V - window_len + 1;
-        }
+        else max_point = max_point + V - window_len + 1;
 
         return max_point;
     }
@@ -406,7 +401,7 @@ struct DISK {
 };
 
 DISK disk[MAX_DISK_NUM];
-std::mt19937 RAND(time(0));
+std::mt19937 RAND(20250318);
 
 inline int random(int l, int r)
 {
@@ -851,7 +846,7 @@ void read_without_jump(DISK &cur_disk)
         assert(cur_request_num >= 0);
         assert(cur_request_num <= sum_of_request);
 
-        while(sum_of_request == 0 && have_rest_token)
+        while(cur_request_num == 0 && have_rest_token)
         {
             sum_of_request -= cur_request_num;
             if(!do_pointer_pass(cur_disk))
