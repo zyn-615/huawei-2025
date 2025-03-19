@@ -906,7 +906,7 @@ std::pair<int, int> DP_read_without_skip_and_jump(DISK &cur_disk, int pointer_po
     for (int t = 0; t < rest_token; ++t) {
         int nxt = pointer.get_to_nxt();
         int cur = pointer.pointer;
-        memset(dp_without_skip[nxt], -1, sizeof(dp_without_skip));
+        memset(dp_without_skip[nxt], -1, sizeof(dp_without_skip[nxt]));
         //choose read
         for (int j = 1; j < READ_CNT_STATES; ++j) {
             dp_without_skip[nxt][j] = dp_without_skip[cur][j - 1] - read_cost[j - 1];
@@ -922,7 +922,7 @@ std::pair<int, int> DP_read_without_skip_and_jump(DISK &cur_disk, int pointer_po
         int cur_request = cur_disk.max_density.get(cur);
         //choose pass
         if (cur_request == 0) {
-            for (int j = 0; j < 7; ++j) {
+            for (int j = 0; j < READ_CNT_STATES; ++j) {
                 //dp_without_skip[nxt][0] = std::min(dp_without_skip[nxt][0], dp_without_skip[cur][j] - 1);
                 if (dp_without_skip[nxt][0] < dp_without_skip[cur][j] - 1) {
                     dp_without_skip[nxt][0] = dp_without_skip[cur][j] - 1;
@@ -931,7 +931,7 @@ std::pair<int, int> DP_read_without_skip_and_jump(DISK &cur_disk, int pointer_po
             }
         }
         bool can_get = 0; //是否能到达nxt
-        for (int j = 0; j < 7; ++j) {
+        for (int j = 0; j < READ_CNT_STATES; ++j) {
             if (dp_without_skip[nxt][j] >= 0) {
                 can_get = 1;
                 break;
