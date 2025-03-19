@@ -25,11 +25,13 @@
 #define MAX_OBJECT_SIZE (5 + 1)
 #define MAX_TAG_NUM (16 + 1)
 #define MAX_STAGE (50)
+#define MAX_TOKEN (1000 + 2)
 
 const double JUMP_VISCOSITY = 1.0;
 const int READ_ROUND_TIME = 10; //一轮读取的时间
 const int PRE_DISTRIBUTION_TIME = 8;
 const int TEST_DENSITY_LEN = 300;
+const int READ_CNT_STATES = 8; //读入的状态，根据上一次连续read的个数确定
 int DISK_MIN_PASS = 8;
 
 struct _Object {
@@ -419,10 +421,14 @@ int request_rest_unit[MAX_REQUEST_NUM];
 int request_rest_unit_state[MAX_REQUEST_NUM];
 std::vector <int> solved_request;
 
+char read_oper[MAX_TOKEN]; //存储读操作
+int dp_without_skip[MAX_DISK_SIZE][READ_CNT_STATES];
+int read_cost[READ_CNT_STATES] = {64, 52, 42, 34, 28, 23, 19, 16};
 inline void get_next_pos(int& x) 
 {
     x = x % V + 1;
 }
+
 
 inline void get_pre_pos(int& x) 
 {
@@ -799,6 +805,12 @@ struct Pointer{
         pointer = pointer % V + 1;
     }
 };
+
+int DP_read_without_skip_and_jump(DISK &cur_disk, int pointer, int rest_token) {
+    memset(dp_without_skip[pointer], sizeof(dp_without_skip[pointer]), 0);
+    dp_without_skip[pointer][std::min(cur_disk.last_read_cnt, 7)] = rest_token;
+    //for (int t = )
+}
 
 void read_without_jump(DISK &cur_disk)
 {
