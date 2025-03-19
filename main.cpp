@@ -953,7 +953,7 @@ std::pair<int, int> DP_read_without_skip_and_jump(DISK &cur_disk, int pointer_po
 void read_without_jump_dp_version(DISK &cur_disk) {
     int begin_pointer = cur_disk.pointer;
     //std::cerr << "start DP_read_without_skip_and_jump" << std::endl;
-    auto [sum_requests, end_pointer] = DP_read_without_skip_and_jump(cur_disk, cur_disk.pointer, cur_disk.rest_token);
+    auto [sum_requests, end_pointer] = DP_read_without_skip_and_jump(cur_disk, cur_disk.pointer, cur_disk.rest_token * 1.1);
     //std::cerr << "end DP_read_without_skip_and_jump" << std::endl;
     //std::cerr << "end_pointer: " << end_pointer << std::endl;
     //std::cerr << "dist: " << get_dist(begin_pointer, end_pointer) << std::endl;
@@ -977,13 +977,19 @@ void read_without_jump_dp_version(DISK &cur_disk) {
     for (auto oper : read_sequence) {
         if (oper == 'r') {
             check_requests += cur_disk.max_density.get(cur_disk.pointer);
-            do_pointer_read(cur_disk);
+            if (!do_pointer_read(cur_disk))
+                break;
         }
         else
-            do_pointer_pass(cur_disk);
+            if (!do_pointer_pass(cur_disk))
+                break;
     }
     //std::cerr << check_requests<< " " << sum_requests << std::endl;
-    assert(check_requests == sum_requests);
+   // assert(check_requests == sum_requests);
+    while (cur_disk.rest_token > 0 && cur_disk.max_density.get(cur_disk.pointer) == 0) {
+        do_pointer_pass(cur_disk);
+    }
+    assert(do_pointer_read(cur_disk) == 0);
     printf("#\n");
 }
 
@@ -1123,15 +1129,15 @@ void read_action(int time)
             if (p == -1 || get_dist(cur_disk.pointer, p) <= G * 0.9) { //如果距离足够近
                 
                 // std::cerr << "start read_without_jump" << std::endl;
-                read_without_jump(cur_disk);
-                //read_without_jump_dp_version(cur_disk);
+                //read_without_jump(cur_disk);
+                read_without_jump_dp_version(cur_disk);
             }
             else
                 do_pointer_jump(cur_disk, p);
         }
         else
-            //read_without_jump_dp_version(cur_disk);
-            read_without_jump(cur_disk);
+            read_without_jump_dp_version(cur_disk);
+            //read_without_jump(cur_disk);
     }
     // std::cerr << "in read_action: end move pointer" << std::endl;
 
