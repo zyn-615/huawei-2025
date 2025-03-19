@@ -28,18 +28,17 @@
 #define MAX_TOKEN (1000 + 2)
 
 const double JUMP_VISCOSITY = 1.0;
-const int READ_ROUND_TIME = 10; //一轮读取的时间
-const int PRE_DISTRIBUTION_TIME = 8;
-const int TEST_DENSITY_LEN = 300;
+const int READ_ROUND_TIME = 15; //一轮读取的时间
+const int PRE_DISTRIBUTION_TIME = 32;
+const int TEST_DENSITY_LEN = 650;
 const int READ_CNT_STATES = 8; //读入的状态，根据上一次连续read的个数确定
-int DISK_MIN_PASS = 8;
+int DISK_MIN_PASS = 9;
 
 struct _Object {
     //(磁盘编号，磁盘内位置)
     std::pair <int, int> unit_pos[REP_NUM + 1][MAX_OBJECT_SIZE];
     int size;
     int tag;
-    //读入的时候注意赋值给char型
 };
 
 struct _Request {
@@ -307,8 +306,7 @@ struct Segment_tree_add {
         return find_kth(1, 1, V, 1, V, k);
     }
 };
-struct DensityManager
-{
+struct DensityManager {
     std::vector<int> request_num;
     std::vector<int> prefix_sum;
     int window_len;
@@ -385,8 +383,6 @@ struct DensityManager
         return max_point;
     }
 };
-
-
 struct DISK {
     Segment_tree_add empty_pos; //维护空位置
     Segment_tree_max request_num; //维护每个点的request数量
@@ -400,11 +396,17 @@ struct DISK {
     int tag_distribution_pointer[MAX_TAG_NUM];
     std::pair <int, int> unit_object[MAX_DISK_SIZE];
     bool inner_tag_inverse[MAX_TAG_NUM];
+    int distribution_strategy;
     int test_density_len = TEST_DENSITY_LEN;
 };
 
 DISK disk[MAX_DISK_NUM];
-std::mt19937 RAND(20250318);
+std::mt19937 RAND;
+
+inline int random(int l, int r)
+{
+    return rand() % (r - l + 1) + l;
+}
 
 struct Predict {
     int add_object;
@@ -414,6 +416,7 @@ struct Predict {
 
 Predict Info[MAX_TAG_NUM][MAX_STAGE];
 int max_cur_tag_size[MAX_STAGE][MAX_TAG_NUM];
+int all_tag_request[MAX_TAG_NUM], test_tag_request[MAX_TAG_NUM];
 
 /*存储每个对象的unit没有解决的request*/
 std::queue<int> unsolve_request[MAX_OBJECT_NUM][MAX_OBJECT_SIZE];
@@ -442,12 +445,18 @@ inline int get_dist(int x, int y)
     return x <= y? y - x: V - x + y;
 }
 
-inline void distribute_tag_in_disk(int disk_id, int stage) 
+inline void distribute_tag_in_disk_front(int disk_id, int stage) 
 {
-    int rest_unit = disk[disk_id].empty_pos.query_rest_unit();
+    int rest_unit = disk[disk_id].empty_pos.query_rest_unit() + 10;
+    int all_need = 0;
+    for (int i = 1; i <= M; ++i) {
+        int cur_tag = disk[disk_id].tag_order[i];
+        all_need += std::max(max_cur_tag_size[stage][cur_tag] / N, 3);
+    }
+
     for (int i = 1, pre_distribution = 0; i <= M; ++i) {
         int cur_tag = disk[disk_id].tag_order[i];
-        int cur_tag_distribution = std::max(max_cur_tag_size[stage][cur_tag] / N, 10) + 5;
+        int cur_tag_distribution = (1.0 * std::max(max_cur_tag_size[stage][cur_tag] / N, 3) / all_need) * rest_unit;
         
         if (pre_distribution + cur_tag_distribution > rest_unit) {
             pre_distribution += cur_tag_distribution;
@@ -466,13 +475,33 @@ inline void distribute_tag_in_disk(int disk_id, int stage)
     }
 }
 
+inline void distribute_tag_in_disk_mid(int disk_id, int stage) 
+{
+    int rest_unit = disk[disk_id].empty_pos.query_rest_unit();
+    for (int i = 1, pre_distribution = 0; i <= M; ++i) {
+        int cur_tag = disk[disk_id].tag_order[i];
+        int cur_tag_distribution = std::max(max_cur_tag_size[stage][cur_tag] / N, 3) + 5;
+        
+        if (pre_distribution + cur_tag_distribution > rest_unit) {
+            pre_distribution += cur_tag_distribution;
+            //这边如果满了，指针和前面一样
+            disk[disk_id].tag_distribution_pointer[cur_tag] = disk[disk_id].tag_distribution_pointer[disk[disk_id].tag_order[i - 1]];
+            continue;
+        }
+
+        disk[disk_id].tag_distribution_pointer[cur_tag] = pre_distribution + cur_tag_distribution / 2;
+        pre_distribution += cur_tag_distribution;
+    }
+}
+
 /*预处理操作*/
 void init() 
 {
-    DISK_MIN_PASS = std::min(6,V - 1);
+    DISK_MIN_PASS = std::min(DISK_MIN_PASS, V - 1);
     for (int i = 1; i <= all_stage; ++i) {
         for (int j = 1; j <= M; ++j) {
             max_cur_tag_size[i][j] = max_cur_tag_size[i - 1][j] - Info[i - 1][j].delete_object + Info[i][j].add_object;
+            all_tag_request[j] += Info[i][j].read_object;
         }
     }
     
@@ -491,12 +520,26 @@ void init()
         disk[i].max_density.init(TEST_DENSITY_LEN);
         std::iota(disk[i].tag_order + 1, disk[i].tag_order + 1 + M, 1);
         std::random_shuffle(disk[i].tag_order + 1, disk[i].tag_order + 1 + M);
+
+        for (int j = 1; j <= M; ++j) {
+            test_tag_request[j] = max_cur_tag_size[all_stage][j] + ((RAND() & 1) ? 1 : -1) * random(200, 3000);
+            // test_tag_request[j] = all_tag_request[j] + ((RAND() & 1) ? 1 : -1) * random(500, 3000);
+        }
+
+        // std::sort(disk[i].tag_order + 1, disk[i].tag_order + 1 + M, [&](const int a, const int b) {
+            // return test_tag_request[a] > test_tag_request[b];
+        // });
+
         for (int j = 1; j <= M; ++j) {
             disk[i].inner_tag_inverse[j] = RAND() & 1;
         }
 
         int stage = std::min(PRE_DISTRIBUTION_TIME, all_stage);
-        distribute_tag_in_disk(i, stage);
+        disk[i].distribution_strategy = 1;
+
+        if (disk[i].distribution_strategy == 1)
+            distribute_tag_in_disk_front(i, stage);
+        else distribute_tag_in_disk_mid(i, stage);
     }
     
     /*
@@ -511,7 +554,7 @@ void init()
 
 inline int get_now_stage(int now_time) 
 {
-    return (now_time + FRE_PER_SLICING - 1) / FRE_PER_SLICING;
+    return std::min((now_time + FRE_PER_SLICING - 1) / FRE_PER_SLICING, all_stage);
 }
 
 void timestamp_action()
@@ -522,7 +565,10 @@ void timestamp_action()
 
     if (get_now_stage(timestamp) > PRE_DISTRIBUTION_TIME && get_now_stage(timestamp) != get_now_stage(timestamp - 1)) {
         for (int i = 1; i <= N; ++i) {
-            distribute_tag_in_disk(i, get_now_stage(timestamp));
+            if (disk[i].distribution_strategy == 1)
+                distribute_tag_in_disk_front(i, get_now_stage(timestamp));
+            else 
+                distribute_tag_in_disk_mid(i, get_now_stage(timestamp));
         }
     }
 
@@ -618,11 +664,38 @@ void delete_action()
     fflush(stdout);
 }
 
-inline void write_unit(int object_id, int disk_id, int unit_id, int write_pos, int repeat_id) {
+inline void write_unit(int object_id, int disk_id, int unit_id, int write_pos, int repeat_id) 
+{
     // disk[disk_id].empty_pos.add_unit(1, 1, V, 1);
     disk[disk_id].empty_pos.modify(1, 1, V, write_pos, -1);
     disk[disk_id].unit_object[write_pos] = {object_id, unit_id};
     objects[object_id].unit_pos[repeat_id][unit_id] = {disk_id, write_pos};
+}
+
+inline int write_unit_in_disk_strategy_1(int disk_id, int tag)
+{
+    int res = 0;
+    if (!disk[disk_id].inner_tag_inverse[tag]) {
+        res = disk[disk_id].empty_pos.find_next(disk[disk_id].tag_distribution_pointer[tag]);
+        // get_next_pos(disk[disk_id].tag_distribution_pointer[tag]);
+    } else {
+        res = disk[disk_id].empty_pos.find_pre(disk[disk_id].tag_distribution_pointer[tag]);
+        // get_pre_pos(disk[disk_id].tag_distribution_pointer[tag]);
+    }
+
+    return res;
+}
+
+inline int write_unit_in_disk_strategy_2(int disk_id, int tag)
+{
+    int pos = 0;
+    if (RAND() & 1) {
+        pos = disk[disk_id].empty_pos.find_next(disk[disk_id].tag_distribution_pointer[tag]);
+    } else {
+        pos = disk[disk_id].empty_pos.find_pre(disk[disk_id].tag_distribution_pointer[tag]);
+    }
+
+    return pos;
 }
 
 void write_action()
@@ -659,20 +732,16 @@ void write_action()
 
             tag_size_in_disk[tag][disk_id] += size;
 
-            for (int k = 1, pre = 0; k <= size; ++k) {
+            for (int k = 1; k <= size; ++k) {
                 // int nxt = disk[disk_id].empty_pos.find_next(1, 1, V, 1, V);
-                int nxt = 0;
-                if (!disk[disk_id].inner_tag_inverse[tag]) {
-                    nxt = disk[disk_id].empty_pos.find_next(disk[disk_id].tag_distribution_pointer[tag]);
-                    get_next_pos(disk[disk_id].tag_distribution_pointer[tag]);
-                } else {
-                    nxt = disk[disk_id].empty_pos.find_pre(disk[disk_id].tag_distribution_pointer[tag]);
-                    get_pre_pos(disk[disk_id].tag_distribution_pointer[tag]);
-                }
+                int pos = 0;
+                if (disk[disk_id].distribution_strategy == 1)
+                    pos = write_unit_in_disk_strategy_1(disk_id, tag);
+                else  
+                    pos = write_unit_in_disk_strategy_2(disk_id, tag);
                 // assert(disk[disk_id].empty_pos.find_next(1, 1, V, 1, V) == nxt + 1);
-                write_unit(id, disk_id, k, nxt, j);
-                pre = nxt;
-                printf("%d ", nxt);
+                write_unit(id, disk_id, k, pos, j);
+                printf("%d ", pos);
                 // std::cerr << nxt << " ";
             }
 
@@ -1005,7 +1074,7 @@ int main()
 {
     // std::cerr << "start input global information" << std::endl;
     scanf("%d%d%d%d%d", &T, &M, &N, &V, &G);
-    srand(20041111);
+    // srand(20041111);
     //srand(time(0) ^ clock());
 
     all_stage = (T - 1) / FRE_PER_SLICING + 1;
