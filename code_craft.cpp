@@ -28,15 +28,13 @@
 #define MAX_TOKEN (1000 + 2)
 #define MAX_PIECE_QUEUE (105 + 1)
 
-const double JUMP_VISCOSITY = 0.9;
-const int READ_ROUND_TIME = 15; //一轮读取的时间
-const int PRE_DISTRIBUTION_TIME = 25;
-const int TEST_DENSITY_LEN = 550;
+const double JUMP_VISCOSITY = 1.5;
+const int READ_ROUND_TIME = 40; //一轮读取的时间
+const int PRE_DISTRIBUTION_TIME = 2;
+const int TEST_DENSITY_LEN = 207;
 const int READ_CNT_STATES = 8; //读入的状态，根据上一次连续read的个数确定
-int DISK_MIN_PASS = 9;
+int DISK_MIN_PASS = 8;
 const int NUM_PIECE_QUEUE = 105;
-const double TAG_DENSITY_DIVIDE = 3;
-const double UNIT_REQUEST_DIVIDE = 3;
 const bool USE_DP = false;
 
 struct _Object {
@@ -61,14 +59,7 @@ std::vector<int> time_out_of_queue(MAX_PIECE_QUEUE);
 //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!注意，objects加了复数
 _Object objects[MAX_OBJECT_NUM];
 
-int T, M, N, V, G, all_stage, now_stage;
-
-inline int get_pre_kth(int x, int k) 
-{
-    x = (x - k + V) % V;
-    if (x == 0) x = V;
-    return x;
-}
+int T, M, N, V, G, all_stage;
 
 struct Segment_tree_max {
     struct Node {
@@ -367,7 +358,7 @@ struct DensityManager {
         return cur_prefix_sum;
     }
     
-    int find_max_point(bool find_mid = false)
+    int find_max_point()
     {
         int max_point = 1;
 
@@ -389,15 +380,16 @@ struct DensityManager {
         }
 
         // std::cerr << "find_max_point end" << std::endl;
+        
+        if(max_point >= window_len) max_point = max_point - window_len + 1;
+        else max_point = max_point + V - window_len + 1;
 
-        if (!find_mid)
-            return get_pre_kth(max_point, window_len);
-        else return get_pre_kth(max_point, window_len / 2);
+        return max_point;
     }
 };
 struct DISK {
     Segment_tree_add empty_pos; //维护空位置
-    // Segment_tree_max request_num; //维护每个点的request数量
+    Segment_tree_max request_num; //维护每个点的request数量
     //Segment_tree_max max_density; //用于获取每个段的request总和
     DensityManager max_density;
     int pointer; //这个磁盘指针的位置
@@ -408,7 +400,6 @@ struct DISK {
     int tag_distribution_pointer[MAX_TAG_NUM];
     std::pair <int, int> unit_object[MAX_DISK_SIZE];
     bool inner_tag_inverse[MAX_TAG_NUM];
-    bool is_reverse;
     int distribution_strategy;
     int test_density_len = TEST_DENSITY_LEN;
 };
@@ -446,6 +437,7 @@ inline void get_next_pos(int& x)
 {
     x = x % V + 1;
 }
+
 
 inline void to_pre_pos(int& x) 
 {
@@ -519,28 +511,6 @@ inline void distribute_tag_in_disk_mid(int disk_id, int stage)
     }
 }
 
-inline void distribute_tag_in_disk_by_density(int disk_id, int stage)
-{
-    auto& cur_disk = disk[disk_id];
-    std::vector <DensityManager> tag_density(M + 1);
-    for (int i = 1; i <= M; ++i) {
-        tag_density[i].init(std::max(10, int(max_cur_tag_size[stage - 1][i] / N / TAG_DENSITY_DIVIDE)));
-    }
-
-    for (int i = 1; i <= V; ++i) {
-        auto [object_id, _] = cur_disk.unit_object[i];
-        int object_tag = objects[object_id].tag;
-
-        if (object_id) {
-            tag_density[object_tag].modify(i, cur_disk.max_density.get(i) / UNIT_REQUEST_DIVIDE + 1);
-        }
-    }
-
-    for (int i = 1; i <= M; ++i) {
-        cur_disk.tag_distribution_pointer[i] = tag_density[i].find_max_point();
-    }
-}
-
 /*预处理操作*/
 void init() 
 {
@@ -578,18 +548,16 @@ void init()
         std::shuffle(disk[i].tag_order + 1, disk[i].tag_order + 1 + M, RAND);
 
         for (int j = 1; j <= M; ++j) {
-            test_tag_request[j] = max_cur_tag_size[all_stage][j] + ((RAND() & 1) ? 1 : -1) * random(600, 9000);
+            test_tag_request[j] = max_cur_tag_size[all_stage][j] + ((RAND() & 1) ? 1 : -1) * random(10, 600);
             // test_tag_request[j] = all_tag_request[j] + ((RAND() & 1) ? 1 : -1) * random(500, 3000);
         }
 
         // std::sort(disk[i].tag_order + 1, disk[i].tag_order + 1 + M, [&](const int a, const int b) {
-            // return test_tag_request[a] > test_tag_request[b];
+        //     return test_tag_request[a] > test_tag_request[b];
         // });
-        
-        disk[i].is_reverse = i & 1;
+
         for (int j = 1; j <= M; ++j) {
             disk[i].inner_tag_inverse[j] = RAND() & 1;
-            // disk[i].inner_tag_inverse[j] = disk[i].is_reverse;
         }
 
         int stage = std::min(PRE_DISTRIBUTION_TIME, all_stage);
@@ -621,13 +589,12 @@ void timestamp_action()
     scanf("%*s%d", &timestamp);
     printf("TIMESTAMP %d\n", timestamp);
 
-    if (get_now_stage(timestamp) > PRE_DISTRIBUTION_TIME && get_now_stage(timestamp) != get_now_stage(timestamp - 1) && get_now_stage(timestamp) % 2 == 0) {
+    if (get_now_stage(timestamp) > PRE_DISTRIBUTION_TIME && get_now_stage(timestamp) != get_now_stage(timestamp - 1) && get_now_stage(timestamp) % 3 == 5) {
         for (int i = 1; i <= N; ++i) {
-            distribute_tag_in_disk_by_density(i, get_now_stage(timestamp));
-            // if (disk[i].distribution_strategy == 1)
-            //     distribute_tag_in_disk_front(i, get_now_stage(timestamp));
-            // else 
-            //     distribute_tag_in_disk_mid(i, get_now_stage(timestamp));
+            if (disk[i].distribution_strategy == 1)
+                distribute_tag_in_disk_front(i, get_now_stage(timestamp));
+            else 
+                distribute_tag_in_disk_mid(i, get_now_stage(timestamp));
         }
     }
 
@@ -755,11 +722,6 @@ inline int write_unit_in_disk_strategy_2(int disk_id, int tag)
     return pos;
 }
 
-inline int write_unit_in_disk_by_density(int disk_id, int tag)
-{
-    write_unit_in_disk_strategy_2(disk_id, tag);
-}
-
 void write_action()
 {
     int n_write;
@@ -797,8 +759,7 @@ void write_action()
             for (int k = 1; k <= size; ++k) {
                 // int nxt = disk[disk_id].empty_pos.find_next(1, 1, V, 1, V);
                 int pos = 0;
-                // if (disk[disk_id].distribution_strategy == 1)
-                if (now_stage <= PRE_DISTRIBUTION_TIME)
+                if (disk[disk_id].distribution_strategy == 1)
                     pos = write_unit_in_disk_strategy_1(disk_id, tag);
                 else  
                     pos = write_unit_in_disk_strategy_2(disk_id, tag);
@@ -1255,7 +1216,6 @@ int main()
     fflush(stdout);
 
     for (int t = 1; t <= T + EXTRA_TIME; t++) {
-        now_stage = get_now_stage(t);
         update_request_num(t);
 
         // std::cerr << "start time " << t << std::endl;
