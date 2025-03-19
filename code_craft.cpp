@@ -28,13 +28,13 @@
 #define MAX_TOKEN (1000 + 2)
 #define MAX_PIECE_QUEUE (105 + 1)
 
-const double JUMP_VISCOSITY = 0.8;
-const int READ_ROUND_TIME = 4; //一轮读取的时间
-const int PRE_DISTRIBUTION_TIME = 1;
-const int TEST_DENSITY_LEN = 10;
-const int READ_CNT_STATES = 8; //读入的状态，根据上一次连续read的个数确定
-int DISK_MIN_PASS = 7;
-const int NUM_PIECE_QUEUE = 8;
+const double JUMP_VISCOSITY = 0.2;
+const int READ_ROUND_TIME = 96;
+const int PRE_DISTRIBUTION_TIME = 13;
+const int TEST_DENSITY_LEN = 1816;
+const int READ_CNT_STATES = 8;
+int DISK_MIN_PASS = 2;
+const int NUM_PIECE_QUEUE = 32;
 
 struct _Object {
     //(磁盘编号，磁盘内位置)
