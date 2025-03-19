@@ -27,12 +27,20 @@
 #define MAX_STAGE (50)
 #define MAX_TOKEN (1000 + 2)
 
+<<<<<<< HEAD
 const double JUMP_VISCOSITY = 1.0;
 const int READ_ROUND_TIME = 15; //一轮读取的时间
 const int PRE_DISTRIBUTION_TIME = 32;
 const int TEST_DENSITY_LEN = 650;
 const int READ_CNT_STATES = 8; //读入的状态，根据上一次连续read的个数确定
 int DISK_MIN_PASS = 9;
+=======
+const int READ_ROUND_TIME = 10; //一轮读取的时间
+const int PRE_DISTRIBUTION_TIME = 15;
+const int TEST_DENSITY_LEN = 150;
+const int EXTRA_TIME_HALF = 52;
+int DISK_MIN_PASS = 6;
+>>>>>>> e03a475f27c1867e05041445256eb300e9fbbac1
 
 struct _Object {
     //(磁盘编号，磁盘内位置)
@@ -401,11 +409,15 @@ struct DISK {
 };
 
 DISK disk[MAX_DISK_NUM];
+<<<<<<< HEAD
 std::mt19937 RAND(12345);
+=======
+std::mt19937 RAND(666666);
+>>>>>>> e03a475f27c1867e05041445256eb300e9fbbac1
 
 inline int random(int l, int r)
 {
-    return rand() % (r - l + 1) + l;
+    return RAND() % (r - l + 1) + l;
 }
 
 struct Predict {
@@ -526,7 +538,7 @@ void init()
         
         disk[i].max_density.init(TEST_DENSITY_LEN);
         std::iota(disk[i].tag_order + 1, disk[i].tag_order + 1 + M, 1);
-        std::random_shuffle(disk[i].tag_order + 1, disk[i].tag_order + 1 + M);
+        std::shuffle(disk[i].tag_order + 1, disk[i].tag_order + 1 + M, RAND);
 
         for (int j = 1; j <= M; ++j) {
             test_tag_request[j] = max_cur_tag_size[all_stage][j] + ((RAND() & 1) ? 1 : -1) * random(200, 3000);
@@ -1134,8 +1146,9 @@ void read_action(int time)
     solved_request.clear();
     fflush(stdout);
 }
+
 inline void update_request_num(int time) {
-    while (!request_queue_in_time_order_late.empty() && request_queue_in_time_order_late.front().request_time < time - EXTRA_TIME / 2) {
+    while (!request_queue_in_time_order_late.empty() && request_queue_in_time_order_late.front().request_time < time - EXTRA_TIME_HALF) {
         _Request now_request = request_queue_in_time_order_late.front();
         request_queue_in_time_order_late.pop();
         if(request_rest_unit[now_request.request_id] <= 0) continue;
@@ -1169,7 +1182,7 @@ int main()
 {
     // std::cerr << "start input global information" << std::endl;
     scanf("%d%d%d%d%d", &T, &M, &N, &V, &G);
-    // srand(20041111);
+    // srand(666666);
     //srand(time(0) ^ clock());
 
     all_stage = (T - 1) / FRE_PER_SLICING + 1;
