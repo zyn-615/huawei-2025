@@ -24,17 +24,18 @@
 #define EXTRA_TIME (105)
 #define MAX_OBJECT_SIZE (5 + 1)
 #define MAX_TAG_NUM (16 + 1)
-#define MAX_STAGE (50)
+#define MAX_STAGE (55)
 #define MAX_TOKEN (1000 + 2)
 #define MAX_PIECE_QUEUE (105 + 1)
 
-const double JUMP_VISCOSITY = 0.2;
-const int READ_ROUND_TIME = 96;
-const int PRE_DISTRIBUTION_TIME = 13;
-const int TEST_DENSITY_LEN = 1816;
-const int READ_CNT_STATES = 8;
-int DISK_MIN_PASS = 2;
-const int NUM_PIECE_QUEUE = 32;
+const double JUMP_VISCOSITY = 1.5;
+const int READ_ROUND_TIME = 40; //一轮读取的时间
+const int PRE_DISTRIBUTION_TIME = 2;
+const int TEST_DENSITY_LEN = 207;
+const int READ_CNT_STATES = 8; //读入的状态，根据上一次连续read的个数确定
+int DISK_MIN_PASS = 8;
+const int NUM_PIECE_QUEUE = 105;
+const bool USE_DP = false;
 
 struct _Object {
     //(磁盘编号，磁盘内位置)
@@ -404,7 +405,7 @@ struct DISK {
 };
 
 DISK disk[MAX_DISK_NUM];
-std::mt19937 RAND(12345);
+std::mt19937 RAND(666666);
 
 inline int random(int l, int r)
 {
@@ -417,7 +418,7 @@ struct Predict {
     int read_object;
 };
 
-Predict Info[MAX_TAG_NUM][MAX_STAGE];
+Predict Info[MAX_STAGE][MAX_TAG_NUM];
 int max_cur_tag_size[MAX_STAGE][MAX_TAG_NUM];
 int all_tag_request[MAX_TAG_NUM], test_tag_request[MAX_TAG_NUM];
 
@@ -453,6 +454,12 @@ int get_pre_pos(int x) {
 inline int get_dist(int x, int y) 
 {
     return x <= y? y - x: V - x + y;
+}
+
+inline int get_min_dist(int x, int y)
+{
+    if (x > y) std::swap(x, y);
+    return std::min(y - x, V - y + x);
 }
 
 inline void distribute_tag_in_disk_front(int disk_id, int stage) 
@@ -541,12 +548,12 @@ void init()
         std::shuffle(disk[i].tag_order + 1, disk[i].tag_order + 1 + M, RAND);
 
         for (int j = 1; j <= M; ++j) {
-            test_tag_request[j] = max_cur_tag_size[all_stage][j] + ((RAND() & 1) ? 1 : -1) * random(200, 3000);
+            test_tag_request[j] = max_cur_tag_size[all_stage][j] + ((RAND() & 1) ? 1 : -1) * random(10, 600);
             // test_tag_request[j] = all_tag_request[j] + ((RAND() & 1) ? 1 : -1) * random(500, 3000);
         }
 
         // std::sort(disk[i].tag_order + 1, disk[i].tag_order + 1 + M, [&](const int a, const int b) {
-            // return test_tag_request[a] > test_tag_request[b];
+        //     return test_tag_request[a] > test_tag_request[b];
         // });
 
         for (int j = 1; j <= M; ++j) {
@@ -582,7 +589,7 @@ void timestamp_action()
     scanf("%*s%d", &timestamp);
     printf("TIMESTAMP %d\n", timestamp);
 
-    if (get_now_stage(timestamp) > PRE_DISTRIBUTION_TIME && get_now_stage(timestamp) != get_now_stage(timestamp - 1)) {
+    if (get_now_stage(timestamp) > PRE_DISTRIBUTION_TIME && get_now_stage(timestamp) != get_now_stage(timestamp - 1) && get_now_stage(timestamp) % 3 == 5) {
         for (int i = 1; i <= N; ++i) {
             if (disk[i].distribution_strategy == 1)
                 distribute_tag_in_disk_front(i, get_now_stage(timestamp));
@@ -707,13 +714,11 @@ inline int write_unit_in_disk_strategy_1(int disk_id, int tag)
 
 inline int write_unit_in_disk_strategy_2(int disk_id, int tag)
 {
-    int pos = 0;
-    if (RAND() & 1) {
-        pos = disk[disk_id].empty_pos.find_next(disk[disk_id].tag_distribution_pointer[tag]);
-    } else {
-        pos = disk[disk_id].empty_pos.find_pre(disk[disk_id].tag_distribution_pointer[tag]);
-    }
-
+    int pre_pos = disk[disk_id].empty_pos.find_next(disk[disk_id].tag_distribution_pointer[tag]);
+    int nxt_pos = disk[disk_id].empty_pos.find_pre(disk[disk_id].tag_distribution_pointer[tag]);
+    int pos = nxt_pos;
+    if (get_min_dist(pre_pos, disk[disk_id].tag_distribution_pointer[tag]) <= get_min_dist(nxt_pos, disk[disk_id].tag_distribution_pointer[tag]))
+        pos = pre_pos;
     return pos;
 }
 
@@ -1120,18 +1125,24 @@ void read_action(int time)
             */
                 // std::cerr << "max_point: " << p << std::endl;
 
-            if (p == -1 || get_dist(cur_disk.pointer, p) <= G * 0.9) { //如果距离足够近
+            if (p == -1 || get_dist(cur_disk.pointer, p) <= G * JUMP_VISCOSITY) { //如果距离足够近
                 
                 // std::cerr << "start read_without_jump" << std::endl;
-                //read_without_jump(cur_disk);
-                read_without_jump_dp_version(cur_disk);
+                
+                if (USE_DP)
+                    read_without_jump_dp_version(cur_disk);
+                else
+                    read_without_jump(cur_disk);
             }
-            else
+            else 
                 do_pointer_jump(cur_disk, p);
+        } else {
+            if (USE_DP)
+                read_without_jump_dp_version(cur_disk);
+            else
+                read_without_jump(cur_disk);
         }
-        else
-            read_without_jump_dp_version(cur_disk);
-            //read_without_jump(cur_disk);
+           
     }
     // std::cerr << "in read_action: end move pointer" << std::endl;
 
@@ -1179,21 +1190,21 @@ int main()
     all_stage = (T - 1) / FRE_PER_SLICING + 1;
     for (int i = 1; i <= M; i++) {
         for (int j = 1; j <= all_stage; j++) {
-            scanf("%d", &Info[i][j].delete_object); 
+            scanf("%d", &Info[j][i].delete_object); 
             // scanf("%*d");
         }
     }
 
     for (int i = 1; i <= M; i++) {
         for (int j = 1; j <= all_stage; j++) {
-            scanf("%d", &Info[i][j].add_object);
+            scanf("%d", &Info[j][i].add_object);
             // scanf("%*d");
         }
     }
 
     for (int i = 1; i <= M; i++) {
         for (int j = 1; j <= all_stage; j++) {
-            scanf("%d", &Info[i][j].read_object);
+            scanf("%d", &Info[j][i].read_object);
             // scanf("%*d");
         }
     }

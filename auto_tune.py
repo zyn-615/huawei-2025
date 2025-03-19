@@ -80,7 +80,7 @@ def modify_parameters(params):
         if len(content) < original_length * 0.5:
             print(f"警告：修改后的内容长度显著减少（原始：{original_length}，现在：{len(content)}）")
             
-        # 写入修改后的内容
+        # 写入修改后的内容  
         with open('code_craft.cpp', 'w', encoding='utf-8') as f:
             f.write(content)
             
@@ -179,7 +179,7 @@ def run_and_get_score(input_file):
         print(f"运行程序时发生错误: {e}")
         return 0
 
-def evaluate_params(params, runs=3, data_files=None):
+def evaluate_params(params, runs=1, data_files=None):
     """评估一组参数的性能"""
     if data_files is None:
         data_files = ['sample.in']
@@ -305,6 +305,81 @@ def bayesian_optimization(iterations=30, data_files=None):
     
     return best_params, best_score
 
+def simulated_annealing(iterations=30, data_files=None):
+    """模拟退火优化"""
+    if data_files is None:
+        data_files = ['sample.in']
+    
+    # 初始温度
+    temperature = 100
+    # 冷却率
+    cooling_rate = 0.95
+    
+    def get_neighbor(current_params):
+        """生成邻居参数"""
+        neighbor = current_params.copy()
+        param = random.choice(list(PARAMS.keys()))
+        min_val, max_val = PARAMS[param]
+        if isinstance(min_val, int):
+            neighbor[param] = random.randint(min_val, max_val)
+        else:
+            neighbor[param] = random.uniform(min_val, max_val)
+        return neighbor
+    
+    # 初始化当前参数
+    current_params = {}
+    for param, (min_val, max_val) in PARAMS.items():
+        if isinstance(min_val, int):
+            current_params[param] = random.randint(min_val, max_val)
+        else:
+            current_params[param] = random.uniform(min_val, max_val)
+    
+    print("初始参数:", current_params)
+    current_score = evaluate_single_params(current_params, data_files)
+    print("初始分数:", current_score)
+    
+    best_params = current_params
+    best_score = current_score
+    
+    for i in range(iterations):
+        print(f"\n迭代 {i+1}/{iterations}")
+        print(f"当前温度: {temperature:.2f}")
+        
+        # 生成邻居
+        neighbor_params = get_neighbor(current_params)
+        print("邻居参数:", neighbor_params)
+        
+        # 评估邻居
+        neighbor_score = evaluate_single_params(neighbor_params, data_files)
+        print("邻居分数:", neighbor_score)
+        
+        # 计算分数差
+        score_diff = neighbor_score - current_score
+        print(f"分数差: {score_diff:.4f}")
+        
+        # 决定是否接受新参数
+        if score_diff > 0 or random.random() < np.exp(score_diff / temperature):
+            current_params = neighbor_params
+            current_score = neighbor_score
+            print("接受新参数")
+            
+            if current_score > best_score:
+                best_params = current_params
+                best_score = current_score
+                print(f"新的最佳分数: {best_score:.4f}")
+                print("新的最佳参数:", best_params)
+        else:
+            print("保持当前参数")
+        
+        # 降温
+        temperature *= cooling_rate
+    
+    print("\n模拟退火完成!")
+    print(f"最终最佳分数: {best_score:.4f}")
+    print("最终最佳参数:", best_params)
+    
+    return best_params, best_score
+
 if __name__ == "__main__":
     print("自动参数调优开始")
     print("可以在多个数据集上测试性能")
@@ -318,7 +393,8 @@ if __name__ == "__main__":
     
     print("\n1. 随机搜索")
     print("2. 贝叶斯优化 (需要安装scikit-optimize)")
-    choice = input("请选择优化方法 (1/2): ")
+    print("3. 模拟退火")
+    choice = input("请选择优化方法 (1/2/3): ")
     
     if choice == "1":
         iterations = int(input("请输入迭代次数 (默认30): ") or "30")
@@ -326,6 +402,9 @@ if __name__ == "__main__":
     elif choice == "2":
         iterations = int(input("请输入贝叶斯优化迭代次数 (默认30): ") or "30")
         best_params, best_score = bayesian_optimization(iterations, data_files)
+    elif choice == "3":
+        iterations = int(input("请输入模拟退火迭代次数 (默认30): ") or "30")
+        best_params, best_score = simulated_annealing(iterations, data_files)
     else:
         print("无效的选择，使用随机搜索方法")
         iterations = int(input("请输入迭代次数 (默认30): ") or "30")
