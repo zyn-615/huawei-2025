@@ -901,7 +901,7 @@ std::pair<int, int> DP_read_without_skip_and_jump(DISK &cur_disk, int pointer_po
     for (int j = 0; j < READ_CNT_STATES; ++j)
         dp_without_skip[pointer_pos][j] = -1;
     //assert(dp_without_skip[pointer_pos][j] == -1);
-    dp_without_skip[pointer_pos][std::min(cur_disk.last_read_cnt, 7)] = rest_token;
+    dp_without_skip[pointer_pos][std::min(cur_disk.last_read_cnt, READ_CNT_STATES - 1)] = rest_token;
     Pointer pointer(pointer_pos);
     int sum_request = 0;
     for (int t = 0; t < rest_token; ++t) {
@@ -925,7 +925,7 @@ std::pair<int, int> DP_read_without_skip_and_jump(DISK &cur_disk, int pointer_po
         int cur_request = cur_disk.max_density.get(cur);
         //choose pass
         if (cur_request == 0) {
-            for (int j = 0; j < 7; ++j) {
+            for (int j = 0; j < READ_CNT_STATES; ++j) {
                 //dp_without_skip[nxt][0] = std::min(dp_without_skip[nxt][0], dp_without_skip[cur][j] - 1);
                 if (dp_without_skip[nxt][0] < dp_without_skip[cur][j] - 1) {
                     dp_without_skip[nxt][0] = dp_without_skip[cur][j] - 1;
@@ -934,7 +934,7 @@ std::pair<int, int> DP_read_without_skip_and_jump(DISK &cur_disk, int pointer_po
             }
         }
         bool can_get = 0; //是否能到达nxt
-        for (int j = 0; j < 7; ++j) {
+        for (int j = 0; j < READ_CNT_STATES; ++j) {
             if (dp_without_skip[nxt][j] >= 0) {
                 can_get = 1;
                 break;
@@ -960,7 +960,7 @@ void read_without_jump_dp_version(DISK &cur_disk) {
     //std::cerr << "end_pointer: " << end_pointer << std::endl;
     //std::cerr << "dist: " << get_dist(begin_pointer, end_pointer) << std::endl;
     int cur_state = 0;
-    for (int j = 1; j < 7; ++j) {
+    for (int j = 1; j < READ_CNT_STATES; ++j) {
         if (dp_without_skip[end_pointer][j] > dp_without_skip[end_pointer][cur_state])
             cur_state = j;
     }
