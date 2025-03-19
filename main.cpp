@@ -26,6 +26,7 @@
 #define MAX_TAG_NUM (16 + 1)
 #define MAX_STAGE (50)
 #define MAX_TOKEN (1000 + 2)
+#define MAX_PIECE_QUEUE (105 + 1)
 
 const double JUMP_VISCOSITY = 1.0;
 const int READ_ROUND_TIME = 15; //一轮读取的时间
