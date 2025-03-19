@@ -897,9 +897,10 @@ struct Pointer{
 //算出skip不jump的DP值
 //warning: 需要保证磁盘大小>=每个时间片token数
 std::pair<int, int> DP_read_without_skip_and_jump(DISK &cur_disk, int pointer_pos, int rest_token) {
-    memset(dp_without_skip[pointer_pos], -1, sizeof(dp_without_skip[pointer_pos]));
+    //memset(dp_without_skip[pointer_pos], -1, sizeof(dp_without_skip[pointer_pos]));
     for (int j = 0; j < READ_CNT_STATES; ++j)
-        assert(dp_without_skip[pointer_pos][j] == -1);
+        dp_without_skip[pointer_pos][j] = -1;
+    //assert(dp_without_skip[pointer_pos][j] == -1);
     dp_without_skip[pointer_pos][std::min(cur_disk.last_read_cnt, 7)] = rest_token;
     Pointer pointer(pointer_pos);
     int sum_request = 0;
@@ -981,7 +982,7 @@ void read_without_jump_dp_version(DISK &cur_disk) {
         else
             do_pointer_pass(cur_disk);
     }
-    std::cerr << check_requests << std::endl;
+    //std::cerr << check_requests<< " " << sum_requests << std::endl;
     assert(check_requests == sum_requests);
     printf("#\n");
 }
@@ -1221,10 +1222,10 @@ int main()
         write_action();
 
         // std::cerr << "end write_action" <<std::endl;
-        std::cerr << "start read_action" <<std::endl;
+        //std::cerr << "start read_action" <<std::endl;
         read_action(t);
 
-        std::cerr << "end read_action" <<std::endl;
+        //std::cerr << "end read_action" <<std::endl;
         // std::cerr << "end time " << t << std::endl;
     }
 
