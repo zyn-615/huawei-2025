@@ -27,21 +27,12 @@
 #define MAX_STAGE (50)
 #define MAX_TOKEN (1000 + 2)
 
-<<<<<<< HEAD
 const double JUMP_VISCOSITY = 1.0;
 const int READ_ROUND_TIME = 15; //一轮读取的时间
 const int PRE_DISTRIBUTION_TIME = 32;
 const int TEST_DENSITY_LEN = 650;
 const int READ_CNT_STATES = 8; //读入的状态，根据上一次连续read的个数确定
 int DISK_MIN_PASS = 9;
-=======
-const int READ_ROUND_TIME = 10; //一轮读取的时间
-const int PRE_DISTRIBUTION_TIME = 15;
-const int TEST_DENSITY_LEN = 150;
-const int EXTRA_TIME_HALF = 52;
-int DISK_MIN_PASS = 6;
->>>>>>> e03a475f27c1867e05041445256eb300e9fbbac1
-
 struct _Object {
     //(磁盘编号，磁盘内位置)
     std::pair <int, int> unit_pos[REP_NUM + 1][MAX_OBJECT_SIZE];
@@ -409,12 +400,7 @@ struct DISK {
 };
 
 DISK disk[MAX_DISK_NUM];
-<<<<<<< HEAD
 std::mt19937 RAND(12345);
-=======
-std::mt19937 RAND(666666);
->>>>>>> e03a475f27c1867e05041445256eb300e9fbbac1
-
 inline int random(int l, int r)
 {
     return RAND() % (r - l + 1) + l;
