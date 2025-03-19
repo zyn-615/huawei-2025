@@ -907,9 +907,7 @@ std::pair<int, int> DP_read_without_skip_and_jump(DISK &cur_disk, int pointer_po
     for (int t = 0; t < rest_token; ++t) {
         int nxt = pointer.get_to_nxt();
         int cur = pointer.pointer;
-        //memset(dp_without_skip[nxt], -1, sizeof(dp_without_skip));
-        for (int j = 0; j < READ_CNT_STATES; ++j)
-            dp_without_skip[nxt][j] = -1;
+        memset(dp_without_skip[nxt], -1, sizeof(dp_without_skip[nxt]));
         //choose read
         for (int j = 1; j < READ_CNT_STATES; ++j) {
             dp_without_skip[nxt][j] = dp_without_skip[cur][j - 1] - read_cost[j - 1];
