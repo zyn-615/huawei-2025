@@ -34,11 +34,7 @@ const int PRE_DISTRIBUTION_TIME = 32;
 const int TEST_DENSITY_LEN = 650;
 const int READ_CNT_STATES = 8; //读入的状态，根据上一次连续read的个数确定
 int DISK_MIN_PASS = 9;
-const int READ_ROUND_TIME = 10; //一轮读取的时间
-const int PRE_DISTRIBUTION_TIME = 15;
-const int TEST_DENSITY_LEN = 150;
 const int NUM_PIECE_QUEUE = 105;
-int DISK_MIN_PASS = 6;
 
 struct _Object {
     //(磁盘编号，磁盘内位置)
