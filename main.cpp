@@ -398,11 +398,11 @@ struct DISK {
 };
 
 DISK disk[MAX_DISK_NUM];
-std::mt19937 RAND;
+std::mt19937 RAND(666666);
 
 inline int random(int l, int r)
 {
-    return rand() % (r - l + 1) + l;
+    return RAND() % (r - l + 1) + l;
 }
 
 struct Predict {
@@ -512,7 +512,7 @@ void init()
         
         disk[i].max_density.init(TEST_DENSITY_LEN);
         std::iota(disk[i].tag_order + 1, disk[i].tag_order + 1 + M, 1);
-        std::random_shuffle(disk[i].tag_order + 1, disk[i].tag_order + 1 + M);
+        std::shuffle(disk[i].tag_order + 1, disk[i].tag_order + 1 + M, RAND);
 
         for (int j = 1; j <= M; ++j) {
             test_tag_request[j] = max_cur_tag_size[all_stage][j] + ((RAND() & 1) ? 1 : -1) * random(200, 3000);
@@ -1061,7 +1061,7 @@ int main()
 {
     // std::cerr << "start input global information" << std::endl;
     scanf("%d%d%d%d%d", &T, &M, &N, &V, &G);
-    // srand(20041111);
+    // srand(666666);
     //srand(time(0) ^ clock());
 
     all_stage = (T - 1) / FRE_PER_SLICING + 1;
