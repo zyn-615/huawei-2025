@@ -27,9 +27,10 @@
 #define MAX_STAGE (50)
 
 const int READ_ROUND_TIME = 10; //一轮读取的时间
-const int PRE_DISTRIBUTION_TIME = 8;
+const int PRE_DISTRIBUTION_TIME = 15;
 const int TEST_DENSITY_LEN = 150;
-int DISK_MIN_PASS = 8;
+const int EXTRA_TIME_HALF = 52;
+int DISK_MIN_PASS = 6;
 
 struct _Object {
     //(磁盘编号，磁盘内位置)
@@ -956,8 +957,9 @@ void read_action(int time)
     solved_request.clear();
     fflush(stdout);
 }
+
 inline void update_request_num(int time) {
-    while (!request_queue_in_time_order_late.empty() && request_queue_in_time_order_late.front().request_time < time - EXTRA_TIME / 2) {
+    while (!request_queue_in_time_order_late.empty() && request_queue_in_time_order_late.front().request_time < time - EXTRA_TIME_HALF) {
         _Request now_request = request_queue_in_time_order_late.front();
         request_queue_in_time_order_late.pop();
         if(request_rest_unit[now_request.request_id] <= 0) continue;
