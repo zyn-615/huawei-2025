@@ -29,13 +29,14 @@
 #define MAX_PIECE_QUEUE (105 + 1)
 
 const double JUMP_VISCOSITY = 0.9;
-const int READ_ROUND_TIME = 18; //一轮读取的时间
+const int READ_ROUND_TIME = 15; //一轮读取的时间
 const int PRE_DISTRIBUTION_TIME = 25;
-const int TEST_DENSITY_LEN = 650;
+const int TEST_DENSITY_LEN = 550;
 const int READ_CNT_STATES = 8; //读入的状态，根据上一次连续read的个数确定
 int DISK_MIN_PASS = 9;
 const int NUM_PIECE_QUEUE = 105;
-const double TAG_DENSITY_DIVIDE = 2.5;
+const double TAG_DENSITY_DIVIDE = 3;
+const double UNIT_REQUEST_DIVIDE = 3;
 const bool USE_DP = false;
 
 struct _Object {
@@ -413,7 +414,7 @@ struct DISK {
 };
 
 DISK disk[MAX_DISK_NUM];
-std::mt19937 RAND(6634);
+std::mt19937 RAND(666666);
 
 inline int random(int l, int r)
 {
@@ -531,7 +532,7 @@ inline void distribute_tag_in_disk_by_density(int disk_id, int stage)
         int object_tag = objects[object_id].tag;
 
         if (object_id) {
-            tag_density[object_tag].modify(i, cur_disk.max_density.get(i) + 1);
+            tag_density[object_tag].modify(i, cur_disk.max_density.get(i) / UNIT_REQUEST_DIVIDE + 1);
         }
     }
 
@@ -620,7 +621,7 @@ void timestamp_action()
     scanf("%*s%d", &timestamp);
     printf("TIMESTAMP %d\n", timestamp);
 
-    if (get_now_stage(timestamp) > PRE_DISTRIBUTION_TIME && get_now_stage(timestamp) != get_now_stage(timestamp - 1) && get_now_stage(timestamp) % 2 >= 0) {
+    if (get_now_stage(timestamp) > PRE_DISTRIBUTION_TIME && get_now_stage(timestamp) != get_now_stage(timestamp - 1) && get_now_stage(timestamp) % 2 == 0) {
         for (int i = 1; i <= N; ++i) {
             distribute_tag_in_disk_by_density(i, get_now_stage(timestamp));
             // if (disk[i].distribution_strategy == 1)
