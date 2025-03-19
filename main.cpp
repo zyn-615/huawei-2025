@@ -24,7 +24,7 @@
 #define EXTRA_TIME (105)
 #define MAX_OBJECT_SIZE (5 + 1)
 #define MAX_TAG_NUM (16 + 1)
-#define MAX_STAGE (50)
+#define MAX_STAGE (55)
 #define MAX_TOKEN (1000 + 2)
 #define MAX_PIECE_QUEUE (105 + 1)
 
@@ -417,7 +417,7 @@ struct Predict {
     int read_object;
 };
 
-Predict Info[MAX_TAG_NUM][MAX_STAGE];
+Predict Info[MAX_STAGE][MAX_TAG_NUM];
 int max_cur_tag_size[MAX_STAGE][MAX_TAG_NUM];
 int all_tag_request[MAX_TAG_NUM], test_tag_request[MAX_TAG_NUM];
 
@@ -1123,15 +1123,15 @@ void read_action(int time)
             if (p == -1 || get_dist(cur_disk.pointer, p) <= G * 0.9) { //如果距离足够近
                 
                 // std::cerr << "start read_without_jump" << std::endl;
-                //read_without_jump(cur_disk);
-                read_without_jump_dp_version(cur_disk);
+                read_without_jump(cur_disk);
+                //read_without_jump_dp_version(cur_disk);
             }
             else
                 do_pointer_jump(cur_disk, p);
         }
         else
-            read_without_jump_dp_version(cur_disk);
-            //read_without_jump(cur_disk);
+            //read_without_jump_dp_version(cur_disk);
+            read_without_jump(cur_disk);
     }
     // std::cerr << "in read_action: end move pointer" << std::endl;
 
@@ -1179,21 +1179,21 @@ int main()
     all_stage = (T - 1) / FRE_PER_SLICING + 1;
     for (int i = 1; i <= M; i++) {
         for (int j = 1; j <= all_stage; j++) {
-            scanf("%d", &Info[i][j].delete_object); 
+            scanf("%d", &Info[j][i].delete_object); 
             // scanf("%*d");
         }
     }
 
     for (int i = 1; i <= M; i++) {
         for (int j = 1; j <= all_stage; j++) {
-            scanf("%d", &Info[i][j].add_object);
+            scanf("%d", &Info[j][i].add_object);
             // scanf("%*d");
         }
     }
 
     for (int i = 1; i <= M; i++) {
         for (int j = 1; j <= all_stage; j++) {
-            scanf("%d", &Info[i][j].read_object);
+            scanf("%d", &Info[j][i].read_object);
             // scanf("%*d");
         }
     }
