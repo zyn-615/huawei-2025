@@ -26,6 +26,7 @@
 #define MAX_TAG_NUM (16 + 1)
 #define MAX_STAGE (50)
 #define MAX_TOKEN (1000 + 2)
+#define MAX_PIECE_QUEUE (105 + 1)
 
 const double JUMP_VISCOSITY = 1.0;
 const int READ_ROUND_TIME = 15; //一轮读取的时间
@@ -33,6 +34,8 @@ const int PRE_DISTRIBUTION_TIME = 32;
 const int TEST_DENSITY_LEN = 650;
 const int READ_CNT_STATES = 8; //读入的状态，根据上一次连续read的个数确定
 int DISK_MIN_PASS = 9;
+const int NUM_PIECE_QUEUE = 105;
+
 struct _Object {
     //(磁盘编号，磁盘内位置)
     std::pair <int, int> unit_pos[REP_NUM + 1][MAX_OBJECT_SIZE];
@@ -49,7 +52,8 @@ struct _Request {
 int tag_size_in_disk[MAX_TAG_NUM][MAX_DISK_NUM];
 
 _Request requests[MAX_REQUEST_NUM];
-std::queue <_Request> request_queue_in_time_order_early,request_queue_in_time_order_late;
+std::queue <_Request> request_queue_in_time_order[MAX_PIECE_QUEUE];
+std::vector<int> time_out_of_queue(MAX_PIECE_QUEUE);
 
 //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!注意，objects加了复数
 _Object objects[MAX_OBJECT_NUM];
@@ -401,6 +405,7 @@ struct DISK {
 
 DISK disk[MAX_DISK_NUM];
 std::mt19937 RAND(12345);
+
 inline int random(int l, int r)
 {
     return RAND() % (r - l + 1) + l;
@@ -502,6 +507,15 @@ inline void distribute_tag_in_disk_mid(int disk_id, int stage)
 /*预处理操作*/
 void init() 
 {
+    int cur_time_out_of_queue = EXTRA_TIME;
+    int delta_time_out_of_queue = EXTRA_TIME / NUM_PIECE_QUEUE;
+    for(int i = NUM_PIECE_QUEUE; i >= 1; i--)
+    {
+        time_out_of_queue[i] = cur_time_out_of_queue;
+        cur_time_out_of_queue -= delta_time_out_of_queue;
+    }
+
+
     DISK_MIN_PASS = std::min(DISK_MIN_PASS, V - 1);
     for (int i = 1; i <= all_stage; ++i) {
         for (int j = 1; j <= M; ++j) {
@@ -786,7 +800,7 @@ inline void update_unsolved_request(int request_id, int object_id)
 
         for (int i = 1; i <= REP_NUM; ++i) {
             auto [disk_id, unit_id] = objects[object_id].unit_pos[i][j];
-            add_unit_request(disk_id, unit_id, 2);
+            add_unit_request(disk_id, unit_id, NUM_PIECE_QUEUE);
         }
     }
 }
@@ -883,16 +897,19 @@ struct Pointer{
 //算出skip不jump的DP值
 //warning: 需要保证磁盘大小>=每个时间片token数
 std::pair<int, int> DP_read_without_skip_and_jump(DISK &cur_disk, int pointer_pos, int rest_token) {
-    memset(dp_without_skip[pointer_pos], -1, sizeof(dp_without_skip[pointer_pos]));
+    //memset(dp_without_skip[pointer_pos], -1, sizeof(dp_without_skip[pointer_pos]));
     for (int j = 0; j < READ_CNT_STATES; ++j)
-        assert(dp_without_skip[pointer_pos][j] == -1);
+        dp_without_skip[pointer_pos][j] = -1;
+    //assert(dp_without_skip[pointer_pos][j] == -1);
     dp_without_skip[pointer_pos][std::min(cur_disk.last_read_cnt, 7)] = rest_token;
     Pointer pointer(pointer_pos);
     int sum_request = 0;
     for (int t = 0; t < rest_token; ++t) {
         int nxt = pointer.get_to_nxt();
         int cur = pointer.pointer;
-        memset(dp_without_skip[nxt], -1, sizeof(dp_without_skip));
+        //memset(dp_without_skip[nxt], -1, sizeof(dp_without_skip));
+        for (int j = 0; j < READ_CNT_STATES; ++j)
+            dp_without_skip[nxt][j] = -1;
         //choose read
         for (int j = 1; j < READ_CNT_STATES; ++j) {
             dp_without_skip[nxt][j] = dp_without_skip[cur][j - 1] - read_cost[j - 1];
@@ -967,7 +984,7 @@ void read_without_jump_dp_version(DISK &cur_disk) {
         else
             do_pointer_pass(cur_disk);
     }
-    std::cerr << check_requests << std::endl;
+    //std::cerr << check_requests<< " " << sum_requests << std::endl;
     assert(check_requests == sum_requests);
     printf("#\n");
 }
@@ -1085,7 +1102,7 @@ void read_action(int time)
         requests[request_id].object_id = object_id;
         requests[request_id].request_time = time;
         requests[request_id].request_id = request_id;
-        request_queue_in_time_order_late.push(requests[request_id]);
+        request_queue_in_time_order[1].push(requests[request_id]);
         update_unsolved_request(request_id, object_id);
     }
 
@@ -1134,34 +1151,24 @@ void read_action(int time)
 }
 
 inline void update_request_num(int time) {
-    while (!request_queue_in_time_order_late.empty() && request_queue_in_time_order_late.front().request_time < time - EXTRA_TIME_HALF) {
-        _Request now_request = request_queue_in_time_order_late.front();
-        request_queue_in_time_order_late.pop();
-        if(request_rest_unit[now_request.request_id] <= 0) continue;
-        request_queue_in_time_order_early.push(now_request);
-        for (int i = 1; i <= REP_NUM; ++i) {
-            
-            for (int j = 1; j <= objects[now_request.object_id].size; ++j) {
-                if(((1 << j) & request_rest_unit_state[now_request.request_id]))
-                    continue;
-                auto [disk_id, unit_id] = objects[now_request.object_id].unit_pos[i][j];
-                add_unit_request(disk_id, unit_id, -1);
+    for(int i = 1; i <= NUM_PIECE_QUEUE; i++)
+    {
+        while (!request_queue_in_time_order[i].empty() && request_queue_in_time_order[i].front().request_time < time_out_of_queue[i]) {
+            _Request now_request = request_queue_in_time_order[i].front();
+            request_queue_in_time_order[i].pop();
+            if(request_rest_unit[now_request.request_id] <= 0) continue;
+            if(i < NUM_PIECE_QUEUE) request_queue_in_time_order[i + 1].push(now_request);
+            for (int i = 1; i <= REP_NUM; ++i) {
+                for (int j = 1; j <= objects[now_request.object_id].size; ++j) {
+                    if(((1 << j) & request_rest_unit_state[now_request.request_id]))
+                        continue;
+                    auto [disk_id, unit_id] = objects[now_request.object_id].unit_pos[i][j];
+                    add_unit_request(disk_id, unit_id, -1);
+                }
             }
-        }
+        }    
     }
-    while (!request_queue_in_time_order_early.empty() && request_queue_in_time_order_early.front().request_time < time - EXTRA_TIME) {
-        _Request now_request = request_queue_in_time_order_early.front();
-        request_queue_in_time_order_early.pop();
-        if(request_rest_unit[now_request.request_id] <= 0) continue;
-        for (int i = 1; i <= REP_NUM; ++i) {
-            for (int j = 1; j <= objects[now_request.object_id].size; ++j) {
-                if(((1 << j) & request_rest_unit_state[now_request.request_id]))
-                    continue;
-                auto [disk_id, unit_id] = objects[now_request.object_id].unit_pos[i][j];
-                add_unit_request(disk_id, unit_id, -1);
-            }
-        }
-    }
+    
 }
 
 int main()
@@ -1217,10 +1224,10 @@ int main()
         write_action();
 
         // std::cerr << "end write_action" <<std::endl;
-        std::cerr << "start read_action" <<std::endl;
+        //std::cerr << "start read_action" <<std::endl;
         read_action(t);
 
-        std::cerr << "end read_action" <<std::endl;
+        //std::cerr << "end read_action" <<std::endl;
         // std::cerr << "end time " << t << std::endl;
     }
 
