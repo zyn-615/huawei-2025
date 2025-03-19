@@ -4,6 +4,10 @@ project(CodeCraft)                   # 不要修改
 set(CMAKE_CXX_STANDARD      17)      # 不要修改
 set(CMAKE_C_STANDARD        11)      # 不要修改
 
+# 添加编译选项
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=undefined -pipe -Wall")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=undefined -pipe -Wall")
+
 set(EXECUTABLE_OUTPUT_PATH  ${PROJECT_SOURCE_DIR}/) # 不要修改
 option(BUILD_SHARED_LIBS    ""  OFF) # 不要修改
 
