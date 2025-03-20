@@ -29,14 +29,14 @@
 #define MAX_PIECE_QUEUE (105 + 1)
 
 const double JUMP_VISCOSITY = 0.9;
-const int READ_ROUND_TIME = 15; //一轮读取的时间
-const int PRE_DISTRIBUTION_TIME = 25;
-const int TEST_DENSITY_LEN = 550;
+const int READ_ROUND_TIME = 40; //一轮读取的时间
+const int PRE_DISTRIBUTION_TIME = 28;
+const int TEST_DENSITY_LEN = 1200;
 const int READ_CNT_STATES = 8; //读入的状态，根据上一次连续read的个数确定
 int DISK_MIN_PASS = 9;
 const int NUM_PIECE_QUEUE = 105;
 const double TAG_DENSITY_DIVIDE = 3;
-const double UNIT_REQUEST_DIVIDE = 3;
+const double UNIT_REQUEST_DIVIDE = 20;
 const bool USE_DP = false;
 
 struct _Object {
@@ -524,7 +524,7 @@ inline void distribute_tag_in_disk_by_density(int disk_id, int stage)
     auto& cur_disk = disk[disk_id];
     std::vector <DensityManager> tag_density(M + 1);
     for (int i = 1; i <= M; ++i) {
-        tag_density[i].init(std::max(10, int(max_cur_tag_size[stage - 1][i] / N / TAG_DENSITY_DIVIDE)));
+        tag_density[i].init(std::max(10, int(max_cur_tag_size[stage][i] / N / TAG_DENSITY_DIVIDE)));
     }
 
     for (int i = 1; i <= V; ++i) {
