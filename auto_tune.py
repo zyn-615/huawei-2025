@@ -10,12 +10,14 @@ import json
 
 # 定义需要调整的参数及其范围
 PARAMS = {
-    'JUMP_VISCOSITY': (0.1, 1.5),
+    'JUMP_VISCOSITY': (0.1, 2),
     'READ_ROUND_TIME': (2, 100),
-    'PRE_DISTRIBUTION_TIME': (2, 100),
-    'TEST_DENSITY_LEN': (2, 2000),
-    'DISK_MIN_PASS': (2, 15),
-    'NUM_PIECE_QUEUE': (5, 105)
+    'PRE_DISTRIBUTION_TIME': (2, 50),
+    'TEST_DENSITY_LEN': (2, 3000),
+    'DISK_MIN_PASS': (2, 20),
+    'NUM_PIECE_QUEUE': (20, 105),
+    'TAG_DENSITY_DIVIDE': (1.0, 5.0),
+    'UNIT_REQUEST_DIVIDE': (0.5, 30.0)
 }
 
 # 定义正则表达式模式
@@ -25,7 +27,9 @@ REGEX_PATTERNS = {
     'PRE_DISTRIBUTION_TIME': r'(const\s+int\s+PRE_DISTRIBUTION_TIME\s*=\s*)([0-9]+)',
     'TEST_DENSITY_LEN': r'(const\s+int\s+TEST_DENSITY_LEN\s*=\s*)([0-9]+)',
     'DISK_MIN_PASS': r'(int\s+DISK_MIN_PASS\s*=\s*)([0-9]+)',
-    'NUM_PIECE_QUEUE': r'(const\s+int\s+NUM_PIECE_QUEUE\s*=\s*)([0-9]+)'
+    'NUM_PIECE_QUEUE': r'(const\s+int\s+NUM_PIECE_QUEUE\s*=\s*)([0-9]+)',
+    'TAG_DENSITY_DIVIDE': r'(const\s+double\s+TAG_DENSITY_DIVIDE\s*=\s*)([0-9.]+)',
+    'UNIT_REQUEST_DIVIDE': r'(const\s+double\s+UNIT_REQUEST_DIVIDE\s*=\s*)([0-9.]+)'
 }
 
 # 全局变量
@@ -80,7 +84,7 @@ def modify_parameters(params):
         if len(content) < original_length * 0.5:
             print(f"警告：修改后的内容长度显著减少（原始：{original_length}，现在：{len(content)}）")
             
-        # 写入修改后的内容
+        # 写入修改后的内容  
         with open('code_craft.cpp', 'w', encoding='utf-8') as f:
             f.write(content)
             
@@ -179,7 +183,7 @@ def run_and_get_score(input_file):
         print(f"运行程序时发生错误: {e}")
         return 0
 
-def evaluate_params(params, runs=3, data_files=None):
+def evaluate_params(params, runs=1, data_files=None):
     """评估一组参数的性能"""
     if data_files is None:
         data_files = ['sample.in']
@@ -305,6 +309,82 @@ def bayesian_optimization(iterations=30, data_files=None):
     
     return best_params, best_score
 
+def simulated_annealing(iterations=30, data_files=None):
+    """模拟退火优化"""
+    if data_files is None:
+        data_files = ['sample.in']
+    
+    # 初始温度
+    initial_temperature = 100
+    # 根据迭代次数计算冷却率，使得最后一次迭代时温度接近0
+    cooling_rate = np.power(0.01/initial_temperature, 1.0/iterations)
+    temperature = initial_temperature
+    
+    def get_neighbor(current_params):
+        """生成邻居参数"""
+        neighbor = current_params.copy()
+        param = random.choice(list(PARAMS.keys()))
+        min_val, max_val = PARAMS[param]
+        if isinstance(min_val, int):
+            neighbor[param] = random.randint(min_val, max_val)
+        else:
+            neighbor[param] = random.uniform(min_val, max_val)
+        return neighbor
+    
+    # 初始化当前参数
+    current_params = {}
+    for param, (min_val, max_val) in PARAMS.items():
+        if isinstance(min_val, int):
+            current_params[param] = random.randint(min_val, max_val)
+        else:
+            current_params[param] = random.uniform(min_val, max_val)
+    
+    print("初始参数:", current_params)
+    current_score = evaluate_single_params(current_params, data_files)
+    print("初始分数:", current_score)
+    
+    best_params = current_params
+    best_score = current_score
+    
+    for i in range(iterations):
+        print(f"\n迭代 {i+1}/{iterations}")
+        print(f"当前温度: {temperature:.4f}")
+        
+        # 生成邻居
+        neighbor_params = get_neighbor(current_params)
+        print("邻居参数:", neighbor_params)
+        
+        # 评估邻居
+        neighbor_score = evaluate_single_params(neighbor_params, data_files)
+        print("邻居分数:", neighbor_score)
+        
+        # 计算分数差
+        score_diff = neighbor_score - current_score
+        print(f"分数差: {score_diff:.4f}")
+        
+        # 决定是否接受新参数
+        if score_diff > 0 or random.random() < np.exp(score_diff / temperature):
+            current_params = neighbor_params
+            current_score = neighbor_score
+            print("接受新参数")
+            
+            if current_score > best_score:
+                best_params = current_params
+                best_score = current_score
+                print(f"新的最佳分数: {best_score:.4f}")
+                print("新的最佳参数:", best_params)
+        else:
+            print("保持当前参数")
+        
+        # 降温
+        temperature *= cooling_rate
+    
+    print("\n模拟退火完成!")
+    print(f"最终最佳分数: {best_score:.4f}")
+    print("最终最佳参数:", best_params)
+    
+    return best_params, best_score
+
 if __name__ == "__main__":
     print("自动参数调优开始")
     print("可以在多个数据集上测试性能")
@@ -318,7 +398,8 @@ if __name__ == "__main__":
     
     print("\n1. 随机搜索")
     print("2. 贝叶斯优化 (需要安装scikit-optimize)")
-    choice = input("请选择优化方法 (1/2): ")
+    print("3. 模拟退火")
+    choice = input("请选择优化方法 (1/2/3): ")
     
     if choice == "1":
         iterations = int(input("请输入迭代次数 (默认30): ") or "30")
@@ -326,6 +407,9 @@ if __name__ == "__main__":
     elif choice == "2":
         iterations = int(input("请输入贝叶斯优化迭代次数 (默认30): ") or "30")
         best_params, best_score = bayesian_optimization(iterations, data_files)
+    elif choice == "3":
+        iterations = int(input("请输入模拟退火迭代次数 (默认30): ") or "30")
+        best_params, best_score = simulated_annealing(iterations, data_files)
     else:
         print("无效的选择，使用随机搜索方法")
         iterations = int(input("请输入迭代次数 (默认30): ") or "30")
