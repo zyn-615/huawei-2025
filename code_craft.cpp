@@ -29,22 +29,22 @@
 #define MAX_PIECE_QUEUE (105 + 1)
 #define INF_TOKEN (10000000)
 
-const double JUMP_VISCOSITY = 1.3;
-const int CUR_REQUEST_DIVIDE = 11;
-const int LEN_TIME_DIVIDE = 16;
-const int PRE_DISTRIBUTION_TIME = 40;
-int DISK_MIN_PASS = 10; //如果超过这个值放弃read pass过去
-int DISK_MIN_PASS_DP = 15;
-const int MIN_TOKEN_STOP_DP = 88;
-const int NUM_PIECE_QUEUE = 4;
-const double TAG_DENSITY_DIVIDE = 3;
-const double UNIT_REQUEST_DIVIDE = 10;
-const int MIN_ROUND_TIME = 31;
-const int MIN_TEST_DENSITY_LEN = 1302;
+const double JUMP_VISCOSITY = 0.9;
+const int CUR_REQUEST_DIVIDE = 200;
+const int LEN_TIME_DIVIDE = 40;
+const int PRE_DISTRIBUTION_TIME = 35;
+const int READ_CNT_STATES = 8; //读入的状态，根据上一次连续read的个数确定
+int DISK_MIN_PASS = 9; //如果超过这个值放弃read pass过去
+int DISK_MIN_PASS_DP = 13;
+const int MIN_TOKEN_STOP_DP = 130;
+const int NUM_PIECE_QUEUE = 2;
+const double TAG_DENSITY_DIVIDE = 2;
+const double UNIT_REQUEST_DIVIDE = 17;
+const int MIN_ROUND_TIME = 5;
+const int MIN_TEST_DENSITY_LEN = 200;
 
 //不要调
-const int READ_CNT_STATES = 8; //读入的状态，根据上一次连续read的个数确定
-const int USE_DP = 2;
+const int USE_DP = 1;
 const int DP_VERSION1 = 1;
 const int DP_VERSION2 = 2;
 
@@ -447,6 +447,7 @@ struct Predict {
 Predict Info[MAX_STAGE][MAX_TAG_NUM];
 int max_cur_tag_size[MAX_STAGE][MAX_TAG_NUM];
 int all_tag_request[MAX_TAG_NUM], test_tag_request[MAX_TAG_NUM];
+int go_disk_dist;
 
 /*存储每个对象的unit没有解决的request*/
 std::queue<int> unsolve_request[MAX_OBJECT_NUM][MAX_OBJECT_SIZE];
@@ -643,6 +644,7 @@ void timestamp_action()
 
     if (get_now_stage(timestamp) != get_now_stage(timestamp - 1)) {
         std::cerr << "CER_REQUEST : " << cur_request << std::endl;
+        std::cerr << "DIST : " << go_disk_dist << std::endl;
         for (int i = 1; i <= N; ++i) {
             if (get_now_stage(timestamp) <= PRE_DISTRIBUTION_TIME && get_now_stage(timestamp) % 10 == 0);
                 // distribute_tag_in_disk_front(i, get_now_stage(timestamp));
@@ -656,7 +658,7 @@ void timestamp_action()
     }
 
     fflush(stdout);
-}
+} 
 
 /*未完成的请求*/
 std::vector <int> abort_request;
@@ -908,6 +910,7 @@ int do_pointer_pass(DISK &cur_disk)
     if (!cur_disk.rest_token)
         return 0;
     printf("p");
+    ++go_disk_dist;
     cur_disk.pointer = cur_disk.pointer % V + 1;
     cur_disk.rest_token--;
     cur_disk.last_read_cnt = 0;
@@ -938,6 +941,7 @@ int do_pointer_read(DISK &cur_disk, int time)
     printf("r");
     
     //清除request
+    ++go_disk_dist;
     int& pos = cur_disk.pointer;
     auto [object_id, unit_id] = cur_disk.unit_object[pos];
     
@@ -1155,11 +1159,12 @@ void read_without_jump_dp_and_bf_version(DISK &cur_disk, int time) {
                 else
                     break;    
             }
+            /*
             //std::cerr << check_pass_cnt << std::endl;
             //std::cerr << cur_disk.pointer << " " << " " << prel << " " << prer << " " << std::endl;
             //std::cerr << "min_cost_token: " << min_cost_token << " " << cur_disk.max_density.get(cur_disk.pointer) << std::endl;
             //std::cerr << "rest_token: " << " " << cur_disk.rest_token << std::endl;
-            //std::cerr << "pre_request: " << " " << pre_requests << std::endl;
+            //std::cerr << "pre_request: " << " " << pre_requests << std::endl;*/
             assert(check_pass_cnt >= DISK_MIN_PASS_DP || cur_disk.rest_token == 0);
             prel = prer = cur_disk.pointer;
             pre_requests = 0;
@@ -1199,6 +1204,7 @@ void read_without_jump_dp_version(DISK &cur_disk, int time)
     }
     int check_requests = 0;
     reverse(read_sequence.begin(), read_sequence.end());
+    go_disk_dist += read_sequence.size();
     for (auto oper : read_sequence) {
         if (oper == 'r') {
             check_requests += cur_disk.max_density.get(cur_disk.pointer);
@@ -1278,30 +1284,31 @@ void read_without_jump(DISK &cur_disk,int time)
         
     }
 
-    // while(cur_disk.rest_token > 0)
-    // {
-    //     // std::cerr << "cur_disk.rest_token: " << cur_disk.rest_token << std::endl;
-    //     // std::cerr << "cur_disk.point: " << cur_disk.pointer << std::endl;
-    //     // std::cerr << "nxt_p: " << nxt_p << std::endl;
-    //     // std::cerr << "choose_pass? " << chosse_pass(cur_disk, nxt_p) << std::endl;
+/*
+    while(cur_disk.rest_token > 0)
+    {
+        // std::cerr << "cur_disk.rest_token: " << cur_disk.rest_token << std::endl;
+        // std::cerr << "cur_disk.point: " << cur_disk.pointer << std::endl;
+        // std::cerr << "nxt_p: " << nxt_p << std::endl;
+        // std::cerr << "choose_pass? " << chosse_pass(cur_disk, nxt_p) << std::endl;
     
-    //     int nxt_p = cur_disk.request_num.find_next(cur_disk.pointer, 1);
-    //     if (nxt_p == -1)
-    //                 break;
-    //     if (chosse_pass(cur_disk, nxt_p)) {
-    //         while (cur_disk.pointer != nxt_p)
-    //             if (!do_pointer_pass(cur_disk))
-    //                 break;
-    //     }
-    //     else {
-    //         while (cur_disk.pointer != nxt_p)
-    //             if (!do_pointer_read(cur_disk))
-    //                 break;
-    //     }
-    //     if (!do_pointer_read(cur_disk))
-    //         break;
-    // }
-
+        int nxt_p = cur_disk.request_num.find_next(cur_disk.pointer, 1);
+        if (nxt_p == -1)
+                    break;
+        if (chosse_pass(cur_disk, nxt_p)) {
+            while (cur_disk.pointer != nxt_p)
+                if (!do_pointer_pass(cur_disk))
+                    break;
+        }
+        else {
+            while (cur_disk.pointer != nxt_p)
+                if (!do_pointer_read(cur_disk))
+                    break;
+        }
+        if (!do_pointer_read(cur_disk))
+            break;
+    }
+*/
     // std::cerr << "end: " << sum_of_request << std::endl;
 
     printf("#\n");
@@ -1338,15 +1345,14 @@ void read_action(int time)
         DISK &cur_disk = disk[cur_disk_id];
         if (time % READ_ROUND_TIME == 1) {
             int p = cur_disk.max_density.find_max_point();
-            int ans_p = p == -1? -1: DP_read_without_skip_and_jump(cur_disk, p, READ_ROUND_TIME * cur_disk.rest_token).first;
-            int ans_now = DP_read_without_skip_and_jump(cur_disk, cur_disk.pointer, READ_ROUND_TIME * cur_disk.rest_token).first;
+            
             /*
             if (cur_disk.max_density.get(p) * JUMP_VISCOSITY <= cur_disk.max_density.get(cur_disk.pointer))
                 p = cur_disk.pointer;
             */
                 // std::cerr << "max_point: " << p << std::endl;
 
-            if (p == -1 || get_dist(cur_disk.pointer, p) <= G * JUMP_VISCOSITY || ans_p < ans_now * 0.8) { //如果距离足够近
+            if (p == -1 || get_dist(cur_disk.pointer, p) <= G * JUMP_VISCOSITY) { //如果距离足够近
                 
                 // std::cerr << "start read_without_jump" << std::endl;
                 
@@ -1414,8 +1420,8 @@ inline void update_request_num(int time) {
                         continue;
                 for (int i = 1; i <= REP_NUM; ++i) {
                     auto [disk_id, unit_id] = objects[now_request.object_id].unit_pos[i][j];
-                    add_unit_request(disk_id, unit_id, -(objects[now_request.object_id].size - request_rest_unit[now_request.request_id] + 1));
-                    // add_unit_request(disk_id, unit_id, -1);
+                    // add_unit_request(disk_id, unit_id, -(objects[now_request.object_id].size - request_rest_unit[now_request.request_id] + 1));
+                    add_unit_request(disk_id, unit_id, -1);
                 }
             }
         }    
