@@ -658,6 +658,7 @@ void timestamp_action()
 
     TEST_DENSITY_LEN = std::max(cur_request / CUR_REQUEST_DIVIDE, MIN_TEST_DENSITY_LEN);
     READ_ROUND_TIME = std::max(TEST_DENSITY_LEN / LEN_TIME_DIVIDE, MIN_ROUND_TIME);
+    READ_ROUND_TIME = 10;
 
     if (get_now_stage(timestamp) != get_now_stage(timestamp - 1)) {
         std::cerr << "CER_REQUEST : " << cur_request << std::endl;
@@ -1362,14 +1363,15 @@ void read_action(int time)
         DISK &cur_disk = disk[cur_disk_id];
         if (time % READ_ROUND_TIME == 1) {
             int p = cur_disk.max_density.find_max_point();
-            
+            int ans_p = p == -1? -1: DP_read_without_skip_and_jump(cur_disk, p, READ_ROUND_TIME * cur_disk.rest_token).first;
+            int ans_now = DP_read_without_skip_and_jump(cur_disk, cur_disk.pointer, READ_ROUND_TIME * cur_disk.rest_token).first;
             /*
             if (cur_disk.max_density.get(p) * JUMP_VISCOSITY <= cur_disk.max_density.get(cur_disk.pointer))
                 p = cur_disk.pointer;
             */
                 // std::cerr << "max_point: " << p << std::endl;
 
-            if (p == -1 || get_dist(cur_disk.pointer, p) <= G * JUMP_VISCOSITY) { //如果距离足够近
+                if (p == -1 || get_dist(cur_disk.pointer, p) <= G * JUMP_VISCOSITY || ans_p < ans_now * 1.5) { //如果距离足够近
                 
                 // std::cerr << "start read_without_jump" << std::endl;
                 
