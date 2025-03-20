@@ -1244,8 +1244,8 @@ inline void update_request_num(int time) {
                         continue;
                 for (int i = 1; i <= REP_NUM; ++i) {
                     auto [disk_id, unit_id] = objects[now_request.object_id].unit_pos[i][j];
-                    // add_unit_request(disk_id, unit_id, -(objects[now_request.object_id].size - request_rest_unit[now_request.request_id] + 1));
-                    add_unit_request(disk_id, unit_id, -1);
+                    add_unit_request(disk_id, unit_id, -(objects[now_request.object_id].size - request_rest_unit[now_request.request_id] + 1));
+                    // add_unit_request(disk_id, unit_id, -1);
                 }
             }
         }    
