@@ -29,18 +29,18 @@
 #define MAX_PIECE_QUEUE (105 + 1)
 #define INF_TOKEN (10000000)
 
-const double JUMP_VISCOSITY = 0.9;
-const int CUR_REQUEST_DIVIDE = 15;
-const int LEN_TIME_DIVIDE = 40;
-const int PRE_DISTRIBUTION_TIME = 35;
-int DISK_MIN_PASS = 9; //如果超过这个值放弃read pass过去
-int DISK_MIN_PASS_DP = 13;
-const int MIN_TOKEN_STOP_DP = 130;
-const int NUM_PIECE_QUEUE = 2;
-const double TAG_DENSITY_DIVIDE = 2;
-const double UNIT_REQUEST_DIVIDE = 17;
-const int MIN_ROUND_TIME = 40;
-const int MIN_TEST_DENSITY_LEN = 1200;
+const double JUMP_VISCOSITY = 1.3;
+const int CUR_REQUEST_DIVIDE = 11;
+const int LEN_TIME_DIVIDE = 16;
+const int PRE_DISTRIBUTION_TIME = 40;
+int DISK_MIN_PASS = 10; //如果超过这个值放弃read pass过去
+int DISK_MIN_PASS_DP = 15;
+const int MIN_TOKEN_STOP_DP = 88;
+const int NUM_PIECE_QUEUE = 4;
+const double TAG_DENSITY_DIVIDE = 3;
+const double UNIT_REQUEST_DIVIDE = 10;
+const int MIN_ROUND_TIME = 31;
+const int MIN_TEST_DENSITY_LEN = 1302;
 
 //不要调
 const int READ_CNT_STATES = 8; //读入的状态，根据上一次连续read的个数确定

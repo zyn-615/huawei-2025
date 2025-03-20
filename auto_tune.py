@@ -41,7 +41,7 @@ REGEX_PATTERNS = {
 }
 
 # 全局变量
-data_files = ['sample.in']
+data_files = ['data/sample.in']
 
 def modify_parameters(params):
     """修改code_craft.cpp中的参数"""
@@ -194,7 +194,7 @@ def run_and_get_score(input_file):
 def evaluate_params(params, runs=1, data_files=None):
     """评估一组参数的性能"""
     if data_files is None:
-        data_files = ['sample.in']
+        data_files = ['data/sample.in']
     
     # 修改参数并编译代码
     modify_parameters(params)
@@ -239,7 +239,7 @@ def evaluate_single_params(params, data_files):
 def random_search(iterations=30, data_files=None):
     """随机搜索优化"""
     if data_files is None:
-        data_files = ['sample.in']
+        data_files = ['data/sample.in']
     
     best_score = float('-inf')
     best_params = None
@@ -274,7 +274,7 @@ def random_search(iterations=30, data_files=None):
 def bayesian_optimization(iterations=30, data_files=None):
     """贝叶斯优化"""
     if data_files is None:
-        data_files = ['sample.in']
+        data_files = ['data/sample.in']
     
     try:
         from skopt import gp_minimize
@@ -320,7 +320,7 @@ def bayesian_optimization(iterations=30, data_files=None):
 def simulated_annealing(iterations=30, data_files=None):
     """模拟退火优化"""
     if data_files is None:
-        data_files = ['sample.in']
+        data_files = ['data/sample.in']
     
     # 初始温度
     initial_temperature = 100
