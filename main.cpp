@@ -38,6 +38,8 @@ const int NUM_PIECE_QUEUE = 2;
 const double TAG_DENSITY_DIVIDE = 2;
 const double UNIT_REQUEST_DIVIDE = 17;
 const bool USE_DP = false;
+const int MIN_ROUND_TIME = 40;
+const int MIN_TEST_DENSITY_LEN = 1200;
 
 int READ_ROUND_TIME = 40; //一轮读取的时间
 int TEST_DENSITY_LEN = 1200;
@@ -628,8 +630,8 @@ void timestamp_action()
     scanf("%*s%d", &timestamp);
     printf("TIMESTAMP %d\n", timestamp);
 
-    TEST_DENSITY_LEN = std::max(cur_request / CUR_REQUEST_DIVIDE, 1200);
-    READ_ROUND_TIME = std::max(TEST_DENSITY_LEN / LEN_TIME_DIVIDE, 40);
+    TEST_DENSITY_LEN = std::max(cur_request / CUR_REQUEST_DIVIDE, MIN_TEST_DENSITY_LEN);
+    READ_ROUND_TIME = std::max(TEST_DENSITY_LEN / LEN_TIME_DIVIDE, MIN_ROUND_TIME);
 
     if (get_now_stage(timestamp) != get_now_stage(timestamp - 1)) {
         std::cerr << "CER_REQUEST : " << cur_request << std::endl;
