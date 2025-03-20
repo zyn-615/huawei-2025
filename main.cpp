@@ -29,16 +29,18 @@
 #define MAX_PIECE_QUEUE (105 + 1)
 
 const double JUMP_VISCOSITY = 0.9;
-const int READ_ROUND_TIME = 40; //一轮读取的时间
-const int PRE_DISTRIBUTION_TIME = 28;
-const int TEST_DENSITY_LEN = 1200;
+const int CUR_REQUEST_DIVIDE = 15;
+const int LEN_TIME_DIVIDE = 40;
+const int PRE_DISTRIBUTION_TIME = 35;
 const int READ_CNT_STATES = 8; //读入的状态，根据上一次连续read的个数确定
-int DISK_MIN_PASS = 7;
-const int NUM_PIECE_QUEUE = 1;
-const double TAG_DENSITY_DIVIDE = 1;
-const double UNIT_REQUEST_DIVIDE = 13;
+int DISK_MIN_PASS = 9;
+const int NUM_PIECE_QUEUE = 2;
+const double TAG_DENSITY_DIVIDE = 2;
+const double UNIT_REQUEST_DIVIDE = 17;
 const bool USE_DP = false;
 
+int READ_ROUND_TIME = 40; //一轮读取的时间
+int TEST_DENSITY_LEN = 1200;
 struct _Object {
     //(磁盘编号，磁盘内位置)
     std::pair <int, int> unit_pos[REP_NUM + 1][MAX_OBJECT_SIZE];
@@ -62,7 +64,7 @@ std::vector<int> request_queue_id(MAX_REQUEST_NUM);
 //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!注意，objects加了复数
 _Object objects[MAX_OBJECT_NUM];
 
-int T, M, N, V, G, all_stage, now_stage;
+int T, M, N, V, G, all_stage, now_stage, cur_request;
 
 inline int get_pre_kth(int x, int k) 
 {
@@ -626,9 +628,16 @@ void timestamp_action()
     scanf("%*s%d", &timestamp);
     printf("TIMESTAMP %d\n", timestamp);
 
-    if (get_now_stage(timestamp) > PRE_DISTRIBUTION_TIME && get_now_stage(timestamp) != get_now_stage(timestamp - 1) && get_now_stage(timestamp) % 2 == 0) {
+    TEST_DENSITY_LEN = std::max(cur_request / CUR_REQUEST_DIVIDE, 1200);
+    READ_ROUND_TIME = std::max(TEST_DENSITY_LEN / LEN_TIME_DIVIDE, 40);
+
+    if (get_now_stage(timestamp) != get_now_stage(timestamp - 1)) {
+        std::cerr << "CER_REQUEST : " << cur_request << std::endl;
         for (int i = 1; i <= N; ++i) {
-            distribute_tag_in_disk_by_density(i, get_now_stage(timestamp));
+            if (get_now_stage(timestamp) <= PRE_DISTRIBUTION_TIME && get_now_stage(timestamp) % 10 == 0);
+                // distribute_tag_in_disk_front(i, get_now_stage(timestamp));
+            if ( get_now_stage(timestamp) > PRE_DISTRIBUTION_TIME && get_now_stage(timestamp) % 3 == 0)
+                distribute_tag_in_disk_by_density(i, get_now_stage(timestamp));
             // if (disk[i].distribution_strategy == 1)
             //     distribute_tag_in_disk_front(i, get_now_stage(timestamp));
             // else 
@@ -719,6 +728,7 @@ void delete_action()
     
     // std::cerr << "END" << std::endl;
     printf("%ld\n", abort_request.size());
+    cur_request -= abort_request.size();
     // std::cerr << "NOWNOW :: " << abort_request.size() << std::endl;
     for (int req_id : abort_request) {
         printf("%d\n", req_id);
@@ -1154,6 +1164,7 @@ void read_action(int time)
     int n_read;
     int request_id, object_id;
     scanf("%d", &n_read);
+    cur_request += n_read;
     for (int i = 1; i <= n_read; i++) {
         scanf("%d%d", &request_id, &object_id);
         // std::cerr << "request_id : " << request_id << " " << "ob : " << object_id << std::endl;
@@ -1204,6 +1215,7 @@ void read_action(int time)
 
     //solved request
     printf("%ld\n", solved_request.size());
+    cur_request -= solved_request.size();
     // std::cerr << "SOLSOLSOLS : " << solved_request.size() << std::endl;
     for (int request_id : solved_request) {
         // std::cerr << request_id << " ";
@@ -1232,8 +1244,8 @@ inline void update_request_num(int time) {
                         continue;
                 for (int i = 1; i <= REP_NUM; ++i) {
                     auto [disk_id, unit_id] = objects[now_request.object_id].unit_pos[i][j];
-                    add_unit_request(disk_id, unit_id, -(objects[now_request.object_id].size - request_rest_unit[now_request.request_id] + 1));
-                    // add_unit_request(disk_id, unit_id, -1);
+                    // add_unit_request(disk_id, unit_id, -(objects[now_request.object_id].size - request_rest_unit[now_request.request_id] + 1));
+                    add_unit_request(disk_id, unit_id, -1);
                 }
             }
         }    
