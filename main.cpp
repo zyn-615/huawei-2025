@@ -28,10 +28,10 @@
 #define MAX_TOKEN (1000 + 2)
 #define MAX_PIECE_QUEUE (105 + 1)
 
-const double JUMP_VISCOSITY = 1.4;
-const int READ_ROUND_TIME = 35; //一轮读取的时间
+const double JUMP_VISCOSITY = 0.9;
+const int READ_ROUND_TIME = 40; //一轮读取的时间
 const int PRE_DISTRIBUTION_TIME = 28;
-const int TEST_DENSITY_LEN = 737;
+const int TEST_DENSITY_LEN = 1200;
 const int READ_CNT_STATES = 8; //读入的状态，根据上一次连续read的个数确定
 int DISK_MIN_PASS = 7;
 const int NUM_PIECE_QUEUE = 1;
@@ -336,15 +336,19 @@ struct DensityManager {
     void add(int pos, int value)
     {
         request_num[pos] += value;
+        assert(request_num[pos] >= 0);
     }
 
     void modify(int pos, int value)
     {
         request_num[pos] = value;
+        assert(request_num[pos] >= 0);
     }
 
     int get(int pos)
     {
+        assert(pos > 0 && pos <= V);
+        assert(request_num[pos] >= 0);
         return request_num[pos];
     }
 
@@ -525,7 +529,7 @@ inline void distribute_tag_in_disk_by_density(int disk_id, int stage)
     auto& cur_disk = disk[disk_id];
     std::vector <DensityManager> tag_density(M + 1);
     for (int i = 1; i <= M; ++i) {
-        tag_density[i].init(std::max(10, int(max_cur_tag_size[stage - 1][i] / N / TAG_DENSITY_DIVIDE)));
+        tag_density[i].init(std::max(10, int(max_cur_tag_size[stage][i] / N / TAG_DENSITY_DIVIDE)));
     }
 
     for (int i = 1; i <= V; ++i) {
@@ -818,7 +822,7 @@ void write_action()
 }
 
 //use
-inline void read_unit(int object_id, int unit_id,int time) 
+inline void read_unit(int object_id, int unit_id, int time) 
 {
     while (!unsolve_request[object_id][unit_id].empty()) {
         int request_id = unsolve_request[object_id][unit_id].front();
@@ -838,7 +842,6 @@ inline void read_unit(int object_id, int unit_id,int time)
                     auto [disk_id, unit_pos] = objects[object_id].unit_pos[i][j];
                     add_unit_request(disk_id, unit_pos, NUM_PIECE_QUEUE - index + 1);
                 }
-                
             }
 
             if (!request_rest_unit[request_id]) {
@@ -1070,8 +1073,9 @@ void read_without_jump(DISK &cur_disk,int time)
     bool have_rest_token = true;
 
     while (have_rest_token) {
+        // std::cerr << "pre_pre : " << cur_disk.pointer << std::endl;
         if (sum_of_request == 0 || cur_disk.last_read_cnt == 0) {
-
+            // std::cerr << "IN : " << cur_disk.pointer << std::endl;
             assert(cur_request_num >= 0);
             assert(sum_of_request >= 0);
             assert(cur_request_num <= sum_of_request);
