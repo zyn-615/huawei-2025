@@ -40,11 +40,12 @@ const int MIN_TOKEN_STOP_DP = 130;
 const int NUM_PIECE_QUEUE = 2;
 const double TAG_DENSITY_DIVIDE = 2;
 const double UNIT_REQUEST_DIVIDE = 17;
-const int MIN_ROUND_TIME = 5;
-const int MIN_TEST_DENSITY_LEN = 200;
+const int MIN_ROUND_TIME = 3;
+const int MIN_TEST_DENSITY_LEN = 500;
+const int TEST_READ_TIME = 10;
 
 //不要调
-const int USE_DP = 1;
+const int USE_DP = 0;
 const int DP_VERSION1 = 1;
 const int DP_VERSION2 = 2;
 
@@ -641,7 +642,7 @@ void timestamp_action()
 
     TEST_DENSITY_LEN = std::max(cur_request / CUR_REQUEST_DIVIDE, MIN_TEST_DENSITY_LEN);
     READ_ROUND_TIME = std::max(TEST_DENSITY_LEN / LEN_TIME_DIVIDE, MIN_ROUND_TIME);
-    READ_ROUND_TIME = 10;
+    READ_ROUND_TIME = 3;
 
     if (get_now_stage(timestamp) != get_now_stage(timestamp - 1)) {
         std::cerr << "CER_REQUEST : " << cur_request << std::endl;
@@ -1346,15 +1347,15 @@ void read_action(int time)
         DISK &cur_disk = disk[cur_disk_id];
         if (time % READ_ROUND_TIME == 1) {
             int p = cur_disk.max_density.find_max_point();
-            int ans_p = p == -1? -1: DP_read_without_skip_and_jump(cur_disk, p, READ_ROUND_TIME * cur_disk.rest_token).first;
-            int ans_now = DP_read_without_skip_and_jump(cur_disk, cur_disk.pointer, READ_ROUND_TIME * cur_disk.rest_token).first;
+            int ans_p = p == -1? -1: DP_read_without_skip_and_jump(cur_disk, p, TEST_READ_TIME * cur_disk.rest_token).first;
+            int ans_now = DP_read_without_skip_and_jump(cur_disk, cur_disk.pointer, TEST_READ_TIME * cur_disk.rest_token).first;
             /*
             if (cur_disk.max_density.get(p) * JUMP_VISCOSITY <= cur_disk.max_density.get(cur_disk.pointer))
                 p = cur_disk.pointer;
             */
                 // std::cerr << "max_point: " << p << std::endl;
 
-                if (p == -1 || get_dist(cur_disk.pointer, p) <= G * JUMP_VISCOSITY || ans_p < ans_now * 1.5) { //如果距离足够近
+                if (p == -1 || get_dist(cur_disk.pointer, p) <= G * JUMP_VISCOSITY || ans_p < ans_now * 1.6) { //如果距离足够近
                 
                 // std::cerr << "start read_without_jump" << std::endl;
                 
