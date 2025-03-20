@@ -29,19 +29,19 @@
 #define MAX_PIECE_QUEUE (105 + 1)
 #define INF_TOKEN (10000000)
 
-const double JUMP_VISCOSITY = 1.3;
+const double JUMP_VISCOSITY = 1.1;
 const int CUR_REQUEST_DIVIDE = 17;
-const int LEN_TIME_DIVIDE = 22;
-const int PRE_DISTRIBUTION_TIME = 11;
+const int LEN_TIME_DIVIDE = 25;
+const int PRE_DISTRIBUTION_TIME = 26;
 const int READ_CNT_STATES = 8; //读入的状态，根据上一次连续read的个数确定
-int DISK_MIN_PASS = 8; //如果超过这个值放弃read pass过去
-int DISK_MIN_PASS_DP = 13;
-const int MIN_TOKEN_STOP_DP = 176;
+int DISK_MIN_PASS = 15; //如果超过这个值放弃read pass过去
+int DISK_MIN_PASS_DP = 19;
+const int MIN_TOKEN_STOP_DP = 147;
 const int NUM_PIECE_QUEUE = 4;
-const double TAG_DENSITY_DIVIDE = 1;
-const double UNIT_REQUEST_DIVIDE = 21;
-const int MIN_ROUND_TIME = 27;
-const int MIN_TEST_DENSITY_LEN = 1216;
+const double TAG_DENSITY_DIVIDE = 4;
+const double UNIT_REQUEST_DIVIDE = 11;
+const int MIN_ROUND_TIME = 21;
+const int MIN_TEST_DENSITY_LEN = 1198;
 
 //不要调
 const int USE_DP = 1;
@@ -428,6 +428,7 @@ struct DISK {
     bool is_reverse;
     int distribution_strategy;
     int test_density_len = TEST_DENSITY_LEN;
+    int tag_num;
 };
 
 DISK disk[MAX_DISK_NUM];
