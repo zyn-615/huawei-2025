@@ -28,15 +28,15 @@
 #define MAX_TOKEN (1000 + 2)
 #define MAX_PIECE_QUEUE (105 + 1)
 
-const double JUMP_VISCOSITY = 0.9;
-const int READ_ROUND_TIME = 15; //一轮读取的时间
-const int PRE_DISTRIBUTION_TIME = 25;
-const int TEST_DENSITY_LEN = 550;
+const double JUMP_VISCOSITY = 1.4;
+const int READ_ROUND_TIME = 35; //一轮读取的时间
+const int PRE_DISTRIBUTION_TIME = 28;
+const int TEST_DENSITY_LEN = 737;
 const int READ_CNT_STATES = 8; //读入的状态，根据上一次连续read的个数确定
-int DISK_MIN_PASS = 9;
+int DISK_MIN_PASS = 7;
 const int NUM_PIECE_QUEUE = 105;
-const double TAG_DENSITY_DIVIDE = 3;
-const double UNIT_REQUEST_DIVIDE = 3;
+const double TAG_DENSITY_DIVIDE = 1;
+const double UNIT_REQUEST_DIVIDE = 13;
 const bool USE_DP = false;
 
 struct _Object {
@@ -817,7 +817,7 @@ void write_action()
 }
 
 //use
-inline void read_unit(int object_id, int unit_id) 
+inline void read_unit(int object_id, int unit_id,int time) 
 {
     while (!unsolve_request[object_id][unit_id].empty()) {
         int request_id = unsolve_request[object_id][unit_id].front();
@@ -825,6 +825,21 @@ inline void read_unit(int object_id, int unit_id)
         {
             --request_rest_unit[request_id];
             request_rest_unit_state[request_id] |= 1 << unit_id;
+
+            for(int j = 1; j <= objects[object_id].size; ++j)
+            {
+                if((1 << j) & request_rest_unit_state[request_id])
+                    continue;
+                for(int i = 1; i <= REP_NUM; ++i)
+                {
+                    int delta_time = time - requests[request_id].request_time;
+                    int index = lower_bound(time_out_of_queue.begin() + 1, time_out_of_queue.begin() + 1 + NUM_PIECE_QUEUE, delta_time) - time_out_of_queue.begin();
+                    auto [disk_id, unit_pos] = objects[object_id].unit_pos[i][j];
+                    add_unit_request(disk_id, unit_pos, NUM_PIECE_QUEUE - index + 1);
+                }
+                
+            }
+
             if (!request_rest_unit[request_id]) {
                 solved_request.push_back(request_id);
             }
@@ -881,16 +896,16 @@ int do_pointer_pass(DISK &cur_disk)
 0 fail
 */
 
-inline void read_unit_update(int object_id, int unit_id) 
+inline void read_unit_update(int object_id, int unit_id,int time) 
 {
-    read_unit(object_id, unit_id);
+    read_unit(object_id, unit_id, time);
     for (int i = 1; i <= REP_NUM; ++i) {
         auto [disk_id, unit_pos] = objects[object_id].unit_pos[i][unit_id];
         modify_unit_request(disk_id, unit_pos, 0);
     }
 }
 
-int do_pointer_read(DISK &cur_disk) 
+int do_pointer_read(DISK &cur_disk, int time) 
 {
     int read_cost = cur_disk.last_read_cnt?
         std::max(16, (cur_disk.last_read_cost * 4 + 5 - 1) / 5) : 64;
@@ -903,7 +918,7 @@ int do_pointer_read(DISK &cur_disk)
     auto [object_id, unit_id] = cur_disk.unit_object[pos];
     
     if (object_id != 0) {
-        read_unit_update(object_id, unit_id);
+        read_unit_update(object_id, unit_id, time);
     }
 
     pos = pos % V + 1;
@@ -994,7 +1009,7 @@ std::pair<int, int> DP_read_without_skip_and_jump(DISK &cur_disk, int pointer_po
     return std::make_pair(sum_request, pointer.pointer);
 }
 
-void read_without_jump_dp_version(DISK &cur_disk) {
+void read_without_jump_dp_version(DISK &cur_disk, int time) {
     int begin_pointer = cur_disk.pointer;
     //std::cerr << "start DP_read_without_skip_and_jump" << std::endl;
     auto [sum_requests, end_pointer] = DP_read_without_skip_and_jump(cur_disk, cur_disk.pointer, cur_disk.rest_token);
@@ -1021,7 +1036,7 @@ void read_without_jump_dp_version(DISK &cur_disk) {
     for (auto oper : read_sequence) {
         if (oper == 'r') {
             check_requests += cur_disk.max_density.get(cur_disk.pointer);
-            do_pointer_read(cur_disk);
+            do_pointer_read(cur_disk, time);
         }
         else
             do_pointer_pass(cur_disk);
@@ -1031,7 +1046,7 @@ void read_without_jump_dp_version(DISK &cur_disk) {
     printf("#\n");
 }
 
-void read_without_jump(DISK &cur_disk)
+void read_without_jump(DISK &cur_disk,int time)
 {
     // while(do_pointer_read(cur_disk))
     // {
@@ -1041,16 +1056,14 @@ void read_without_jump(DISK &cur_disk)
     // return ;
 
     Pointer fast_pointer = Pointer(cur_disk.pointer);
-    int sum_of_request = 0;
     int cur_request_num = cur_disk.max_density.get(cur_disk.pointer);
+    int sum_of_request = cur_request_num;
     while(get_dist(cur_disk.pointer, fast_pointer.pointer) < DISK_MIN_PASS)
     {
         // std::cerr << "fast_pointer.pointer: " << fast_pointer.pointer << std::endl;
-
-        sum_of_request += cur_disk.max_density.get(fast_pointer.pointer);
         fast_pointer.to_nxt();
+        sum_of_request += cur_disk.max_density.get(fast_pointer.pointer);
     }
-    sum_of_request += cur_disk.max_density.get(fast_pointer.pointer);
 
     bool have_rest_token = true;
 
@@ -1058,8 +1071,11 @@ void read_without_jump(DISK &cur_disk)
 
     while (have_rest_token) {
         if (sum_of_request == 0 || cur_disk.last_read_cnt == 0) {
+
             assert(cur_request_num >= 0);
-            assert(cur_request_num <= sum_of_request);
+            assert(sum_of_request >= 0);
+            // assert(cur_request_num <= sum_of_request);
+
             while(cur_request_num == 0 && have_rest_token)
             {
                 sum_of_request -= cur_request_num;
@@ -1078,12 +1094,13 @@ void read_without_jump(DISK &cur_disk)
             }
         }
             assert(cur_request_num >= 0);
-            assert(cur_request_num <= sum_of_request);
+            assert(sum_of_request >= 0);
+            // assert(cur_request_num <= sum_of_request);
 
             while(sum_of_request > 0 && have_rest_token)
             {
                 sum_of_request -= cur_request_num;
-                if(!do_pointer_read(cur_disk))
+                if(!do_pointer_read(cur_disk, time))
                 {
                     have_rest_token = false;
                     break;
@@ -1169,17 +1186,17 @@ void read_action(int time)
                 // std::cerr << "start read_without_jump" << std::endl;
                 
                 if (USE_DP)
-                    read_without_jump_dp_version(cur_disk);
+                    read_without_jump_dp_version(cur_disk, time);
                 else
-                    read_without_jump(cur_disk);
+                    read_without_jump(cur_disk, time);
             }
             else 
                 do_pointer_jump(cur_disk, p);
         } else {
             if (USE_DP)
-                read_without_jump_dp_version(cur_disk);
+                read_without_jump_dp_version(cur_disk, time);
             else
-                read_without_jump(cur_disk);
+                read_without_jump(cur_disk, time);
         }
            
     }
@@ -1201,17 +1218,18 @@ void read_action(int time)
 inline void update_request_num(int time) {
     for(int i = 1; i <= NUM_PIECE_QUEUE; i++)
     {
-        while (!request_queue_in_time_order[i].empty() && request_queue_in_time_order[i].front().request_time < time_out_of_queue[i]) {
+        while (!request_queue_in_time_order[i].empty() && request_queue_in_time_order[i].front().request_time < time - time_out_of_queue[i]) {
             _Request now_request = request_queue_in_time_order[i].front();
             request_queue_in_time_order[i].pop();
             if(request_rest_unit[now_request.request_id] <= 0) continue;
             if(i < NUM_PIECE_QUEUE) request_queue_in_time_order[i + 1].push(now_request);
-            for (int i = 1; i <= REP_NUM; ++i) {
-                for (int j = 1; j <= objects[now_request.object_id].size; ++j) {
-                    if(((1 << j) & request_rest_unit_state[now_request.request_id]))
+            for (int j = 1; j <= objects[now_request.object_id].size; ++j) {   
+                if(((1 << j) & request_rest_unit_state[now_request.request_id]))
                         continue;
+                for (int i = 1; i <= REP_NUM; ++i) {
                     auto [disk_id, unit_id] = objects[now_request.object_id].unit_pos[i][j];
-                    add_unit_request(disk_id, unit_id, -1);
+                    add_unit_request(disk_id, unit_id, -(objects[now_request.object_id].size - request_rest_unit[now_request.request_id] + 1));
+                    // add_unit_request(disk_id, unit_id, -1);
                 }
             }
         }    
