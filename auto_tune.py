@@ -10,12 +10,14 @@ import json
 
 # 定义需要调整的参数及其范围
 PARAMS = {
-    'JUMP_VISCOSITY': (0.1, 1.5),
+    'JUMP_VISCOSITY': (0.1, 2),
     'READ_ROUND_TIME': (2, 100),
-    'PRE_DISTRIBUTION_TIME': (2, 100),
-    'TEST_DENSITY_LEN': (2, 2000),
-    'DISK_MIN_PASS': (2, 15),
-    'NUM_PIECE_QUEUE': (5, 105)
+    'PRE_DISTRIBUTION_TIME': (2, 50),
+    'TEST_DENSITY_LEN': (2, 3000),
+    'DISK_MIN_PASS': (2, 20),
+    'NUM_PIECE_QUEUE': (20, 105),
+    'TAG_DENSITY_DIVIDE': (1.0, 5.0),
+    'UNIT_REQUEST_DIVIDE': (0.5, 30.0)
 }
 
 # 定义正则表达式模式
@@ -25,7 +27,9 @@ REGEX_PATTERNS = {
     'PRE_DISTRIBUTION_TIME': r'(const\s+int\s+PRE_DISTRIBUTION_TIME\s*=\s*)([0-9]+)',
     'TEST_DENSITY_LEN': r'(const\s+int\s+TEST_DENSITY_LEN\s*=\s*)([0-9]+)',
     'DISK_MIN_PASS': r'(int\s+DISK_MIN_PASS\s*=\s*)([0-9]+)',
-    'NUM_PIECE_QUEUE': r'(const\s+int\s+NUM_PIECE_QUEUE\s*=\s*)([0-9]+)'
+    'NUM_PIECE_QUEUE': r'(const\s+int\s+NUM_PIECE_QUEUE\s*=\s*)([0-9]+)',
+    'TAG_DENSITY_DIVIDE': r'(const\s+double\s+TAG_DENSITY_DIVIDE\s*=\s*)([0-9.]+)',
+    'UNIT_REQUEST_DIVIDE': r'(const\s+double\s+UNIT_REQUEST_DIVIDE\s*=\s*)([0-9.]+)'
 }
 
 # 全局变量
@@ -311,9 +315,10 @@ def simulated_annealing(iterations=30, data_files=None):
         data_files = ['sample.in']
     
     # 初始温度
-    temperature = 100
-    # 冷却率
-    cooling_rate = 0.95
+    initial_temperature = 100
+    # 根据迭代次数计算冷却率，使得最后一次迭代时温度接近0
+    cooling_rate = np.power(0.01/initial_temperature, 1.0/iterations)
+    temperature = initial_temperature
     
     def get_neighbor(current_params):
         """生成邻居参数"""
@@ -343,7 +348,7 @@ def simulated_annealing(iterations=30, data_files=None):
     
     for i in range(iterations):
         print(f"\n迭代 {i+1}/{iterations}")
-        print(f"当前温度: {temperature:.2f}")
+        print(f"当前温度: {temperature:.4f}")
         
         # 生成邻居
         neighbor_params = get_neighbor(current_params)
