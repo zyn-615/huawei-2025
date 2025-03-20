@@ -33,7 +33,6 @@ const double JUMP_VISCOSITY = 0.9;
 const int CUR_REQUEST_DIVIDE = 15;
 const int LEN_TIME_DIVIDE = 40;
 const int PRE_DISTRIBUTION_TIME = 35;
-const int READ_CNT_STATES = 8; //读入的状态，根据上一次连续read的个数确定
 int DISK_MIN_PASS = 9; //如果超过这个值放弃read pass过去
 int DISK_MIN_PASS_DP = 13;
 const int MIN_TOKEN_STOP_DP = 130;
@@ -44,6 +43,7 @@ const int MIN_ROUND_TIME = 40;
 const int MIN_TEST_DENSITY_LEN = 1200;
 
 //不要调
+const int READ_CNT_STATES = 8; //读入的状态，根据上一次连续read的个数确定
 const int USE_DP = 2;
 const int DP_VERSION1 = 1;
 const int DP_VERSION2 = 2;

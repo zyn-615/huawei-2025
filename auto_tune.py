@@ -11,25 +11,33 @@ import json
 # 定义需要调整的参数及其范围
 PARAMS = {
     'JUMP_VISCOSITY': (0.1, 2),
-    'READ_ROUND_TIME': (2, 100),
-    'PRE_DISTRIBUTION_TIME': (2, 50),
-    'TEST_DENSITY_LEN': (2, 3000),
-    'DISK_MIN_PASS': (2, 20),
-    'NUM_PIECE_QUEUE': (20, 105),
+    'CUR_REQUEST_DIVIDE': (5, 25),
+    'LEN_TIME_DIVIDE': (10, 60),
+    'PRE_DISTRIBUTION_TIME': (10, 50),
+    'DISK_MIN_PASS': (5, 15),
+    'DISK_MIN_PASS_DP': (8, 20),
+    'MIN_TOKEN_STOP_DP': (80, 200),
+    'NUM_PIECE_QUEUE': (1, 5),
     'TAG_DENSITY_DIVIDE': (1.0, 5.0),
-    'UNIT_REQUEST_DIVIDE': (0.5, 30.0)
+    'UNIT_REQUEST_DIVIDE': (10, 25),
+    'MIN_ROUND_TIME': (20, 60),
+    'MIN_TEST_DENSITY_LEN': (600, 2000)
 }
 
 # 定义正则表达式模式
 REGEX_PATTERNS = {
     'JUMP_VISCOSITY': r'(const\s+double\s+JUMP_VISCOSITY\s*=\s*)([0-9.]+)',
-    'READ_ROUND_TIME': r'(const\s+int\s+READ_ROUND_TIME\s*=\s*)([0-9]+)',
+    'CUR_REQUEST_DIVIDE': r'(const\s+int\s+CUR_REQUEST_DIVIDE\s*=\s*)([0-9]+)',
+    'LEN_TIME_DIVIDE': r'(const\s+int\s+LEN_TIME_DIVIDE\s*=\s*)([0-9]+)',
     'PRE_DISTRIBUTION_TIME': r'(const\s+int\s+PRE_DISTRIBUTION_TIME\s*=\s*)([0-9]+)',
-    'TEST_DENSITY_LEN': r'(const\s+int\s+TEST_DENSITY_LEN\s*=\s*)([0-9]+)',
     'DISK_MIN_PASS': r'(int\s+DISK_MIN_PASS\s*=\s*)([0-9]+)',
+    'DISK_MIN_PASS_DP': r'(int\s+DISK_MIN_PASS_DP\s*=\s*)([0-9]+)',
+    'MIN_TOKEN_STOP_DP': r'(const\s+int\s+MIN_TOKEN_STOP_DP\s*=\s*)([0-9]+)',
     'NUM_PIECE_QUEUE': r'(const\s+int\s+NUM_PIECE_QUEUE\s*=\s*)([0-9]+)',
     'TAG_DENSITY_DIVIDE': r'(const\s+double\s+TAG_DENSITY_DIVIDE\s*=\s*)([0-9.]+)',
-    'UNIT_REQUEST_DIVIDE': r'(const\s+double\s+UNIT_REQUEST_DIVIDE\s*=\s*)([0-9.]+)'
+    'UNIT_REQUEST_DIVIDE': r'(const\s+double\s+UNIT_REQUEST_DIVIDE\s*=\s*)([0-9.]+)',
+    'MIN_ROUND_TIME': r'(const\s+int\s+MIN_ROUND_TIME\s*=\s*)([0-9]+)',
+    'MIN_TEST_DENSITY_LEN': r'(const\s+int\s+MIN_TEST_DENSITY_LEN\s*=\s*)([0-9]+)'
 }
 
 # 全局变量
