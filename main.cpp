@@ -1271,30 +1271,31 @@ void read_without_jump(DISK &cur_disk,int time)
         
     }
 
-    // while(cur_disk.rest_token > 0)
-    // {
-    //     // std::cerr << "cur_disk.rest_token: " << cur_disk.rest_token << std::endl;
-    //     // std::cerr << "cur_disk.point: " << cur_disk.pointer << std::endl;
-    //     // std::cerr << "nxt_p: " << nxt_p << std::endl;
-    //     // std::cerr << "choose_pass? " << chosse_pass(cur_disk, nxt_p) << std::endl;
+/*
+    while(cur_disk.rest_token > 0)
+    {
+        // std::cerr << "cur_disk.rest_token: " << cur_disk.rest_token << std::endl;
+        // std::cerr << "cur_disk.point: " << cur_disk.pointer << std::endl;
+        // std::cerr << "nxt_p: " << nxt_p << std::endl;
+        // std::cerr << "choose_pass? " << chosse_pass(cur_disk, nxt_p) << std::endl;
     
-    //     int nxt_p = cur_disk.request_num.find_next(cur_disk.pointer, 1);
-    //     if (nxt_p == -1)
-    //                 break;
-    //     if (chosse_pass(cur_disk, nxt_p)) {
-    //         while (cur_disk.pointer != nxt_p)
-    //             if (!do_pointer_pass(cur_disk))
-    //                 break;
-    //     }
-    //     else {
-    //         while (cur_disk.pointer != nxt_p)
-    //             if (!do_pointer_read(cur_disk))
-    //                 break;
-    //     }
-    //     if (!do_pointer_read(cur_disk))
-    //         break;
-    // }
-
+        int nxt_p = cur_disk.request_num.find_next(cur_disk.pointer, 1);
+        if (nxt_p == -1)
+                    break;
+        if (chosse_pass(cur_disk, nxt_p)) {
+            while (cur_disk.pointer != nxt_p)
+                if (!do_pointer_pass(cur_disk))
+                    break;
+        }
+        else {
+            while (cur_disk.pointer != nxt_p)
+                if (!do_pointer_read(cur_disk))
+                    break;
+        }
+        if (!do_pointer_read(cur_disk))
+            break;
+    }
+*/
     // std::cerr << "end: " << sum_of_request << std::endl;
 
     printf("#\n");
