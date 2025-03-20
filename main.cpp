@@ -30,13 +30,13 @@
 
 const double JUMP_VISCOSITY = 0.9;
 const int READ_ROUND_TIME = 40; //一轮读取的时间
-const int PRE_DISTRIBUTION_TIME = 28;
+const int PRE_DISTRIBUTION_TIME = 30;
 const int TEST_DENSITY_LEN = 1200;
 const int READ_CNT_STATES = 8; //读入的状态，根据上一次连续read的个数确定
-int DISK_MIN_PASS = 7;
-const int NUM_PIECE_QUEUE = 105;
-const double TAG_DENSITY_DIVIDE = 3;
-const double UNIT_REQUEST_DIVIDE = 20;
+int DISK_MIN_PASS = 9;
+const int NUM_PIECE_QUEUE = 50;
+const double TAG_DENSITY_DIVIDE = 2;
+const double UNIT_REQUEST_DIVIDE = 17;
 const bool USE_DP = false;
 
 struct _Object {
@@ -625,9 +625,12 @@ void timestamp_action()
     scanf("%*s%d", &timestamp);
     printf("TIMESTAMP %d\n", timestamp);
 
-    if (get_now_stage(timestamp) > PRE_DISTRIBUTION_TIME && get_now_stage(timestamp) != get_now_stage(timestamp - 1) && get_now_stage(timestamp) % 2 == 0) {
+    if (get_now_stage(timestamp) != get_now_stage(timestamp - 1)) {
         for (int i = 1; i <= N; ++i) {
-            distribute_tag_in_disk_by_density(i, get_now_stage(timestamp));
+            if (get_now_stage(timestamp) <= PRE_DISTRIBUTION_TIME && get_now_stage(timestamp) % 10 == 0);
+                // distribute_tag_in_disk_front(i, get_now_stage(timestamp));
+            if ( get_now_stage(timestamp) > PRE_DISTRIBUTION_TIME && get_now_stage(timestamp) % 3 == 0)
+                distribute_tag_in_disk_by_density(i, get_now_stage(timestamp));
             // if (disk[i].distribution_strategy == 1)
             //     distribute_tag_in_disk_front(i, get_now_stage(timestamp));
             // else 
@@ -830,18 +833,18 @@ inline void read_unit(int object_id, int unit_id, int time)
             --request_rest_unit[request_id];
             request_rest_unit_state[request_id] |= 1 << unit_id;
 
-            for(int j = 1; j <= objects[object_id].size; ++j)
-            {
-                if((1 << j) & request_rest_unit_state[request_id])
-                    continue;
-                for(int i = 1; i <= REP_NUM; ++i)
-                {
-                    int delta_time = time - requests[request_id].request_time;
-                    int index = lower_bound(time_out_of_queue.begin() + 1, time_out_of_queue.begin() + 1 + NUM_PIECE_QUEUE, delta_time) - time_out_of_queue.begin();
-                    auto [disk_id, unit_pos] = objects[object_id].unit_pos[i][j];
-                    add_unit_request(disk_id, unit_pos, NUM_PIECE_QUEUE - index + 1);
-                }
-            }
+            // for(int j = 1; j <= objects[object_id].size; ++j)
+            // {
+            //     if((1 << j) & request_rest_unit_state[request_id])
+            //         continue;
+            //     for(int i = 1; i <= REP_NUM; ++i)
+            //     {
+            //         int delta_time = time - requests[request_id].request_time;
+            //         int index = lower_bound(time_out_of_queue.begin() + 1, time_out_of_queue.begin() + 1 + NUM_PIECE_QUEUE, delta_time) - time_out_of_queue.begin();
+            //         auto [disk_id, unit_pos] = objects[object_id].unit_pos[i][j];
+            //         add_unit_request(disk_id, unit_pos, NUM_PIECE_QUEUE - index + 1);
+            //     }
+            // }
 
             if (!request_rest_unit[request_id]) {
                 solved_request.push_back(request_id);
@@ -1239,8 +1242,8 @@ inline void update_request_num(int time) {
                         continue;
                 for (int i = 1; i <= REP_NUM; ++i) {
                     auto [disk_id, unit_id] = objects[now_request.object_id].unit_pos[i][j];
-                    add_unit_request(disk_id, unit_id, -(objects[now_request.object_id].size - request_rest_unit[now_request.request_id] + 1));
-                    // add_unit_request(disk_id, unit_id, -1);
+                    // add_unit_request(disk_id, unit_id, -(objects[now_request.object_id].size - request_rest_unit[now_request.request_id] + 1));
+                    add_unit_request(disk_id, unit_id, -1);
                 }
             }
         }    
