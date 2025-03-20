@@ -29,27 +29,28 @@
 #define MAX_PIECE_QUEUE (105 + 1)
 #define INF_TOKEN (10000000)
 
-const double JUMP_VISCOSITY = 0.4;
-const int CUR_REQUEST_DIVIDE = 15;
-const int LEN_TIME_DIVIDE = 39;
-const int PRE_DISTRIBUTION_TIME = 41;
+const double JUMP_VISCOSITY = 0.7;
+const int CUR_REQUEST_DIVIDE = 166;
+const int LEN_TIME_DIVIDE = 6;
+const int PRE_DISTRIBUTION_TIME = 18;
 const int READ_CNT_STATES = 8; //读入的状态，根据上一次连续read的个数确定
-int DISK_MIN_PASS = 6; //如果超过这个值放弃read pass过去
-int DISK_MIN_PASS_DP = 8;
-const int MIN_TOKEN_STOP_DP = 167;
-const int NUM_PIECE_QUEUE = 5;
+int DISK_MIN_PASS = 11; //如果超过这个值放弃read pass过去
+int DISK_MIN_PASS_DP = 14;
+const int MIN_TOKEN_STOP_DP = 109;
+const int NUM_PIECE_QUEUE = 8;
 const double TAG_DENSITY_DIVIDE = 2;
-const double UNIT_REQUEST_DIVIDE = 23;
-const int MIN_ROUND_TIME = 37;
-const int MIN_TEST_DENSITY_LEN = 1021;
-const int DIVIDE_TAG_INTO_DISK = 6;
+const double UNIT_REQUEST_DIVIDE = 24;
+const int MIN_ROUND_TIME = 2;
+const int MIN_TEST_DENSITY_LEN = 197;
+const int TEST_READ_TIME = 6;
 
 //不要调
 const int USE_DP = 0;
 const int DP_VERSION1 = 1;
 const int DP_VERSION2 = 2;
 
-int READ_ROUND_TIME = 40; //一轮读取的时间
+//int READ_ROUND_TIME = 40; //一轮读取的时间
+const int READ_ROUND_TIME = 3;
 int TEST_DENSITY_LEN = 1200;
 
 struct _Object {
@@ -657,8 +658,8 @@ void timestamp_action()
     printf("TIMESTAMP %d\n", timestamp);
 
     TEST_DENSITY_LEN = std::max(cur_request / CUR_REQUEST_DIVIDE, MIN_TEST_DENSITY_LEN);
-    READ_ROUND_TIME = std::max(TEST_DENSITY_LEN / LEN_TIME_DIVIDE, MIN_ROUND_TIME);
-    READ_ROUND_TIME = 10;
+    //READ_ROUND_TIME = std::max(TEST_DENSITY_LEN / LEN_TIME_DIVIDE, MIN_ROUND_TIME);
+    //READ_ROUND_TIME = 3;
 
     if (get_now_stage(timestamp) != get_now_stage(timestamp - 1)) {
         std::cerr << "CER_REQUEST : " << cur_request << std::endl;
@@ -1363,15 +1364,15 @@ void read_action(int time)
         DISK &cur_disk = disk[cur_disk_id];
         if (time % READ_ROUND_TIME == 1) {
             int p = cur_disk.max_density.find_max_point();
-            int ans_p = p == -1? -1: DP_read_without_skip_and_jump(cur_disk, p, READ_ROUND_TIME * cur_disk.rest_token).first;
-            int ans_now = DP_read_without_skip_and_jump(cur_disk, cur_disk.pointer, READ_ROUND_TIME * cur_disk.rest_token).first;
+            int ans_p = p == -1? -1: DP_read_without_skip_and_jump(cur_disk, p, TEST_READ_TIME * cur_disk.rest_token).first;
+            int ans_now = DP_read_without_skip_and_jump(cur_disk, cur_disk.pointer, TEST_READ_TIME * cur_disk.rest_token).first;
             /*
             if (cur_disk.max_density.get(p) * JUMP_VISCOSITY <= cur_disk.max_density.get(cur_disk.pointer))
                 p = cur_disk.pointer;
             */
                 // std::cerr << "max_point: " << p << std::endl;
 
-                if (p == -1 || get_dist(cur_disk.pointer, p) <= G * JUMP_VISCOSITY || ans_p < ans_now * 1.5) { //如果距离足够近
+                if (p == -1 || get_dist(cur_disk.pointer, p) <= G * JUMP_VISCOSITY || ans_p < ans_now * 1.6) { //如果距离足够近
                 
                 // std::cerr << "start read_without_jump" << std::endl;
                 
