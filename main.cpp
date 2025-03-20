@@ -41,7 +41,7 @@ const int NUM_PIECE_QUEUE = 2;
 const double TAG_DENSITY_DIVIDE = 2;
 const double UNIT_REQUEST_DIVIDE = 17;
 const int MIN_ROUND_TIME = 3;
-const int MIN_TEST_DENSITY_LEN = 500;
+const int MIN_TEST_DENSITY_LEN = 200;
 const int TEST_READ_TIME = 10;
 
 //不要调
@@ -49,7 +49,8 @@ const int USE_DP = 0;
 const int DP_VERSION1 = 1;
 const int DP_VERSION2 = 2;
 
-int READ_ROUND_TIME = 40; //一轮读取的时间
+//int READ_ROUND_TIME = 40; //一轮读取的时间
+const int READ_ROUND_TIME = 3;
 int TEST_DENSITY_LEN = 1200;
 
 struct _Object {
@@ -429,6 +430,7 @@ struct DISK {
     bool is_reverse;
     int distribution_strategy;
     int test_density_len = TEST_DENSITY_LEN;
+    int tag_num;
 };
 
 DISK disk[MAX_DISK_NUM];
@@ -493,13 +495,19 @@ inline void distribute_tag_in_disk_front(int disk_id, int stage)
 {
     int rest_unit = disk[disk_id].empty_pos.query_rest_unit() + 10;
     int all_need = 0;
+    std::cerr << "DISTRIBUTION : ";
     for (int i = 1; i <= M; ++i) {
         int cur_tag = disk[disk_id].tag_order[i];
         all_need += std::max(max_cur_tag_size[stage][cur_tag] / N, 3);
+        std::cerr << max_cur_tag_size[stage][cur_tag] << " ";
     }
+
+    std::cerr << std::endl;
+    std::cerr << "ALLNEED : " << all_need << " " << rest_unit << std::endl;
 
     for (int i = 1, pre_distribution = 0; i <= M; ++i) {
         int cur_tag = disk[disk_id].tag_order[i];
+        // int cur_tag_distribution = std::max(max_cur_tag_size[stage][cur_tag] / N, 3) + 5;
         int cur_tag_distribution = (1.0 * std::max(max_cur_tag_size[stage][cur_tag] / N, 3) / all_need) * rest_unit;
         
         if (pre_distribution + cur_tag_distribution > rest_unit) {
@@ -521,10 +529,19 @@ inline void distribute_tag_in_disk_front(int disk_id, int stage)
 
 inline void distribute_tag_in_disk_mid(int disk_id, int stage) 
 {
-    int rest_unit = disk[disk_id].empty_pos.query_rest_unit();
+    int rest_unit = disk[disk_id].empty_pos.query_rest_unit() + 10;
+    int all_need = 0;
+    for (int i = 1; i <= M; ++i) {
+        int cur_tag = disk[disk_id].tag_order[i];
+        all_need += std::max(max_cur_tag_size[stage][cur_tag] / N, 3);
+        std::cerr << max_cur_tag_size[stage][cur_tag] << " ";
+    }
+    std::cerr << std::endl;
+    std::cerr << "ALLNEED : " << all_need << " " << rest_unit << std::endl;
+
     for (int i = 1, pre_distribution = 0; i <= M; ++i) {
         int cur_tag = disk[disk_id].tag_order[i];
-        int cur_tag_distribution = std::max(max_cur_tag_size[stage][cur_tag] / N, 3) + 5;
+        int cur_tag_distribution = (1.0 * std::max(max_cur_tag_size[stage][cur_tag] / N, 3) / all_need) * rest_unit;
         
         if (pre_distribution + cur_tag_distribution > rest_unit) {
             pre_distribution += cur_tag_distribution;
@@ -641,8 +658,8 @@ void timestamp_action()
     printf("TIMESTAMP %d\n", timestamp);
 
     TEST_DENSITY_LEN = std::max(cur_request / CUR_REQUEST_DIVIDE, MIN_TEST_DENSITY_LEN);
-    READ_ROUND_TIME = std::max(TEST_DENSITY_LEN / LEN_TIME_DIVIDE, MIN_ROUND_TIME);
-    READ_ROUND_TIME = 3;
+    //READ_ROUND_TIME = std::max(TEST_DENSITY_LEN / LEN_TIME_DIVIDE, MIN_ROUND_TIME);
+    //READ_ROUND_TIME = 3;
 
     if (get_now_stage(timestamp) != get_now_stage(timestamp - 1)) {
         std::cerr << "CER_REQUEST : " << cur_request << std::endl;
