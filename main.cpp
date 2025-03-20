@@ -35,6 +35,8 @@ const int LEN_TIME_DIVIDE = 40;
 const int PRE_DISTRIBUTION_TIME = 35;
 const int READ_CNT_STATES = 8; //读入的状态，根据上一次连续read的个数确定
 int DISK_MIN_PASS = 9; //如果超过这个值放弃read pass过去
+int DISK_MIN_PASS_DP = 13;
+const int MIN_TOKEN_STOP_DP = 150;
 const int NUM_PIECE_QUEUE = 2;
 const double TAG_DENSITY_DIVIDE = 2;
 const double UNIT_REQUEST_DIVIDE = 17;
@@ -1112,6 +1114,7 @@ void trace_dp(DISK &cur_disk, int begin_pos, int end_pos, int time) {
     assert (check_rest_token_start - check_rest_token_end == dp_cost_token);
 }
 
+void read_without_jump(DISK &cur_disk,int time);
 void read_without_jump_dp_and_bf_version(DISK &cur_disk, int time) {
     //int begin_pointer = cur_disk.pointer;
     //prel, prer用来处理
@@ -1121,7 +1124,7 @@ void read_without_jump_dp_and_bf_version(DISK &cur_disk, int time) {
     bool can_get_pre = 1;
     //std::cerr << "start choose DP or brute force" << std::endl;
     do {
-        while (get_dist(prel, prer) < DISK_MIN_PASS) {
+        while (get_dist(prel, prer) < DISK_MIN_PASS_DP) {
             pre_requests += cur_disk.max_density.get(prer);
             to_next_pos(prer);
         }
@@ -1132,11 +1135,14 @@ void read_without_jump_dp_and_bf_version(DISK &cur_disk, int time) {
             to_next_pos(prel);
             to_next_pos(prer);
         }
+        if (pre_requests > 0) {
+            break;
+        }
         assert(prer != cur_disk.pointer);
         //std::cerr << "start DP" << std::endl;
         int min_cost_token = DP_read_without_skip_and_jump_range(cur_disk, cur_disk.pointer, prel).second;
         //std::cerr << "end DP with cost: " << min_cost_token << std::endl;
-        if (min_cost_token > cur_disk.rest_token) {
+        if (min_cost_token + MIN_TOKEN_STOP_DP > cur_disk.rest_token) {
             can_get_pre = 0;
         }
         else {
@@ -1154,17 +1160,18 @@ void read_without_jump_dp_and_bf_version(DISK &cur_disk, int time) {
             //std::cerr << "min_cost_token: " << min_cost_token << " " << cur_disk.max_density.get(cur_disk.pointer) << std::endl;
             //std::cerr << "rest_token: " << " " << cur_disk.rest_token << std::endl;
             //std::cerr << "pre_request: " << " " << pre_requests << std::endl;
-            assert(check_pass_cnt >= DISK_MIN_PASS || cur_disk.rest_token == 0);
+            assert(check_pass_cnt >= DISK_MIN_PASS_DP || cur_disk.rest_token == 0);
             prel = prer = cur_disk.pointer;
             pre_requests = 0;
         }
     }
     while (can_get_pre && cur_disk.rest_token > 0);
     //std::cerr << "end choose DP or brute force" << std::endl;
-    while (do_pointer_read(cur_disk, time));
+    read_without_jump(cur_disk, time);
+    //while (do_pointer_read(cur_disk, time));
     //std::cerr << "end read_without_jump_dp_and_bf_version" << std::endl;
     //Pointer cur_pointer(cur_disk.pointer);
-    printf("#\n");
+    //printf("#\n");
 }
 
 void read_without_jump_dp_version(DISK &cur_disk, int time)
