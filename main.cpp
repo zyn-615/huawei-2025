@@ -876,8 +876,8 @@ inline void do_object_delete(int object_id)
             disk[disk_id].empty_pos.delete_unit(1, 1, V, pos);
 
             if (USE_NEW_DISTRIBUTION) {
-                // disk[disk_id].tag_density[cur_tag].add(pos, -1);
-                add_tag_density(disk_id, cur_tag, pos, -1);
+                disk[disk_id].tag_density[cur_tag].add(pos, -1);
+                // add_tag_density(disk_id, cur_tag, pos, -1);
             }
             
             //清除request
@@ -937,7 +937,8 @@ inline void write_unit(int object_id, int disk_id, int unit_id, int write_pos, i
 
     if (USE_NEW_DISTRIBUTION) {
         if (disk[disk_id].tag_distribution_size[objects[object_id].tag] > 0)
-            add_tag_density(disk_id, objects[object_id].tag, write_pos, 1);
+            disk[disk_id].tag_density[objects[object_id].tag].add_tag_density(write_pos, 1);
+            // add_tag_density(disk_id, objects[object_id].tag, write_pos, 1);
         // disk[disk_id].tag_in_disk[].add(write_pos, 1);
     }
     
