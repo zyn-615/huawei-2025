@@ -49,7 +49,7 @@ const int MIN_TAG_NUM_IN_DISK = 6;
 
 const int USE_NEW_DISTRIBUTION = 1;
 //不要调
-const int USE_DP = 0;
+const int USE_DP = 1;
 const int DP_VERSION1 = 1;
 const int DP_VERSION2 = 2;
 
@@ -1172,6 +1172,7 @@ int do_pointer_pass(DISK &cur_disk)
     if (!cur_disk.rest_token)
         return 0;
     printf("p");
+    assert(cur_disk.max_density.get(cur_disk.pointer) == 0);
     ++go_disk_dist;
     cur_disk.pointer = cur_disk.pointer % V + 1;
     cur_disk.rest_token--;
@@ -1445,7 +1446,7 @@ void read_without_jump_dp_version(DISK &cur_disk, int time)
 {
     int begin_pointer = cur_disk.pointer;
     //std::cerr << "start DP_read_without_skip_and_jump" << std::endl;
-    auto [sum_requests, end_pointer] = DP_read_without_skip_and_jump(cur_disk, cur_disk.pointer, cur_disk.rest_token);
+    auto [sum_requests, end_pointer] = DP_read_without_skip_and_jump(cur_disk, cur_disk.pointer, 2 * cur_disk.rest_token);
     //std::cerr << "end DP_read_without_skip_and_jump" << std::endl;
     //std::cerr << "end_pointer: " << end_pointer << std::endl;
     //std::cerr << "dist: " << get_dist(begin_pointer, end_pointer) << std::endl;
@@ -1466,17 +1467,18 @@ void read_without_jump_dp_version(DISK &cur_disk, int time)
     }
     int check_requests = 0;
     reverse(read_sequence.begin(), read_sequence.end());
-    go_disk_dist += read_sequence.size();
+    //go_disk_dist += read_sequence.size();
     for (auto oper : read_sequence) {
         if (oper == 'r') {
             check_requests += cur_disk.max_density.get(cur_disk.pointer);
-            do_pointer_read(cur_disk, time);
+            if (!do_pointer_read(cur_disk, time))
+                break;
         }
         else
             do_pointer_pass(cur_disk);
     }
     //std::cerr << check_requests<< " " << sum_requests << std::endl;
-    assert(check_requests == sum_requests);
+    //assert(check_requests == sum_requests);
     printf("#\n");
 }
 
