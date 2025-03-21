@@ -32,7 +32,7 @@
 const double JUMP_VISCOSITY = 0.9;
 const int CUR_REQUEST_DIVIDE = 200;
 const int LEN_TIME_DIVIDE = 40;
-const int PRE_DISTRIBUTION_TIME = 28;
+const int PRE_DISTRIBUTION_TIME = 25;
 const int READ_CNT_STATES = 8; //读入的状态，根据上一次连续read的个数确定
 int DISK_MIN_PASS = 9; //如果超过这个值放弃read pass过去
 int DISK_MIN_PASS_DP = 13;
@@ -40,11 +40,15 @@ const int MIN_TOKEN_STOP_DP = 130;
 const int NUM_PIECE_QUEUE = 2;
 const double TAG_DENSITY_DIVIDE = 2;
 const double UNIT_REQUEST_DIVIDE = 17;
-const int MIN_ROUND_TIME = 3;
-const int MIN_TEST_DENSITY_LEN = 400;
+const int MIN_ROUND_TIME = 5;
+const int MIN_TEST_DENSITY_LEN = 500;
 const int TEST_READ_TIME = 10;
 const double DIVIDE_TAG_IN_DISK_VERSION1 = 0.8;
+
+//这三个量需要调整   需要退火
 const int WRITE_TEST_DENSITY_LEN = 80;
+const int WRITE_TAG_DENSITY_DIVIDE = 10;
+const int MIN_TEST_TAG_DENSITY_LEN = 80;
 
 const int USE_NEW_DISTRIBUTION = 1;
 //不要调
@@ -812,7 +816,7 @@ inline void reset_disk_window_len(int disk_id)
         int j = cur_disk.tag_order[i];
 
         cur_disk.tag_density[j].build();
-        cur_disk.tag_density[j].window_len = std::max(50, tag_size_in_disk[j][disk_id] / 3);
+        cur_disk.tag_density[j].window_len = std::max(MIN_TEST_TAG_DENSITY_LEN, int(tag_size_in_disk[j][disk_id] / WRITE_TAG_DENSITY_DIVIDE));
     }
 
     for (int i = 1; i <= V; ++i) {
