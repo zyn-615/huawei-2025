@@ -32,7 +32,7 @@
 const double JUMP_VISCOSITY = 0.9;
 const int CUR_REQUEST_DIVIDE = 200;
 const int LEN_TIME_DIVIDE = 40;
-const int PRE_DISTRIBUTION_TIME = 20;
+const int PRE_DISTRIBUTION_TIME = 25;
 const int READ_CNT_STATES = 8; //读入的状态，根据上一次连续read的个数确定
 int DISK_MIN_PASS = 9; //如果超过这个值放弃read pass过去
 int DISK_MIN_PASS_DP = 13;
@@ -41,9 +41,9 @@ const int NUM_PIECE_QUEUE = 2;
 const double TAG_DENSITY_DIVIDE = 2;
 const double UNIT_REQUEST_DIVIDE = 17;
 const int MIN_ROUND_TIME = 3;
-const int MIN_TEST_DENSITY_LEN = 200;
+const int MIN_TEST_DENSITY_LEN = 300;
 const int TEST_READ_TIME = 10;
-const double DIVIDE_TAG_IN_DISK_VERSION1 = 0.08; // 上限0.1
+const double DIVIDE_TAG_IN_DISK_VERSION1 = 0.8;
 const int WRITE_TEST_DENSITY_LEN = 50;
 
 const int USE_NEW_DISTRIBUTION = 1;
@@ -1603,7 +1603,7 @@ void read_action(int time)
     for (int cur_disk_id = 1; cur_disk_id <= N; ++cur_disk_id) {
         // std::cerr << "cur_disk_id: " << cur_disk_id << std::endl;
         DISK &cur_disk = disk[cur_disk_id];
-        if (time % READ_ROUND_TIME == 1) {
+        if (time % random(READ_ROUND_TIME, READ_ROUND_TIME) == 1) {
             int p = cur_disk.max_density.find_max_point();
             int ans_p = p == -1? -1: DP_read_without_skip_and_jump(cur_disk, p, TEST_READ_TIME * cur_disk.rest_token).first;
             int ans_now = DP_read_without_skip_and_jump(cur_disk, cur_disk.pointer, TEST_READ_TIME * cur_disk.rest_token).first;
