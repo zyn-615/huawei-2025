@@ -32,7 +32,7 @@
 const double JUMP_VISCOSITY = 0.9;
 const int CUR_REQUEST_DIVIDE = 200;
 const int LEN_TIME_DIVIDE = 40;
-const int PRE_DISTRIBUTION_TIME = 25;
+const int PRE_DISTRIBUTION_TIME = 28;
 const int READ_CNT_STATES = 8; //读入的状态，根据上一次连续read的个数确定
 int DISK_MIN_PASS = 9; //如果超过这个值放弃read pass过去
 int DISK_MIN_PASS_DP = 13;
@@ -41,7 +41,7 @@ const int NUM_PIECE_QUEUE = 2;
 const double TAG_DENSITY_DIVIDE = 2;
 const double UNIT_REQUEST_DIVIDE = 17;
 const int MIN_ROUND_TIME = 3;
-const int MIN_TEST_DENSITY_LEN = 500;
+const int MIN_TEST_DENSITY_LEN = 400;
 const int TEST_READ_TIME = 10;
 const double DIVIDE_TAG_IN_DISK_VERSION1 = 0.8;
 const int WRITE_TEST_DENSITY_LEN = 80;
@@ -812,7 +812,7 @@ inline void reset_disk_window_len(int disk_id)
         int j = cur_disk.tag_order[i];
 
         cur_disk.tag_density[j].build();
-        cur_disk.tag_density[j].window_len = std::max(20, tag_size_in_disk[j][disk_id] / 3);
+        cur_disk.tag_density[j].window_len = std::max(50, tag_size_in_disk[j][disk_id] / 3);
     }
 
     for (int i = 1; i <= V; ++i) {
@@ -849,9 +849,13 @@ void timestamp_action()
                 //     distribute_tag_in_disk_mid(i, get_now_stage(timestamp));
             }
         } else {
-            for (int i = 1; i <= N; ++i) {
-                reset_disk_window_len(i);
+
+            if (get_now_stage(timestamp) % 4 == 0 && get_now_stage(timestamp) > PRE_DISTRIBUTION_TIME) {
+               for (int i = 1; i <= N; ++i) {
+                    // reset_disk_window_len(i);
+                } 
             }
+            
         }
     }
 
@@ -1095,8 +1099,8 @@ void write_action()
                     if (now_stage <= PRE_DISTRIBUTION_TIME) {
                         nxt = write_unit_in_disk_strategy_1(disk_id, tag);
                     } else {
-                        // nxt = write_unit_in_disk_by_density_version2(disk_id, tag);
-                        nxt = write_unit_in_disk_by_density(disk_id, tag);
+                        nxt = write_unit_in_disk_by_density_version2(disk_id, tag);
+                        // nxt = write_unit_in_disk_by_density(disk_id, tag);
                     }
 
                     // std::cerr << "Nxt : " << nxt << " ";
