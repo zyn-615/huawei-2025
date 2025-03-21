@@ -445,6 +445,7 @@ struct DISK {
     Segment_tree_add empty_pos; //维护空位置
     // Segment_tree_max request_num; //维护每个点的request数量
     //Segment_tree_max max_density; //用于获取每个段的request总和
+    Segment_tree_max tag_density[MAX_TAG_NUM];
     DensityManager max_density;
     int pointer; //这个磁盘指针的位置
     int last_read_cnt = 0; //上一次操作往前连续读取的次数
@@ -806,6 +807,17 @@ std::vector <int> abort_request;
     //     disk[disk_id].max_density.add(1, 1, V, V - rest_num + 1, V, delta_request);
     // }
 // }
+inline void add_tag_density(int disk_id, int tag, int pos, int value)
+{
+    int L = std::min(V, TEST_DENSITY_LEN);
+    int pre_pos = std::max(1, pos - L + 1);
+    disk[disk_id].tag_density[tag].add(1,1,V,pre_pos,pos,value);
+    if(pos < L)
+    {
+        int rest_num = L - pos;
+        disk[disk_id].tag_density[tag].add(1,1,V,V - rest_num + 1,V,value);
+    }
+}
 
 inline void modify_unit_request(int disk_id, int pos, int value) 
 {
