@@ -93,7 +93,13 @@ inline int get_pre_kth(int x, int k)
     x = (x - k + V) % V;
     if (x == 0) x = V;
     return x;
-}   
+}
+
+inline int get_nxt_kth(int x, int k) {
+    x = (x + k) % V;
+    if (x == 0) x = V;
+    return x;
+}
 
 struct Segment_tree_max {
     struct Node {
@@ -615,7 +621,7 @@ inline void distribute_tag_in_disk_new_version_1(int stage)
     int piece_size = V * DIVIDE_TAG_IN_DISK_VERSION1;
 
     for (int i = 1; i <= M; ++i) {
-        int piece_num = std::max(3, max_cur_tag_size[stage][i] / piece_num);
+        int piece_num = std::max(3, max_cur_tag_size[stage][i] / piece_size);
         int cur_size = max_cur_tag_size[stage][i];
         int std_size = (max_cur_tag_size[stage][i] + piece_num - 1) / piece_num;
 
@@ -643,7 +649,7 @@ inline void distribute_tag_in_disk_new_version_1(int stage)
                 disk[disk_id].tag_distribution_pointer[tag] = size;
                 disk[disk_id].tag_order[++disk[disk_id].tag_num] = tag;
                 disk_rest_size[disk_id] -= size;
-                // disk[disk_id].tag_in_disk[tag].init();
+                disk[disk_id].tag_in_disk[tag].init(WRITE_TEST_DENSITY_LEN);
                 break;
             }
         }
@@ -920,6 +926,8 @@ inline int write_unit_in_disk_strategy_2(int disk_id, int tag)
 inline int write_unit_in_disk_by_density(int disk_id, int tag)
 {
     int best_pos = disk[disk_id].tag_in_disk[tag].find_max_point();
+    best_pos = get_nxt_kth(best_pos, disk[disk_id].tag_in_disk[tag].window_len / 2);
+    return best_pos;
 }
 
 void write_action()
