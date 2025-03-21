@@ -989,6 +989,23 @@ inline int write_unit_in_disk_by_density(int disk_id, int tag)
     return best_pos;
 }
 
+inline int write_unit_in_disk_by_density_version2(int disk_id, int tag)
+{
+    if (!disk[disk_id].tag_distribution_size[tag]) {
+        return disk[disk_id].empty_pos.find_next(1);
+    }
+
+    int best_pos = disk[disk_id].tag_density[tag].find_max_point();
+    if (disk[disk_id].inner_tag_inverse[tag]) {
+        best_pos = get_nxt_kth(best_pos, WRITE_TEST_DENSITY_LEN);
+        best_pos = disk[disk_id].empty_pos.find_pre(best_pos);
+    } else {
+        best_pos = disk[disk_id].empty_pos.find_next(best_pos);
+    }
+
+    return best_pos;
+}
+
 void write_action()
 {
     int n_write;
@@ -1053,6 +1070,7 @@ void write_action()
                     if (now_stage <= PRE_DISTRIBUTION_TIME) {
                         nxt = write_unit_in_disk_strategy_1(disk_id, tag);
                     } else {
+                        // nxt = write_unit_in_disk_by_density_version2(disk_id, tag);
                         nxt = write_unit_in_disk_by_density(disk_id, tag);
                     }
 
