@@ -46,7 +46,7 @@ const int TEST_READ_TIME = 10;
 const double DIVIDE_TAG_IN_DISK_VERSION1 = 0.1; // 上限0.1
 const int WRITE_TEST_DENSITY_LEN = 200;
 
-const int USE_NEW_DISTRIBUTION = 1;
+const int USE_NEW_DISTRIBUTION = 0;
 //不要调
 const int USE_DP = 0;
 const int DP_VERSION1 = 1;
@@ -659,7 +659,7 @@ inline void distribute_tag_in_disk_new_version_1(int stage)
         auto& cur_disk = disk[i];
         int tag_num = cur_disk.tag_num;
         
-        std::shuffle(cur_disk.tag_order + 1, cur_disk.tag_order + 1 + tag_num, RAND());
+        std::shuffle(cur_disk.tag_order + 1, cur_disk.tag_order + 1 + tag_num, RAND);
         int all_need = V - disk_rest_size[i];
 
         for (int j = 1, pre_distribution = 0; j <= tag_num; ++j) {
@@ -720,6 +720,7 @@ void init()
         }
     }
 
+    // std::cerr << "HERE : " << std::endl;
     for (int i = 1; i <= N; i++) {
         disk[i].pointer = 1;
         disk[i].empty_pos.set_one(1, 1, V);
@@ -753,6 +754,7 @@ void init()
         }
     }
     
+    // std::cerr << "OK" << std::endl; 
     /*
     
     read_cost[0] = read_cost[1] = 64;
@@ -839,7 +841,11 @@ inline void do_object_delete(int object_id)
 
             //维护空位置
             disk[disk_id].empty_pos.delete_unit(1, 1, V, pos);
-            disk[disk_id].tag_in_disk[cur_tag].add(pos, -1);
+
+            if (USE_NEW_DISTRIBUTION) {
+                disk[disk_id].tag_in_disk[cur_tag].add(pos, -1);
+            }
+            
             //清除request
             modify_unit_request(disk_id, pos, 0);
             disk[disk_id].unit_object[pos] = {0, 0};
@@ -894,7 +900,11 @@ inline void write_unit(int object_id, int disk_id, int unit_id, int write_pos, i
 {
     // disk[disk_id].empty_pos.add_unit(1, 1, V, 1);
     disk[disk_id].empty_pos.modify(1, 1, V, write_pos, -1);
-    disk[disk_id].tag_in_disk[objects[object_id].tag].add(write_pos, 1);
+
+    if (USE_NEW_DISTRIBUTION) {
+        disk[disk_id].tag_in_disk[objects[object_id].tag].add(write_pos, 1);
+    }
+    
     disk[disk_id].unit_object[write_pos] = {object_id, unit_id};
     objects[object_id].unit_pos[repeat_id][unit_id] = {disk_id, write_pos};
 }
@@ -1000,10 +1010,11 @@ void write_action()
                         nxt = write_unit_in_disk_strategy_1(disk_id, tag);
                     else  
                         nxt = write_unit_in_disk_strategy_2(disk_id, tag);
+                    // std::cerr << nxt << " ";
                     // assert(disk[disk_id].empty_pos.find_next(1, 1, V, 1, V) == nxt + 1);
                     write_unit(id, disk_id, k, nxt, j);
                     printf("%d ", nxt);
-                    // std::cerr << nxt << " ";
+                    
                 }
 
                 // std::cerr << std::endl;
@@ -1658,10 +1669,10 @@ int main()
         write_action();
 
         // std::cerr << "end write_action" <<std::endl;
-        //std::cerr << "start read_action" <<std::endl;
+        // std::cerr << "start read_action" <<std::endl;
         read_action(t);
 
-        //std::cerr << "end read_action" <<std::endl;
+        // std::cerr << "end read_action" <<std::endl;
         // std::cerr << "end time " << t << std::endl;
     }
 
