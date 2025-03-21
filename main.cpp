@@ -41,10 +41,10 @@ const int NUM_PIECE_QUEUE = 2;
 const double TAG_DENSITY_DIVIDE = 2;
 const double UNIT_REQUEST_DIVIDE = 17;
 const int MIN_ROUND_TIME = 3;
-const int MIN_TEST_DENSITY_LEN = 300;
+const int MIN_TEST_DENSITY_LEN = 500;
 const int TEST_READ_TIME = 10;
 const double DIVIDE_TAG_IN_DISK_VERSION1 = 0.8;
-const int WRITE_TEST_DENSITY_LEN = 50;
+const int WRITE_TEST_DENSITY_LEN = 80;
 const int MIN_TAG_NUM_IN_DISK = 6;
 
 const int USE_NEW_DISTRIBUTION = 1;
