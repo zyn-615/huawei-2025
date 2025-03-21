@@ -45,7 +45,6 @@ const int MIN_TEST_DENSITY_LEN = 500;
 const int TEST_READ_TIME = 10;
 const double DIVIDE_TAG_IN_DISK_VERSION1 = 0.8;
 const int WRITE_TEST_DENSITY_LEN = 80;
-const int MIN_TAG_NUM_IN_DISK = 6;
 
 const int USE_NEW_DISTRIBUTION = 1;
 //不要调
@@ -116,6 +115,8 @@ struct Segment_tree_max {
         }
     };
 
+    int window_len = WRITE_TEST_DENSITY_LEN;
+
     Segment_tree_max() {}
     Segment_tree_max(int n) {
         seg = std::vector <Node> (n << 2);
@@ -132,6 +133,7 @@ struct Segment_tree_max {
 
     void build(int o = 1, int l = 1, int r = V) {
         if (l == r) {
+            seg[o].max = 0;
             seg[o].pos = l;
             return ;
         }
@@ -245,7 +247,7 @@ struct Segment_tree_max {
 
     inline void add_tag_density(int pos, int value)
     {
-        int L = std::min(V, WRITE_TEST_DENSITY_LEN);
+        int L = std::min(V, window_len);
         int pre_pos = std::max(1, pos - L + 1);
         add(1,1,V,pre_pos,pos,value);
         if(pos < L)
@@ -802,6 +804,26 @@ inline int get_now_stage(int now_time)
     return std::min((now_time + FRE_PER_SLICING - 1) / FRE_PER_SLICING, all_stage);
 }
 
+inline void reset_disk_window_len(int disk_id)
+{   
+    auto& cur_disk = disk[disk_id];
+    int n = cur_disk.tag_num;
+    for (int i = 1; i <= n; ++i) {
+        int j = cur_disk.tag_order[i];
+
+        cur_disk.tag_density[j].build();
+        cur_disk.tag_density[j].window_len = std::max(20, tag_size_in_disk[j][disk_id] / 3);
+    }
+
+    for (int i = 1; i <= V; ++i) {
+        auto [object_id, unit_id] = cur_disk.unit_object[i];
+        int tag = objects[object_id].tag;
+        if (object_id) {
+            cur_disk.tag_density[tag].add_tag_density(i, 1);
+        }
+    }
+}
+
 void timestamp_action()
 {
     int timestamp;
@@ -825,6 +847,10 @@ void timestamp_action()
                 //     distribute_tag_in_disk_front(i, get_now_stage(timestamp));
                 // else 
                 //     distribute_tag_in_disk_mid(i, get_now_stage(timestamp));
+            }
+        } else {
+            for (int i = 1; i <= N; ++i) {
+                reset_disk_window_len(i);
             }
         }
     }
