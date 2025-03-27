@@ -619,6 +619,7 @@ inline int get_min_dist(int x, int y)
 namespace DISK_Write_Heuristic {
     
     double get_val(DISK &cur_disk) {
+        return 0;
         //int cnt = cur_disk.tag_cnt[insert_tag_id];
         double ans = 0;
         for (int period = 1; period <= all_stage; ++period) {
@@ -1186,14 +1187,14 @@ void write_action()
         if (USE_NEW_DISTRIBUTION) {
             std::vector <double> disk_values(MAX_DISK_NUM + 1, 0);
             for (int j = 1; j <= N; ++j) {
-                disk_values[j] = DISK_Write_Heuristic::get_val(disk[j]);
+                // disk_values[j] = DISK_Write_Heuristic::get_val(disk[j]);
                 // disk_request[j] = disk[j].all_request.query();
             }
 
             std::sort(pos.begin(), pos.end(),[&](int x,int y){
                 return disk_values[x] < disk_values[y];
             });
-            // std::random_shuffle(pos.begin() + 1, pos.end());
+            std::random_shuffle(pos.begin() + 1, pos.end());
             
             for (int j = 1; j <= REP_NUM; ++j) {
                 int disk_id = pos[now];
