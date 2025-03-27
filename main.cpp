@@ -52,7 +52,7 @@ const int MIN_TEST_TAG_DENSITY_LEN = 100;
 
 const int USE_NEW_DISTRIBUTION = 1;
 //不要调
-const int USE_DP = 1;
+const int USE_DP = 2;
 const int DP_VERSION1 = 1;
 const int DP_VERSION2 = 2;
 const int MIN_TAG_NUM_IN_DISK = 6;
@@ -562,6 +562,12 @@ inline int get_min_dist(int x, int y)
 {
     if (x > y) std::swap(x, y);
     return std::min(y - x, V - y + x);
+}
+
+namespace DISK_Write_Heuristic {
+    int get_val(DISK &cur_disk, int tag) {
+        
+    }
 }
 
 inline void distribute_tag_in_disk_front(int disk_id, int stage) 
@@ -1524,7 +1530,7 @@ void read_without_jump_dp_and_bf_version(DISK &cur_disk, int time) {
             //std::cerr << "min_cost_token: " << min_cost_token << " " << cur_disk.max_density.get(cur_disk.pointer) << std::endl;
             //std::cerr << "rest_token: " << " " << cur_disk.rest_token << std::endl;
             //std::cerr << "pre_request: " << " " << pre_requests << std::endl;*/
-            assert(check_pass_cnt >= DISK_MIN_PASS_DP || cur_disk.rest_token == 0);
+            assert(check_pass_cnt >= DISK_MIN_PASS_DP);
             prel = prer = cur_disk.pointer;
             pre_requests = 0;
         }
