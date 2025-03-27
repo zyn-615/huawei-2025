@@ -44,15 +44,15 @@ const double DIVIDE_TAG_IN_DISK_VERSION1 = 0.1;
 int TEST_DENSITY_LEN = 1200;
 
 //这三个量需要调整   需要退火
-const int WRITE_TEST_DENSITY_LEN = 55;
-const int WRITE_TAG_DENSITY_DIVIDE = 34;
-const int MIN_TEST_TAG_DENSITY_LEN = 66;
-const double JUMP_MIN = 1.9;
-const int MIN_ROUND_TIME = 5;
-const int TEST_READ_TIME = 2;
-const int CUR_REQUEST_DIVIDE = 165;
-const int MIN_TEST_DENSITY_LEN = 922;
-const int JUMP_MORE_TIME = 3;
+const int WRITE_TEST_DENSITY_LEN = 64;
+const int WRITE_TAG_DENSITY_DIVIDE = 23;
+const int MIN_TEST_TAG_DENSITY_LEN = 47;
+const double JUMP_MIN = 2.3;
+const int MIN_ROUND_TIME = 2;
+const int TEST_READ_TIME = 6;
+const int CUR_REQUEST_DIVIDE = 436;
+const int MIN_TEST_DENSITY_LEN = 928;
+const int JUMP_MORE_TIME = 1;
 
 
 
@@ -71,6 +71,7 @@ const int DP_VERSION2 = 2;
 const int MIN_TAG_NUM_IN_DISK = 6;
 //int READ_ROUND_TIME = 40; //一轮读取的时间
 const int READ_ROUND_TIME = 3;
+
 
 
 struct _Object {
@@ -154,18 +155,7 @@ struct Segment_tree_max {
         add_tag = std::vector <int> (n << 2, 0);
     }
 
-    void reset(int o = 1, int l = 1, int r = V)
-    {
-        add_tag[o] = seg[o].max = 0;
-        if (l == r) return ;
-        int mid = l + r >> 1;
-        reset(o << 1, l, mid);
-        reset(o << 1 | 1, mid + 1, r);
-    }
-
     void build(int o = 1, int l = 1, int r = V) {
-        add_tag[o] = 0;
-        seg[o].preference_left = preference_left;
         if (l == r) {
             seg[o].max = 0;
             seg[o].pos = l;
@@ -194,10 +184,7 @@ struct Segment_tree_max {
 
     inline void push_up(int o) 
     {
-        if (seg[o << 1].max >= seg[o << 1 | 1].max)
-            seg[o] = seg[o << 1];
-        else seg[o] = seg[o << 1 | 1];
-        // seg[o] = std::max(seg[o << 1], seg[o << 1 | 1]);
+        seg[o] = std::max(seg[o << 1], seg[o << 1 | 1]);
     }
     
     //返回差值，方便后面维护density
@@ -251,10 +238,6 @@ struct Segment_tree_max {
 
     int find_max_point() {
         return query_max(1, 1, V, 1, V).pos;
-    }
-
-    int find_max_value() {
-        return query_max(1, 1, V, 1, V).max;
     }
 
     int find_next(int o, int l, int r, int x, int y, int lim) 
@@ -582,7 +565,7 @@ struct Predict {
     int add_object;
     int delete_object;
     int read_object;
-    int sum_object;
+    // int sum_object;
 };
 
 Predict Info[MAX_STAGE][MAX_TAG_NUM];
@@ -629,28 +612,28 @@ inline int get_min_dist(int x, int y)
     return std::min(y - x, V - y + x);
 }
 
-namespace DISK_Write_Heuristic {
+// namespace DISK_Write_Heuristic {
     
-    double get_val(DISK &cur_disk) {
-        return 0;
-        //int cnt = cur_disk.tag_cnt[insert_tag_id];
-        double ans = 0;
-        for (int period = 1; period <= all_stage; ++period) {
-            double res = 0;
-            for (int tag_id = 1; tag_id <= M; ++tag_id) {
-                int cnt = cur_disk.tag_cnt[tag_id];
-                int request = Info[tag_id][period].read_object;
-                int tot = Info[tag_id][period].sum_object;
-                double k = tot == 0? 0 : cnt / (double)tot;
-                k = std::min(k, 1.0);
-                res += k * request;
-                //res = std::max(res, val_period);
-            }
-            ans += res * res;
-        }
-        return ans;
-    }
-}
+//     double get_val(DISK &cur_disk) {
+//         return 0;
+//         //int cnt = cur_disk.tag_cnt[insert_tag_id];
+//         double ans = 0;
+//         for (int period = 1; period <= all_stage; ++period) {
+//             double res = 0;
+//             for (int tag_id = 1; tag_id <= M; ++tag_id) {
+//                 int cnt = cur_disk.tag_cnt[tag_id];
+//                 int request = Info[tag_id][period].read_object;
+//                 // int tot = Info[tag_id][period].sum_object;
+//                 double k = tot == 0? 0 : cnt / (double)tot;
+//                 k = std::min(k, 1.0);
+//                 res += k * request;
+//                 //res = std::max(res, val_period);
+//             }
+//             ans += res * res;
+//         }
+//         return ans;
+//     }
+// }
 
 inline void distribute_tag_in_disk_front(int disk_id, int stage) 
 {
@@ -918,48 +901,20 @@ inline void reset_disk_window_len(int disk_id)
 {   
     auto& cur_disk = disk[disk_id];
     int n = cur_disk.tag_num;
-    // std::cerr << "PRE : \n";
     for (int i = 1; i <= n; ++i) {
         int j = cur_disk.tag_order[i];
-        assert(cur_disk.tag_distribution_size[j] > 0);
-        // std::cerr << cur_disk.tag_density[j].find_max_point() << " " << cur_disk.tag_density[j].find_max_value() << std::endl;
 
-        // cur_disk.tag_density[j].reset();
-        cur_disk.tag_density[j].init(V);
         cur_disk.tag_density[j].build();
         cur_disk.tag_density[j].window_len = std::max(MIN_TEST_TAG_DENSITY_LEN, int(tag_size_in_disk[j][disk_id] / WRITE_TAG_DENSITY_DIVIDE));
-        // std::cerr << cur_disk.tag_density[j].window_len << " ";
     }
 
-    // std::cerr << std::endl;
-    // std::vector <int> real(MAX_TAG_NUM + 1, 0);
-
-    // std::cerr << "V : ";
     for (int i = 1; i <= V; ++i) {
         auto [object_id, unit_id] = cur_disk.unit_object[i];
         int tag = objects[object_id].tag;
         if (object_id) {
-            // if (i <= 20)
-                // std::cerr << tag << " ";
             cur_disk.tag_density[tag].add_tag_density(i, 1);
-            // ++real[tag];
         }
     }
-
-    // std::cerr << "END : \n"; 
-    for (int i = 1; i <= n; ++i) {
-        int j = cur_disk.tag_order[i];
-        assert(cur_disk.tag_distribution_size[j] > 0);
-        // std::cerr << cur_disk.tag_density[j].find_max_point() << " " << cur_disk.tag_density[j].find_max_value() << std::endl;
-    }
-
-    // std::cerr << std::endl;
-    // std::cerr << "REAL : \n";
-    // for (int i = 1; i <= n; ++i) {
-        // int j = cur_disk.tag_order[i];
-        // std::cerr << real[j] << " ";
-    // }
-    // std::cerr << std::endl;
 }
 
 void timestamp_action()
@@ -988,9 +943,9 @@ void timestamp_action()
             }
         } else {
 
-            if (get_now_stage(timestamp) % 2 == 0 && get_now_stage(timestamp) > PRE_DISTRIBUTION_TIME) {
+            if (get_now_stage(timestamp) % 4 == 0 && get_now_stage(timestamp) > PRE_DISTRIBUTION_TIME) {
                for (int i = 1; i <= N; ++i) {
-                    reset_disk_window_len(i);
+                    // reset_disk_window_len(i);
                 } 
             }
             
@@ -1044,8 +999,7 @@ inline void do_object_delete(int object_id)
             disk[disk_id].empty_pos.delete_unit(1, 1, V, pos);
 
             if (USE_NEW_DISTRIBUTION) {
-                disk[disk_id].tag_density[cur_tag].add_tag_density(pos, -1);
-                --disk[disk_id].tag_cnt[cur_tag];
+                disk[disk_id].tag_density[cur_tag].add(pos, -1);
                 // add_tag_density(disk_id, cur_tag, pos, -1);
             }
             
@@ -1198,16 +1152,17 @@ void write_action()
         printf("%d\n", id);
 
         if (USE_NEW_DISTRIBUTION) {
-            std::vector <double> disk_values(MAX_DISK_NUM + 1, 0);
-            for (int j = 1; j <= N; ++j) {
-                // disk_values[j] = DISK_Write_Heuristic::get_val(disk[j]);
-                // disk_request[j] = disk[j].all_request.query();
-            }
+            
+            // std::vector <double> disk_values(MAX_DISK_NUM + 1, 0);
+            // for (int j = 1; j <= N; ++j) {
+            //     // disk_values[j] = DISK_Write_Heuristic::get_val(disk[j]);
+            //     // disk_request[j] = disk[j].all_request.query();
+            // }
 
-            std::sort(pos.begin(), pos.end(),[&](int x,int y){
-                return disk_values[x] < disk_values[y];
-            });
-            std::random_shuffle(pos.begin() + 1, pos.end());
+            // std::sort(pos.begin(), pos.end(),[&](int x,int y){
+            //     return disk_values[x] < disk_values[y];
+            // });
+            // std::random_shuffle(pos.begin() + 1, pos.end());
             
             for (int j = 1; j <= REP_NUM; ++j) {
                 int disk_id = pos[now];
@@ -1921,11 +1876,11 @@ int main()
         }
     }
 
-    for (int i = 1; i <= M; ++i) {
-        for (int j = 1; j <= all_stage; ++j) {
-            Info[j][i].sum_object = Info[j - 1][i].sum_object - Info[j - 1][i].delete_object + Info[j][i].add_object;
-        }
-    }
+    // for (int i = 1; i <= M; ++i) {
+    //     for (int j = 1; j <= all_stage; ++j) {
+    //         Info[j][i].sum_object = Info[j - 1][i].sum_object - Info[j - 1][i].delete_object + Info[j][i].add_object;
+    //     }
+    // }
 
     // std::cerr << "end input global information" << std::endl;
 

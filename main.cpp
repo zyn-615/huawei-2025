@@ -565,7 +565,7 @@ struct Predict {
     int add_object;
     int delete_object;
     int read_object;
-    int sum_object;
+    // int sum_object;
 };
 
 Predict Info[MAX_STAGE][MAX_TAG_NUM];
@@ -612,28 +612,28 @@ inline int get_min_dist(int x, int y)
     return std::min(y - x, V - y + x);
 }
 
-namespace DISK_Write_Heuristic {
+// namespace DISK_Write_Heuristic {
     
-    double get_val(DISK &cur_disk) {
-        return 0;
-        //int cnt = cur_disk.tag_cnt[insert_tag_id];
-        double ans = 0;
-        for (int period = 1; period <= all_stage; ++period) {
-            double res = 0;
-            for (int tag_id = 1; tag_id <= M; ++tag_id) {
-                int cnt = cur_disk.tag_cnt[tag_id];
-                int request = Info[tag_id][period].read_object;
-                int tot = Info[tag_id][period].sum_object;
-                double k = tot == 0? 0 : cnt / (double)tot;
-                k = std::min(k, 1.0);
-                res += k * request;
-                //res = std::max(res, val_period);
-            }
-            ans += res * res;
-        }
-        return ans;
-    }
-}
+//     double get_val(DISK &cur_disk) {
+//         return 0;
+//         //int cnt = cur_disk.tag_cnt[insert_tag_id];
+//         double ans = 0;
+//         for (int period = 1; period <= all_stage; ++period) {
+//             double res = 0;
+//             for (int tag_id = 1; tag_id <= M; ++tag_id) {
+//                 int cnt = cur_disk.tag_cnt[tag_id];
+//                 int request = Info[tag_id][period].read_object;
+//                 // int tot = Info[tag_id][period].sum_object;
+//                 double k = tot == 0? 0 : cnt / (double)tot;
+//                 k = std::min(k, 1.0);
+//                 res += k * request;
+//                 //res = std::max(res, val_period);
+//             }
+//             ans += res * res;
+//         }
+//         return ans;
+//     }
+// }
 
 inline void distribute_tag_in_disk_front(int disk_id, int stage) 
 {
@@ -1876,11 +1876,11 @@ int main()
         }
     }
 
-    for (int i = 1; i <= M; ++i) {
-        for (int j = 1; j <= all_stage; ++j) {
-            Info[j][i].sum_object = Info[j - 1][i].sum_object - Info[j - 1][i].delete_object + Info[j][i].add_object;
-        }
-    }
+    // for (int i = 1; i <= M; ++i) {
+    //     for (int j = 1; j <= all_stage; ++j) {
+    //         Info[j][i].sum_object = Info[j - 1][i].sum_object - Info[j - 1][i].delete_object + Info[j][i].add_object;
+    //     }
+    // }
 
     // std::cerr << "end input global information" << std::endl;
 
