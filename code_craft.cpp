@@ -44,7 +44,7 @@ const double DIVIDE_TAG_IN_DISK_VERSION1 = 0.1;
 int TEST_DENSITY_LEN = 1200;
 
 //这三个量需要调整   需要退火
-const int WRITE_TEST_DENSITY_LEN = 64;
+const int WRITE_TEST_DENSITY_LEN = 56;
 const int WRITE_TAG_DENSITY_DIVIDE = 23;
 const int MIN_TEST_TAG_DENSITY_LEN = 47;
 const double JUMP_MIN = 2.3;
