@@ -546,6 +546,7 @@ struct DISK {
     int distribution_strategy;
     int test_density_len = TEST_DENSITY_LEN;
     int tag_num;
+    int tag_cnt[MAX_TAG_NUM]; //每个磁盘每个标签的数量
 
     Segment_tree_add all_request;
     Segment_tree_add empty_pos; //维护空位置
@@ -568,6 +569,7 @@ struct Predict {
     int add_object;
     int delete_object;
     int read_object;
+    int sum_object;
 };
 
 Predict Info[MAX_STAGE][MAX_TAG_NUM];
@@ -615,8 +617,24 @@ inline int get_min_dist(int x, int y)
 }
 
 namespace DISK_Write_Heuristic {
-    int get_val(DISK &cur_disk, int tag) {
-        
+    
+    double get_val(DISK &cur_disk) {
+        //int cnt = cur_disk.tag_cnt[insert_tag_id];
+        double ans = 0;
+        for (int period = 1; period <= all_stage; ++period) {
+            double res = 0;
+            for (int tag_id = 1; tag_id <= M; ++tag_id) {
+                int cnt = cur_disk.tag_cnt[tag_id];
+                int request = Info[tag_id][period].read_object;
+                int tot = Info[tag_id][period].sum_object;
+                double k = tot == 0? 0 : cnt / (double)tot;
+                k = std::min(k, 1.0);
+                res += k * request;
+                //res = std::max(res, val_period);
+            }
+            ans += res * res;
+        }
+        return ans;
     }
 }
 
@@ -1883,6 +1901,12 @@ int main()
         for (int j = 1; j <= all_stage; j++) {
             scanf("%d", &Info[j][i].read_object);
             // scanf("%*d");
+        }
+    }
+
+    for (int i = 1; i <= M; ++i) {
+        for (int j = 1; j <= all_stage; ++j) {
+            Info[j][i].sum_object = Info[j - 1][i].sum_object - Info[j - 1][i].delete_object + Info[j][i].add_object;
         }
     }
 
