@@ -32,7 +32,7 @@
 const double JUMP_VISCOSITY = 0.9;
 const int CUR_REQUEST_DIVIDE = 200;
 const int LEN_TIME_DIVIDE = 40;
-const int PRE_DISTRIBUTION_TIME = 35;
+const int PRE_DISTRIBUTION_TIME = 30;
 const int READ_CNT_STATES = 8; //读入的状态，根据上一次连续read的个数确定
 int DISK_MIN_PASS = 9; //如果超过这个值放弃read pass过去
 int DISK_MIN_PASS_DP = 13;
@@ -46,9 +46,9 @@ const int TEST_READ_TIME = 10;
 const double DIVIDE_TAG_IN_DISK_VERSION1 = 0.1;
 
 //这三个量需要调整   需要退火
-const int WRITE_TEST_DENSITY_LEN = 100;
-const int WRITE_TAG_DENSITY_DIVIDE = 10;
-const int MIN_TEST_TAG_DENSITY_LEN = 100;
+const int WRITE_TEST_DENSITY_LEN = 50;
+const int WRITE_TAG_DENSITY_DIVIDE = 30;
+const int MIN_TEST_TAG_DENSITY_LEN = 50;
 
 const int USE_NEW_DISTRIBUTION = 1;
 //不要调
@@ -106,8 +106,11 @@ inline int get_nxt_kth(int x, int k) {
 }
 
 struct Segment_tree_max {
+    
+    bool preference_left;
     struct Node {
         int max, pos;
+        bool preference_left;
         Node() {}
         Node(int _max, int _pos) : max(_max), pos(_pos) {}
         friend Node operator + (const Node& x, const int& num) {
@@ -115,10 +118,13 @@ struct Segment_tree_max {
         }
 
         friend bool operator < (const Node& x, const Node& y) {
-            return x.max < y.max;
+            if (x.preference_left)
+                return x.max < y.max;
+            return x.max <= y.max;
         }
     };
 
+    
     int window_len = WRITE_TEST_DENSITY_LEN;
 
     Segment_tree_max() {}
@@ -146,6 +152,7 @@ struct Segment_tree_max {
 
     void build(int o = 1, int l = 1, int r = V) {
         add_tag[o] = 0;
+        seg[o].preference_left = preference_left;
         if (l == r) {
             seg[o].max = 0;
             seg[o].pos = l;
@@ -289,6 +296,11 @@ struct Segment_tree_add {
         seg[o] = seg[o << 1] + seg[o << 1 | 1];
     }
 
+    inline void push_up(int o) 
+    {
+        seg[o] = seg[o << 1] + seg[o << 1 | 1];
+    }
+
     int add_unit(int o, int l, int r, int p) 
     {
         if (seg[o] < p) return -1;
@@ -304,11 +316,12 @@ struct Segment_tree_add {
             res = add_unit(o << 1 | 1, mid + 1, r, p - seg[o << 1]);
         }
 
-        seg[o] = seg[o << 1] + seg[o << 1 | 1];
+        push_up(o);
         return res;
     }
 
-    void modify(int o, int l, int r, int p, int v) {
+    void add(int o, int l, int r, int p, int v)
+    {
         if (l == r) {
             seg[o] += v;
             return ;
@@ -316,9 +329,23 @@ struct Segment_tree_add {
 
         int mid = l + r >> 1;
         if (p <= mid)
+            add(o << 1, l, mid, p, v);
+        else add(o << 1 | 1, mid + 1, r, p, v);
+        push_up(o);
+    }
+
+    void modify(int o, int l, int r, int p, int v) 
+    {
+        if (l == r) {
+            seg[o] = v;
+            return ;
+        }
+
+        int mid = l + r >> 1;
+        if (p <= mid)
             modify(o << 1, l, mid, p, v);
         else modify(o << 1 | 1, mid + 1, r, p, v);
-        seg[o] = seg[o << 1] + seg[o << 1 | 1];
+        push_up(o);
     }
 
     void delete_unit(int o, int l, int r, int p)
@@ -328,7 +355,7 @@ struct Segment_tree_add {
         if (p <= mid) 
             delete_unit(o << 1, l, mid, p);
         else delete_unit(o << 1 | 1, mid + 1, r, p);
-        seg[o] = seg[o << 1] + seg[o << 1 | 1];
+        push_up(o);
         return;
     }
 
@@ -375,6 +402,27 @@ struct Segment_tree_add {
         if (y > mid && res == -1)
             res = find_kth(o << 1 | 1, mid + 1, r, x, y, k - seg[o << 1]);
         return res;
+    }
+
+    int query(int o = 1, int l = 1, int r = V, int x = 1, int y = V)
+    {
+        if (x <= l && y >= r) return seg[o];
+        int mid = l + r >> 1, res = 0;
+        if (x <= mid)
+            res = query(o << 1, l, mid, x, y);
+        if(y > mid)
+            res += query(o << 1 | 1, mid + 1, r, x, y);
+        return res;
+    }
+
+    inline void add(int p, int v) 
+    {
+        add(1, 1, V, p, v);
+    }
+
+    inline void modify(int p, int v)
+    {
+        modify(1, 1, V, p, v);
     }
 
     inline int query_rest_unit() 
@@ -485,11 +533,6 @@ struct DensityManager {
     }
 };
 struct DISK {
-    Segment_tree_add empty_pos; //维护空位置
-    // Segment_tree_max request_num; //维护每个点的request数量
-    //Segment_tree_max max_density; //用于获取每个段的request总和
-    Segment_tree_max tag_density[MAX_TAG_NUM];
-    DensityManager max_density;
     int pointer; //这个磁盘指针的位置
     int last_read_cnt = 0; //上一次操作往前连续读取的次数
     int last_read_cost = -1; //-1: 上一次不为读取操作 否则为上一次读取操作的花费
@@ -503,6 +546,13 @@ struct DISK {
     int distribution_strategy;
     int test_density_len = TEST_DENSITY_LEN;
     int tag_num;
+
+    Segment_tree_add all_request;
+    Segment_tree_add empty_pos; //维护空位置
+    // Segment_tree_max request_num; //维护每个点的request数量
+    //Segment_tree_max max_density; //用于获取每个段的request总和
+    Segment_tree_max tag_density[MAX_TAG_NUM];
+    DensityManager max_density;
     // DensityManager tag_in_disk[MAX_TAG_NUM];
 };
 
@@ -693,8 +743,6 @@ inline void distribute_tag_in_disk_new_version_1(int stage)
                 disk[disk_id].tag_distribution_size[tag] = size;
                 disk[disk_id].tag_order[++disk[disk_id].tag_num] = tag;
                 disk_rest_size[disk_id] -= size;
-                disk[disk_id].tag_density[tag].init(V);
-                disk[disk_id].tag_density[tag].build();
                 // std::cerr << "DISTRIBUTE : " << disk_id << " " << tag << std::endl;
                 break;
             }
@@ -713,6 +761,9 @@ inline void distribute_tag_in_disk_new_version_1(int stage)
             int rest_unit = V;
 
             cur_disk.inner_tag_inverse[cur_disk.tag_order[j]] = RAND() & 1;
+            cur_disk.tag_density[cur_tag].preference_left = cur_disk.inner_tag_inverse[cur_tag] ^ 1;
+            cur_disk.tag_density[cur_tag].init(V);
+            cur_disk.tag_density[cur_tag].build();
             int cur_tag_distribution = (1.0 * cur_disk.tag_distribution_size[cur_tag] / all_need) * rest_unit;
 
             if (pre_distribution + cur_tag_distribution > rest_unit) {
@@ -937,7 +988,7 @@ inline void modify_unit_request(int disk_id, int pos, int value)
 {
     // int delta_request = disk[disk_id].request_num.modify(1, 1, V, pos, value);
     // if(delta_request != 0) modify_max_density(disk_id, pos, delta_request);
-    
+    // disk[disk_id].all_request.modify(pos, value);
     disk[disk_id].max_density.modify(pos, value);
 }
 
@@ -945,7 +996,7 @@ inline void add_unit_request(int disk_id, int pos, int ad_num)
 {
     // disk[disk_id].request_num.add(1, 1, V, pos, pos, ad_num);
     // modify_max_density(disk_id, pos, ad_num);
-    
+    // disk[disk_id].all_request.add(pos, ad_num);
     disk[disk_id].max_density.add(pos, ad_num);
 }
 
@@ -1018,7 +1069,7 @@ void delete_action()
 inline void write_unit(int object_id, int disk_id, int unit_id, int write_pos, int repeat_id) 
 {
     // disk[disk_id].empty_pos.add_unit(1, 1, V, 1);
-    disk[disk_id].empty_pos.modify(1, 1, V, write_pos, -1);
+    disk[disk_id].empty_pos.add(1, 1, V, write_pos, -1);
 
     if (USE_NEW_DISTRIBUTION) {
         if (disk[disk_id].tag_distribution_size[objects[object_id].tag] > 0)
@@ -1113,6 +1164,15 @@ void write_action()
         printf("%d\n", id);
 
         if (USE_NEW_DISTRIBUTION) {
+            std::vector <int> disk_request(MAX_DISK_NUM + 1, 0);
+            for (int j = 1; j <= N; ++j) {
+                disk_request[j] = disk[j].all_request.query();
+            }
+
+            // std::sort(pos.begin(), pos.end(),[&](int x,int y){
+                // return disk_request[x] < disk_request[y];
+            // });
+            // std::random_shuffle(pos.begin() + 1, pos.end());
             
             for (int j = 1; j <= REP_NUM; ++j) {
                 int disk_id = pos[now];
@@ -1212,7 +1272,7 @@ inline void read_unit(int object_id, int unit_id, int time)
 {
     while (!unsolve_request[object_id][unit_id].empty()) {
         int request_id = unsolve_request[object_id][unit_id].front();
-        if(request_rest_unit[request_id] > 0)
+        if (request_rest_unit[request_id] > 0)
         {
             --request_rest_unit[request_id];
             request_rest_unit_state[request_id] |= 1 << unit_id;
