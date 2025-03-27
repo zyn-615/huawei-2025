@@ -31,7 +31,7 @@
 
 const double JUMP_VISCOSITY = 0.9;
 const int LEN_TIME_DIVIDE = 40;
-const int PRE_DISTRIBUTION_TIME = 25;
+const int PRE_DISTRIBUTION_TIME = 30;
 const int READ_CNT_STATES = 8; //读入的状态，根据上一次连续read的个数确定
 int DISK_MIN_PASS = 9; //如果超过这个值放弃read pass过去
 int DISK_MIN_PASS_DP = 13;
@@ -39,15 +39,29 @@ const int MIN_TOKEN_STOP_DP = 130;
 const int NUM_PIECE_QUEUE = 2;
 const double TAG_DENSITY_DIVIDE = 2;
 const double UNIT_REQUEST_DIVIDE = 17;
-const int MIN_ROUND_TIME = 3;
-const int MIN_TEST_DENSITY_LEN = 500;
-const int TEST_READ_TIME = 10;
-const double DIVIDE_TAG_IN_DISK_VERSION1 = 0.8;
+
+const double DIVIDE_TAG_IN_DISK_VERSION1 = 0.1;
+int TEST_DENSITY_LEN = 1200;
 
 //这三个量需要调整   需要退火
-const int WRITE_TEST_DENSITY_LEN = 80;
-const int WRITE_TAG_DENSITY_DIVIDE = 10;
-const int MIN_TEST_TAG_DENSITY_LEN = 80;
+const int WRITE_TEST_DENSITY_LEN = 55;
+const int WRITE_TAG_DENSITY_DIVIDE = 34;
+const int MIN_TEST_TAG_DENSITY_LEN = 66;
+const double JUMP_MIN = 1.9;
+const int MIN_ROUND_TIME = 5;
+const int TEST_READ_TIME = 2;
+const int CUR_REQUEST_DIVIDE = 165;
+const int MIN_TEST_DENSITY_LEN = 922;
+const int JUMP_MORE_TIME = 3;
+
+
+
+
+
+
+
+
+
 
 const int USE_NEW_DISTRIBUTION = 1;
 //不要调
@@ -57,7 +71,7 @@ const int DP_VERSION2 = 2;
 const int MIN_TAG_NUM_IN_DISK = 6;
 //int READ_ROUND_TIME = 40; //一轮读取的时间
 const int READ_ROUND_TIME = 3;
-int TEST_DENSITY_LEN = 1200;
+
 
 
 struct _Object {
