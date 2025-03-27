@@ -52,7 +52,7 @@ const int MIN_TEST_TAG_DENSITY_LEN = 50;
 
 const int USE_NEW_DISTRIBUTION = 1;
 //不要调
-const int USE_DP = 2;
+const int USE_DP = 1;
 const int DP_VERSION1 = 1;
 const int DP_VERSION2 = 2;
 const int MIN_TAG_NUM_IN_DISK = 6;
@@ -1031,6 +1031,7 @@ inline void do_object_delete(int object_id)
 
             if (USE_NEW_DISTRIBUTION) {
                 disk[disk_id].tag_density[cur_tag].add_tag_density(pos, -1);
+                --disk[disk_id].tag_cnt[cur_tag];
                 // add_tag_density(disk_id, cur_tag, pos, -1);
             }
             
@@ -1091,6 +1092,7 @@ inline void write_unit(int object_id, int disk_id, int unit_id, int write_pos, i
 
     if (USE_NEW_DISTRIBUTION) {
         if (disk[disk_id].tag_distribution_size[objects[object_id].tag] > 0)
+            ++disk[disk_id].tag_cnt[objects[object_id].tag];
             disk[disk_id].tag_density[objects[object_id].tag].add_tag_density(write_pos, 1);
             // add_tag_density(disk_id, objects[object_id].tag, write_pos, 1);
         // disk[disk_id].tag_in_disk[].add(write_pos, 1);
@@ -1182,14 +1184,15 @@ void write_action()
         printf("%d\n", id);
 
         if (USE_NEW_DISTRIBUTION) {
-            std::vector <int> disk_request(MAX_DISK_NUM + 1, 0);
+            std::vector <double> disk_values(MAX_DISK_NUM + 1, 0);
             for (int j = 1; j <= N; ++j) {
-                disk_request[j] = disk[j].all_request.query();
+                disk_values[j] = DISK_Write_Heuristic::get_val(disk[j]);
+                // disk_request[j] = disk[j].all_request.query();
             }
 
-            // std::sort(pos.begin(), pos.end(),[&](int x,int y){
-                // return disk_request[x] < disk_request[y];
-            // });
+            std::sort(pos.begin(), pos.end(),[&](int x,int y){
+                return disk_values[x] < disk_values[y];
+            });
             // std::random_shuffle(pos.begin() + 1, pos.end());
             
             for (int j = 1; j <= REP_NUM; ++j) {
