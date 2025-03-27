@@ -30,7 +30,6 @@
 #define INF_TOKEN (10000000)
 
 const double JUMP_VISCOSITY = 0.9;
-const int CUR_REQUEST_DIVIDE = 200;
 const int LEN_TIME_DIVIDE = 40;
 const int PRE_DISTRIBUTION_TIME = 30;
 const int READ_CNT_STATES = 8; //读入的状态，根据上一次连续read的个数确定
@@ -40,15 +39,29 @@ const int MIN_TOKEN_STOP_DP = 130;
 const int NUM_PIECE_QUEUE = 2;
 const double TAG_DENSITY_DIVIDE = 2;
 const double UNIT_REQUEST_DIVIDE = 17;
-const int MIN_ROUND_TIME = 3;
-const int MIN_TEST_DENSITY_LEN = 500;
-const int TEST_READ_TIME = 10;
+
 const double DIVIDE_TAG_IN_DISK_VERSION1 = 0.1;
+int TEST_DENSITY_LEN = 1200;
 
 //这三个量需要调整   需要退火
 const int WRITE_TEST_DENSITY_LEN = 50;
 const int WRITE_TAG_DENSITY_DIVIDE = 30;
 const int MIN_TEST_TAG_DENSITY_LEN = 50;
+const double JUMP_MIN = 1.6;
+const int MIN_ROUND_TIME = 3;
+const int TEST_READ_TIME = 10;
+const int CUR_REQUEST_DIVIDE = 200;
+const int MIN_TEST_DENSITY_LEN = 500;
+const int JUMP_MORE_TIME = 2;
+
+
+
+
+
+
+
+
+
 
 const int USE_NEW_DISTRIBUTION = 1;
 //不要调
@@ -58,7 +71,7 @@ const int DP_VERSION2 = 2;
 const int MIN_TAG_NUM_IN_DISK = 6;
 //int READ_ROUND_TIME = 40; //一轮读取的时间
 const int READ_ROUND_TIME = 3;
-int TEST_DENSITY_LEN = 1200;
+
 
 struct _Object {
     //(磁盘编号，磁盘内位置)
@@ -1185,16 +1198,17 @@ void write_action()
         printf("%d\n", id);
 
         if (USE_NEW_DISTRIBUTION) {
-            std::vector <double> disk_values(MAX_DISK_NUM + 1, 0);
-            for (int j = 1; j <= N; ++j) {
-                // disk_values[j] = DISK_Write_Heuristic::get_val(disk[j]);
-                // disk_request[j] = disk[j].all_request.query();
-            }
+            
+            // std::vector <double> disk_values(MAX_DISK_NUM + 1, 0);
+            // for (int j = 1; j <= N; ++j) {
+            //     // disk_values[j] = DISK_Write_Heuristic::get_val(disk[j]);
+            //     // disk_request[j] = disk[j].all_request.query();
+            // }
 
-            std::sort(pos.begin(), pos.end(),[&](int x,int y){
-                return disk_values[x] < disk_values[y];
-            });
-            std::random_shuffle(pos.begin() + 1, pos.end());
+            // std::sort(pos.begin(), pos.end(),[&](int x,int y){
+            //     return disk_values[x] < disk_values[y];
+            // });
+            // std::random_shuffle(pos.begin() + 1, pos.end());
             
             for (int j = 1; j <= REP_NUM; ++j) {
                 int disk_id = pos[now];
@@ -1795,14 +1809,14 @@ void read_action(int time)
         if (time % random(READ_ROUND_TIME, READ_ROUND_TIME) == 1) {
             int p = cur_disk.max_density.find_max_point();
             int ans_p = p == -1? -1: DP_read_without_skip_and_jump(cur_disk, p, TEST_READ_TIME * cur_disk.rest_token).first;
-            int ans_now = DP_read_without_skip_and_jump(cur_disk, cur_disk.pointer, TEST_READ_TIME * cur_disk.rest_token).first;
+            int ans_now = DP_read_without_skip_and_jump(cur_disk, cur_disk.pointer, (TEST_READ_TIME + JUMP_MORE_TIME) * cur_disk.rest_token).first;
             /*
             if (cur_disk.max_density.get(p) * JUMP_VISCOSITY <= cur_disk.max_density.get(cur_disk.pointer))
                 p = cur_disk.pointer;
             */
                 // std::cerr << "max_point: " << p << std::endl;
 
-                if (p == -1 || get_dist(cur_disk.pointer, p) <= G * JUMP_VISCOSITY || ans_p < ans_now * 1.6) { //如果距离足够近
+                if (p == -1 || get_dist(cur_disk.pointer, p) <= G * JUMP_VISCOSITY || ans_p < ans_now * JUMP_MIN) { //如果距离足够近
                 
                 // std::cerr << "start read_without_jump" << std::endl;
                 

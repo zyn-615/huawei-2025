@@ -10,44 +10,28 @@ import json
 
 # 定义需要调整的参数及其范围
 PARAMS = {
-    'JUMP_VISCOSITY': (0.5, 1.5),           # 当前值：0.9
-    'CUR_REQUEST_DIVIDE': (100, 300),       # 当前值：200
-    'LEN_TIME_DIVIDE': (20, 60),            # 当前值：40
-    'PRE_DISTRIBUTION_TIME': (10, 30),      # 当前值：20
-    'DISK_MIN_PASS': (6, 12),               # 当前值：9
-    'DISK_MIN_PASS_DP': (10, 16),           # 当前值：13
-    'MIN_TOKEN_STOP_DP': (100, 160),        # 当前值：130
-    'NUM_PIECE_QUEUE': (1, 4),              # 当前值：2
-    'TAG_DENSITY_DIVIDE': (1.0, 3.0),       # 当前值：2
-    'UNIT_REQUEST_DIVIDE': (10, 25),        # 当前值：17
-    'MIN_ROUND_TIME': (1, 6),               # 当前值：3
-    'MIN_TEST_DENSITY_LEN': (100, 300),     # 当前值：200
-    'TEST_READ_TIME': (5, 15),              # 当前值：10
-    'DIVIDE_TAG_IN_DISK_VERSION1': (0.04, 0.1),  # 当前值：0.08
     'WRITE_TEST_DENSITY_LEN': (30, 70),     # 当前值：50
-    'USE_NEW_DISTRIBUTION': (0, 1),         # 当前值：1
-    'MIN_TAG_NUM_IN_DISK': (4, 8)           # 当前值：6
+    'WRITE_TAG_DENSITY_DIVIDE': (20, 40),   # 当前值：30
+    'MIN_TEST_TAG_DENSITY_LEN': (30, 70),   # 当前值：50
+    'JUMP_MIN': (1.0, 3.0),                 # 当前值：1.6
+    'MIN_ROUND_TIME': (1, 5),               # 当前值：3
+    'TEST_READ_TIME': (1, 15),              # 当前值：10
+    'CUR_REQUEST_DIVIDE': (100, 500),       # 当前值：200
+    'MIN_TEST_DENSITY_LEN': (300, 1000),    # 当前值：500
+    'JUMP_MORE_TIME': (0, 3)                # 当前值：2
 }
 
 # 定义正则表达式模式
 REGEX_PATTERNS = {
-    'JUMP_VISCOSITY': r'(const\s+double\s+JUMP_VISCOSITY\s*=\s*)([0-9.]+)',
-    'CUR_REQUEST_DIVIDE': r'(const\s+int\s+CUR_REQUEST_DIVIDE\s*=\s*)([0-9]+)',
-    'LEN_TIME_DIVIDE': r'(const\s+int\s+LEN_TIME_DIVIDE\s*=\s*)([0-9]+)',
-    'PRE_DISTRIBUTION_TIME': r'(const\s+int\s+PRE_DISTRIBUTION_TIME\s*=\s*)([0-9]+)',
-    'DISK_MIN_PASS': r'(int\s+DISK_MIN_PASS\s*=\s*)([0-9]+)',
-    'DISK_MIN_PASS_DP': r'(int\s+DISK_MIN_PASS_DP\s*=\s*)([0-9]+)',
-    'MIN_TOKEN_STOP_DP': r'(const\s+int\s+MIN_TOKEN_STOP_DP\s*=\s*)([0-9]+)',
-    'NUM_PIECE_QUEUE': r'(const\s+int\s+NUM_PIECE_QUEUE\s*=\s*)([0-9]+)',
-    'TAG_DENSITY_DIVIDE': r'(const\s+double\s+TAG_DENSITY_DIVIDE\s*=\s*)([0-9.]+)',
-    'UNIT_REQUEST_DIVIDE': r'(const\s+double\s+UNIT_REQUEST_DIVIDE\s*=\s*)([0-9.]+)',
-    'MIN_ROUND_TIME': r'(const\s+int\s+MIN_ROUND_TIME\s*=\s*)([0-9]+)',
-    'MIN_TEST_DENSITY_LEN': r'(const\s+int\s+MIN_TEST_DENSITY_LEN\s*=\s*)([0-9]+)',
-    'TEST_READ_TIME': r'(const\s+int\s+TEST_READ_TIME\s*=\s*)([0-9]+)',
-    'DIVIDE_TAG_IN_DISK_VERSION1': r'(const\s+double\s+DIVIDE_TAG_IN_DISK_VERSION1\s*=\s*)([0-9.]+)',
     'WRITE_TEST_DENSITY_LEN': r'(const\s+int\s+WRITE_TEST_DENSITY_LEN\s*=\s*)([0-9]+)',
-    'USE_NEW_DISTRIBUTION': r'(const\s+int\s+USE_NEW_DISTRIBUTION\s*=\s*)([0-9]+)',
-    'MIN_TAG_NUM_IN_DISK': r'(const\s+int\s+MIN_TAG_NUM_IN_DISK\s*=\s*)([0-9]+)'
+    'WRITE_TAG_DENSITY_DIVIDE': r'(const\s+int\s+WRITE_TAG_DENSITY_DIVIDE\s*=\s*)([0-9]+)',
+    'MIN_TEST_TAG_DENSITY_LEN': r'(const\s+int\s+MIN_TEST_TAG_DENSITY_LEN\s*=\s*)([0-9]+)',
+    'JUMP_MIN': r'(const\s+double\s+JUMP_MIN\s*=\s*)([0-9.]+)',
+    'MIN_ROUND_TIME': r'(const\s+int\s+MIN_ROUND_TIME\s*=\s*)([0-9]+)',
+    'TEST_READ_TIME': r'(const\s+int\s+TEST_READ_TIME\s*=\s*)([0-9]+)',
+    'CUR_REQUEST_DIVIDE': r'(const\s+int\s+CUR_REQUEST_DIVIDE\s*=\s*)([0-9]+)',
+    'MIN_TEST_DENSITY_LEN': r'(const\s+int\s+MIN_TEST_DENSITY_LEN\s*=\s*)([0-9]+)',
+    'JUMP_MORE_TIME': r'(const\s+int\s+JUMP_MORE_TIME\s*=\s*)([0-9]+)'
 }
 
 # 全局变量
@@ -88,7 +72,7 @@ def modify_parameters(params):
                 continue
                 
             # 进行替换
-            if param == 'JUMP_VISCOSITY':
+            if param == 'JUMP_MIN':
                 content = re.sub(pattern, lambda m: f'{m.group(1)}{value:.1f}', content)
             else:
                 content = re.sub(pattern, lambda m: f'{m.group(1)}{int(value)}', content)
@@ -408,9 +392,9 @@ if __name__ == "__main__":
     print("可以在多个数据集上测试性能")
     
     # 询问是否在practice数据集上测试
-    use_practice = input("是否在practice数据集上测试? (y/n): ").lower() == 'y'
+    use_practice = input("是否在extra数据集上测试? (y/n): ").lower() == 'y'
     if use_practice:
-        data_files = ['data/sample_practice.in']
+        data_files = ['data/sample_extra.in']
     else:
         data_files = ['data/sample.in']
     

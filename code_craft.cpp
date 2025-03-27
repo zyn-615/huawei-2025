@@ -29,32 +29,49 @@
 #define MAX_PIECE_QUEUE (105 + 1)
 #define INF_TOKEN (10000000)
 
-const double JUMP_VISCOSITY = 1.4;
-const int CUR_REQUEST_DIVIDE = 167;
-const int LEN_TIME_DIVIDE = 36;
-const int PRE_DISTRIBUTION_TIME = 14;
+const double JUMP_VISCOSITY = 0.9;
+const int LEN_TIME_DIVIDE = 40;
+const int PRE_DISTRIBUTION_TIME = 30;
 const int READ_CNT_STATES = 8; //读入的状态，根据上一次连续read的个数确定
-int DISK_MIN_PASS = 12; //如果超过这个值放弃read pass过去
-int DISK_MIN_PASS_DP = 10;
-const int MIN_TOKEN_STOP_DP = 121;
+int DISK_MIN_PASS = 9; //如果超过这个值放弃read pass过去
+int DISK_MIN_PASS_DP = 13;
+const int MIN_TOKEN_STOP_DP = 130;
 const int NUM_PIECE_QUEUE = 2;
 const double TAG_DENSITY_DIVIDE = 2;
-const double UNIT_REQUEST_DIVIDE = 22;
-const int MIN_ROUND_TIME = 2;
-const int MIN_TEST_DENSITY_LEN = 158;
-const int TEST_READ_TIME = 5;
-const double DIVIDE_TAG_IN_DISK_VERSION1 = 0; // 上限0.1
-const int WRITE_TEST_DENSITY_LEN = 65;
+const double UNIT_REQUEST_DIVIDE = 17;
+
+const double DIVIDE_TAG_IN_DISK_VERSION1 = 0.1;
+int TEST_DENSITY_LEN = 1200;
+
+//这三个量需要调整   需要退火
+const int WRITE_TEST_DENSITY_LEN = 55;
+const int WRITE_TAG_DENSITY_DIVIDE = 34;
+const int MIN_TEST_TAG_DENSITY_LEN = 66;
+const double JUMP_MIN = 1.9;
+const int MIN_ROUND_TIME = 5;
+const int TEST_READ_TIME = 2;
+const int CUR_REQUEST_DIVIDE = 165;
+const int MIN_TEST_DENSITY_LEN = 922;
+const int JUMP_MORE_TIME = 3;
+
+
+
+
+
+
+
+
+
 
 const int USE_NEW_DISTRIBUTION = 1;
 //不要调
-const int USE_DP = 0;
+const int USE_DP = 1;
 const int DP_VERSION1 = 1;
 const int DP_VERSION2 = 2;
 const int MIN_TAG_NUM_IN_DISK = 6;
 //int READ_ROUND_TIME = 40; //一轮读取的时间
 const int READ_ROUND_TIME = 3;
-int TEST_DENSITY_LEN = 1200;
+
 
 struct _Object {
     //(磁盘编号，磁盘内位置)
@@ -102,8 +119,11 @@ inline int get_nxt_kth(int x, int k) {
 }
 
 struct Segment_tree_max {
+    
+    bool preference_left;
     struct Node {
         int max, pos;
+        bool preference_left;
         Node() {}
         Node(int _max, int _pos) : max(_max), pos(_pos) {}
         friend Node operator + (const Node& x, const int& num) {
@@ -111,9 +131,14 @@ struct Segment_tree_max {
         }
 
         friend bool operator < (const Node& x, const Node& y) {
-            return x.max < y.max;
+            if (x.preference_left)
+                return x.max < y.max;
+            return x.max <= y.max;
         }
     };
+
+    
+    int window_len = WRITE_TEST_DENSITY_LEN;
 
     Segment_tree_max() {}
     Segment_tree_max(int n) {
@@ -129,8 +154,20 @@ struct Segment_tree_max {
         add_tag = std::vector <int> (n << 2, 0);
     }
 
+    void reset(int o = 1, int l = 1, int r = V)
+    {
+        add_tag[o] = seg[o].max = 0;
+        if (l == r) return ;
+        int mid = l + r >> 1;
+        reset(o << 1, l, mid);
+        reset(o << 1 | 1, mid + 1, r);
+    }
+
     void build(int o = 1, int l = 1, int r = V) {
+        add_tag[o] = 0;
+        seg[o].preference_left = preference_left;
         if (l == r) {
+            seg[o].max = 0;
             seg[o].pos = l;
             return ;
         }
@@ -157,7 +194,10 @@ struct Segment_tree_max {
 
     inline void push_up(int o) 
     {
-        seg[o] = std::max(seg[o << 1], seg[o << 1 | 1]);
+        if (seg[o << 1].max >= seg[o << 1 | 1].max)
+            seg[o] = seg[o << 1];
+        else seg[o] = seg[o << 1 | 1];
+        // seg[o] = std::max(seg[o << 1], seg[o << 1 | 1]);
     }
     
     //返回差值，方便后面维护density
@@ -213,6 +253,10 @@ struct Segment_tree_max {
         return query_max(1, 1, V, 1, V).pos;
     }
 
+    int find_max_value() {
+        return query_max(1, 1, V, 1, V).max;
+    }
+
     int find_next(int o, int l, int r, int x, int y, int lim) 
     {
         if (seg[o].max < lim) return -1;
@@ -241,6 +285,18 @@ struct Segment_tree_max {
     {
         add(1, 1, V, p, p, v);
     }
+
+    inline void add_tag_density(int pos, int value)
+    {
+        int L = std::min(V, window_len);
+        int pre_pos = std::max(1, pos - L + 1);
+        add(1,1,V,pre_pos,pos,value);
+        if(pos < L)
+        {
+            int rest_num = L - pos;
+            add(1,1,V,V - rest_num + 1,V,value);
+        }
+    }
 };
 
 struct Segment_tree_add {
@@ -250,6 +306,11 @@ struct Segment_tree_add {
         if (l == r) return seg[o] = 1, void();
         int mid = l + r >> 1;
         set_one(o << 1, l, mid), set_one(o << 1 | 1, mid + 1, r);
+        seg[o] = seg[o << 1] + seg[o << 1 | 1];
+    }
+
+    inline void push_up(int o) 
+    {
         seg[o] = seg[o << 1] + seg[o << 1 | 1];
     }
 
@@ -268,11 +329,12 @@ struct Segment_tree_add {
             res = add_unit(o << 1 | 1, mid + 1, r, p - seg[o << 1]);
         }
 
-        seg[o] = seg[o << 1] + seg[o << 1 | 1];
+        push_up(o);
         return res;
     }
 
-    void modify(int o, int l, int r, int p, int v) {
+    void add(int o, int l, int r, int p, int v)
+    {
         if (l == r) {
             seg[o] += v;
             return ;
@@ -280,9 +342,23 @@ struct Segment_tree_add {
 
         int mid = l + r >> 1;
         if (p <= mid)
+            add(o << 1, l, mid, p, v);
+        else add(o << 1 | 1, mid + 1, r, p, v);
+        push_up(o);
+    }
+
+    void modify(int o, int l, int r, int p, int v) 
+    {
+        if (l == r) {
+            seg[o] = v;
+            return ;
+        }
+
+        int mid = l + r >> 1;
+        if (p <= mid)
             modify(o << 1, l, mid, p, v);
         else modify(o << 1 | 1, mid + 1, r, p, v);
-        seg[o] = seg[o << 1] + seg[o << 1 | 1];
+        push_up(o);
     }
 
     void delete_unit(int o, int l, int r, int p)
@@ -292,7 +368,7 @@ struct Segment_tree_add {
         if (p <= mid) 
             delete_unit(o << 1, l, mid, p);
         else delete_unit(o << 1 | 1, mid + 1, r, p);
-        seg[o] = seg[o << 1] + seg[o << 1 | 1];
+        push_up(o);
         return;
     }
 
@@ -339,6 +415,27 @@ struct Segment_tree_add {
         if (y > mid && res == -1)
             res = find_kth(o << 1 | 1, mid + 1, r, x, y, k - seg[o << 1]);
         return res;
+    }
+
+    int query(int o = 1, int l = 1, int r = V, int x = 1, int y = V)
+    {
+        if (x <= l && y >= r) return seg[o];
+        int mid = l + r >> 1, res = 0;
+        if (x <= mid)
+            res = query(o << 1, l, mid, x, y);
+        if(y > mid)
+            res += query(o << 1 | 1, mid + 1, r, x, y);
+        return res;
+    }
+
+    inline void add(int p, int v) 
+    {
+        add(1, 1, V, p, v);
+    }
+
+    inline void modify(int p, int v)
+    {
+        modify(1, 1, V, p, v);
     }
 
     inline int query_rest_unit() 
@@ -449,11 +546,6 @@ struct DensityManager {
     }
 };
 struct DISK {
-    Segment_tree_add empty_pos; //维护空位置
-    // Segment_tree_max request_num; //维护每个点的request数量
-    //Segment_tree_max max_density; //用于获取每个段的request总和
-    Segment_tree_max tag_density[MAX_TAG_NUM];
-    DensityManager max_density;
     int pointer; //这个磁盘指针的位置
     int last_read_cnt = 0; //上一次操作往前连续读取的次数
     int last_read_cost = -1; //-1: 上一次不为读取操作 否则为上一次读取操作的花费
@@ -467,6 +559,14 @@ struct DISK {
     int distribution_strategy;
     int test_density_len = TEST_DENSITY_LEN;
     int tag_num;
+    int tag_cnt[MAX_TAG_NUM]; //每个磁盘每个标签的数量
+
+    Segment_tree_add all_request;
+    Segment_tree_add empty_pos; //维护空位置
+    // Segment_tree_max request_num; //维护每个点的request数量
+    //Segment_tree_max max_density; //用于获取每个段的request总和
+    Segment_tree_max tag_density[MAX_TAG_NUM];
+    DensityManager max_density;
     // DensityManager tag_in_disk[MAX_TAG_NUM];
 };
 
@@ -482,6 +582,7 @@ struct Predict {
     int add_object;
     int delete_object;
     int read_object;
+    int sum_object;
 };
 
 Predict Info[MAX_STAGE][MAX_TAG_NUM];
@@ -526,6 +627,29 @@ inline int get_min_dist(int x, int y)
 {
     if (x > y) std::swap(x, y);
     return std::min(y - x, V - y + x);
+}
+
+namespace DISK_Write_Heuristic {
+    
+    double get_val(DISK &cur_disk) {
+        return 0;
+        //int cnt = cur_disk.tag_cnt[insert_tag_id];
+        double ans = 0;
+        for (int period = 1; period <= all_stage; ++period) {
+            double res = 0;
+            for (int tag_id = 1; tag_id <= M; ++tag_id) {
+                int cnt = cur_disk.tag_cnt[tag_id];
+                int request = Info[tag_id][period].read_object;
+                int tot = Info[tag_id][period].sum_object;
+                double k = tot == 0? 0 : cnt / (double)tot;
+                k = std::min(k, 1.0);
+                res += k * request;
+                //res = std::max(res, val_period);
+            }
+            ans += res * res;
+        }
+        return ans;
+    }
 }
 
 inline void distribute_tag_in_disk_front(int disk_id, int stage) 
@@ -651,8 +775,6 @@ inline void distribute_tag_in_disk_new_version_1(int stage)
                 disk[disk_id].tag_distribution_size[tag] = size;
                 disk[disk_id].tag_order[++disk[disk_id].tag_num] = tag;
                 disk_rest_size[disk_id] -= size;
-                disk[disk_id].tag_density[tag].init(V);
-                disk[disk_id].tag_density[tag].build();
                 // std::cerr << "DISTRIBUTE : " << disk_id << " " << tag << std::endl;
                 break;
             }
@@ -671,6 +793,9 @@ inline void distribute_tag_in_disk_new_version_1(int stage)
             int rest_unit = V;
 
             cur_disk.inner_tag_inverse[cur_disk.tag_order[j]] = RAND() & 1;
+            cur_disk.tag_density[cur_tag].preference_left = cur_disk.inner_tag_inverse[cur_tag] ^ 1;
+            cur_disk.tag_density[cur_tag].init(V);
+            cur_disk.tag_density[cur_tag].build();
             int cur_tag_distribution = (1.0 * cur_disk.tag_distribution_size[cur_tag] / all_need) * rest_unit;
 
             if (pre_distribution + cur_tag_distribution > rest_unit) {
@@ -789,6 +914,54 @@ inline int get_now_stage(int now_time)
     return std::min((now_time + FRE_PER_SLICING - 1) / FRE_PER_SLICING, all_stage);
 }
 
+inline void reset_disk_window_len(int disk_id)
+{   
+    auto& cur_disk = disk[disk_id];
+    int n = cur_disk.tag_num;
+    // std::cerr << "PRE : \n";
+    for (int i = 1; i <= n; ++i) {
+        int j = cur_disk.tag_order[i];
+        assert(cur_disk.tag_distribution_size[j] > 0);
+        // std::cerr << cur_disk.tag_density[j].find_max_point() << " " << cur_disk.tag_density[j].find_max_value() << std::endl;
+
+        // cur_disk.tag_density[j].reset();
+        cur_disk.tag_density[j].init(V);
+        cur_disk.tag_density[j].build();
+        cur_disk.tag_density[j].window_len = std::max(MIN_TEST_TAG_DENSITY_LEN, int(tag_size_in_disk[j][disk_id] / WRITE_TAG_DENSITY_DIVIDE));
+        // std::cerr << cur_disk.tag_density[j].window_len << " ";
+    }
+
+    // std::cerr << std::endl;
+    // std::vector <int> real(MAX_TAG_NUM + 1, 0);
+
+    // std::cerr << "V : ";
+    for (int i = 1; i <= V; ++i) {
+        auto [object_id, unit_id] = cur_disk.unit_object[i];
+        int tag = objects[object_id].tag;
+        if (object_id) {
+            // if (i <= 20)
+                // std::cerr << tag << " ";
+            cur_disk.tag_density[tag].add_tag_density(i, 1);
+            // ++real[tag];
+        }
+    }
+
+    // std::cerr << "END : \n"; 
+    for (int i = 1; i <= n; ++i) {
+        int j = cur_disk.tag_order[i];
+        assert(cur_disk.tag_distribution_size[j] > 0);
+        // std::cerr << cur_disk.tag_density[j].find_max_point() << " " << cur_disk.tag_density[j].find_max_value() << std::endl;
+    }
+
+    // std::cerr << std::endl;
+    // std::cerr << "REAL : \n";
+    // for (int i = 1; i <= n; ++i) {
+        // int j = cur_disk.tag_order[i];
+        // std::cerr << real[j] << " ";
+    // }
+    // std::cerr << std::endl;
+}
+
 void timestamp_action()
 {
     int timestamp;
@@ -813,6 +986,14 @@ void timestamp_action()
                 // else 
                 //     distribute_tag_in_disk_mid(i, get_now_stage(timestamp));
             }
+        } else {
+
+            if (get_now_stage(timestamp) % 2 == 0 && get_now_stage(timestamp) > PRE_DISTRIBUTION_TIME) {
+               for (int i = 1; i <= N; ++i) {
+                    reset_disk_window_len(i);
+                } 
+            }
+            
         }
     }
 
@@ -833,27 +1014,13 @@ std::vector <int> abort_request;
     //     disk[disk_id].max_density.add(1, 1, V, V - rest_num + 1, V, delta_request);
     // }
 // }
-inline void add_tag_density(int disk_id, int tag, int pos, int value)
-{
-    int L = std::min(V, WRITE_TEST_DENSITY_LEN);
-    int pre_pos = std::max(1, pos - L + 1);
-    // std::cerr << "OK" << std::endl;
-    // std::cerr << "SIZE : " << disk[disk_id].tag_distribution_size[tag] << std::endl;
 
-    disk[disk_id].tag_density[tag].add(1,1,V,pre_pos,pos,value);
-    
-    if(pos < L)
-    {
-        int rest_num = L - pos;
-        disk[disk_id].tag_density[tag].add(1,1,V,V - rest_num + 1,V,value);
-    }
-}
 
 inline void modify_unit_request(int disk_id, int pos, int value) 
 {
     // int delta_request = disk[disk_id].request_num.modify(1, 1, V, pos, value);
     // if(delta_request != 0) modify_max_density(disk_id, pos, delta_request);
-    
+    // disk[disk_id].all_request.modify(pos, value);
     disk[disk_id].max_density.modify(pos, value);
 }
 
@@ -861,7 +1028,7 @@ inline void add_unit_request(int disk_id, int pos, int ad_num)
 {
     // disk[disk_id].request_num.add(1, 1, V, pos, pos, ad_num);
     // modify_max_density(disk_id, pos, ad_num);
-    
+    // disk[disk_id].all_request.add(pos, ad_num);
     disk[disk_id].max_density.add(pos, ad_num);
 }
 
@@ -877,8 +1044,9 @@ inline void do_object_delete(int object_id)
             disk[disk_id].empty_pos.delete_unit(1, 1, V, pos);
 
             if (USE_NEW_DISTRIBUTION) {
-                // disk[disk_id].tag_density[cur_tag].add(pos, -1);
-                add_tag_density(disk_id, cur_tag, pos, -1);
+                disk[disk_id].tag_density[cur_tag].add_tag_density(pos, -1);
+                --disk[disk_id].tag_cnt[cur_tag];
+                // add_tag_density(disk_id, cur_tag, pos, -1);
             }
             
             //清除request
@@ -934,11 +1102,13 @@ void delete_action()
 inline void write_unit(int object_id, int disk_id, int unit_id, int write_pos, int repeat_id) 
 {
     // disk[disk_id].empty_pos.add_unit(1, 1, V, 1);
-    disk[disk_id].empty_pos.modify(1, 1, V, write_pos, -1);
+    disk[disk_id].empty_pos.add(1, 1, V, write_pos, -1);
 
     if (USE_NEW_DISTRIBUTION) {
         if (disk[disk_id].tag_distribution_size[objects[object_id].tag] > 0)
-            add_tag_density(disk_id, objects[object_id].tag, write_pos, 1);
+            ++disk[disk_id].tag_cnt[objects[object_id].tag];
+            disk[disk_id].tag_density[objects[object_id].tag].add_tag_density(write_pos, 1);
+            // add_tag_density(disk_id, objects[object_id].tag, write_pos, 1);
         // disk[disk_id].tag_in_disk[].add(write_pos, 1);
     }
     
@@ -988,6 +1158,23 @@ inline int write_unit_in_disk_by_density(int disk_id, int tag)
     return best_pos;
 }
 
+inline int write_unit_in_disk_by_density_version2(int disk_id, int tag)
+{
+    if (!disk[disk_id].tag_distribution_size[tag]) {
+        return disk[disk_id].empty_pos.find_next(1);
+    }
+
+    int best_pos = disk[disk_id].tag_density[tag].find_max_point();
+    if (disk[disk_id].inner_tag_inverse[tag]) {
+        best_pos = get_nxt_kth(best_pos, WRITE_TEST_DENSITY_LEN);
+        best_pos = disk[disk_id].empty_pos.find_pre(best_pos);
+    } else {
+        best_pos = disk[disk_id].empty_pos.find_next(best_pos);
+    }
+
+    return best_pos;
+}
+
 void write_action()
 {
     int n_write;
@@ -1011,6 +1198,16 @@ void write_action()
         printf("%d\n", id);
 
         if (USE_NEW_DISTRIBUTION) {
+            std::vector <double> disk_values(MAX_DISK_NUM + 1, 0);
+            for (int j = 1; j <= N; ++j) {
+                // disk_values[j] = DISK_Write_Heuristic::get_val(disk[j]);
+                // disk_request[j] = disk[j].all_request.query();
+            }
+
+            std::sort(pos.begin(), pos.end(),[&](int x,int y){
+                return disk_values[x] < disk_values[y];
+            });
+            std::random_shuffle(pos.begin() + 1, pos.end());
             
             for (int j = 1; j <= REP_NUM; ++j) {
                 int disk_id = pos[now];
@@ -1052,7 +1249,8 @@ void write_action()
                     if (now_stage <= PRE_DISTRIBUTION_TIME) {
                         nxt = write_unit_in_disk_strategy_1(disk_id, tag);
                     } else {
-                        nxt = write_unit_in_disk_by_density(disk_id, tag);
+                        nxt = write_unit_in_disk_by_density_version2(disk_id, tag);
+                        // nxt = write_unit_in_disk_by_density(disk_id, tag);
                     }
 
                     // std::cerr << "Nxt : " << nxt << " ";
@@ -1109,7 +1307,7 @@ inline void read_unit(int object_id, int unit_id, int time)
 {
     while (!unsolve_request[object_id][unit_id].empty()) {
         int request_id = unsolve_request[object_id][unit_id].front();
-        if(request_rest_unit[request_id] > 0)
+        if (request_rest_unit[request_id] > 0)
         {
             --request_rest_unit[request_id];
             request_rest_unit_state[request_id] |= 1 << unit_id;
@@ -1171,6 +1369,7 @@ int do_pointer_pass(DISK &cur_disk)
     if (!cur_disk.rest_token)
         return 0;
     printf("p");
+    assert(cur_disk.max_density.get(cur_disk.pointer) == 0);
     ++go_disk_dist;
     cur_disk.pointer = cur_disk.pointer % V + 1;
     cur_disk.rest_token--;
@@ -1426,7 +1625,7 @@ void read_without_jump_dp_and_bf_version(DISK &cur_disk, int time) {
             //std::cerr << "min_cost_token: " << min_cost_token << " " << cur_disk.max_density.get(cur_disk.pointer) << std::endl;
             //std::cerr << "rest_token: " << " " << cur_disk.rest_token << std::endl;
             //std::cerr << "pre_request: " << " " << pre_requests << std::endl;*/
-            assert(check_pass_cnt >= DISK_MIN_PASS_DP || cur_disk.rest_token == 0);
+            assert(check_pass_cnt >= DISK_MIN_PASS_DP);
             prel = prer = cur_disk.pointer;
             pre_requests = 0;
         }
@@ -1444,7 +1643,7 @@ void read_without_jump_dp_version(DISK &cur_disk, int time)
 {
     int begin_pointer = cur_disk.pointer;
     //std::cerr << "start DP_read_without_skip_and_jump" << std::endl;
-    auto [sum_requests, end_pointer] = DP_read_without_skip_and_jump(cur_disk, cur_disk.pointer, cur_disk.rest_token);
+    auto [sum_requests, end_pointer] = DP_read_without_skip_and_jump(cur_disk, cur_disk.pointer, 2 * cur_disk.rest_token);
     //std::cerr << "end DP_read_without_skip_and_jump" << std::endl;
     //std::cerr << "end_pointer: " << end_pointer << std::endl;
     //std::cerr << "dist: " << get_dist(begin_pointer, end_pointer) << std::endl;
@@ -1465,17 +1664,18 @@ void read_without_jump_dp_version(DISK &cur_disk, int time)
     }
     int check_requests = 0;
     reverse(read_sequence.begin(), read_sequence.end());
-    go_disk_dist += read_sequence.size();
+    //go_disk_dist += read_sequence.size();
     for (auto oper : read_sequence) {
         if (oper == 'r') {
             check_requests += cur_disk.max_density.get(cur_disk.pointer);
-            do_pointer_read(cur_disk, time);
+            if (!do_pointer_read(cur_disk, time))
+                break;
         }
         else
             do_pointer_pass(cur_disk);
     }
     //std::cerr << check_requests<< " " << sum_requests << std::endl;
-    assert(check_requests == sum_requests);
+    //assert(check_requests == sum_requests);
     printf("#\n");
 }
 
@@ -1605,17 +1805,17 @@ void read_action(int time)
     for (int cur_disk_id = 1; cur_disk_id <= N; ++cur_disk_id) {
         // std::cerr << "cur_disk_id: " << cur_disk_id << std::endl;
         DISK &cur_disk = disk[cur_disk_id];
-        if (time % READ_ROUND_TIME == 1) {
+        if (time % random(READ_ROUND_TIME, READ_ROUND_TIME) == 1) {
             int p = cur_disk.max_density.find_max_point();
             int ans_p = p == -1? -1: DP_read_without_skip_and_jump(cur_disk, p, TEST_READ_TIME * cur_disk.rest_token).first;
-            int ans_now = DP_read_without_skip_and_jump(cur_disk, cur_disk.pointer, TEST_READ_TIME * cur_disk.rest_token).first;
+            int ans_now = DP_read_without_skip_and_jump(cur_disk, cur_disk.pointer, (TEST_READ_TIME + JUMP_MORE_TIME) * cur_disk.rest_token).first;
             /*
             if (cur_disk.max_density.get(p) * JUMP_VISCOSITY <= cur_disk.max_density.get(cur_disk.pointer))
                 p = cur_disk.pointer;
             */
                 // std::cerr << "max_point: " << p << std::endl;
 
-                if (p == -1 || get_dist(cur_disk.pointer, p) <= G * JUMP_VISCOSITY || ans_p < ans_now * 1.6) { //如果距离足够近
+                if (p == -1 || get_dist(cur_disk.pointer, p) <= G * JUMP_VISCOSITY || ans_p < ans_now * JUMP_MIN) { //如果距离足够近
                 
                 // std::cerr << "start read_without_jump" << std::endl;
                 
@@ -1718,6 +1918,12 @@ int main()
         for (int j = 1; j <= all_stage; j++) {
             scanf("%d", &Info[j][i].read_object);
             // scanf("%*d");
+        }
+    }
+
+    for (int i = 1; i <= M; ++i) {
+        for (int j = 1; j <= all_stage; ++j) {
+            Info[j][i].sum_object = Info[j - 1][i].sum_object - Info[j - 1][i].delete_object + Info[j][i].add_object;
         }
     }
 
