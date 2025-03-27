@@ -32,7 +32,7 @@
 const double JUMP_VISCOSITY = 0.9;
 const int CUR_REQUEST_DIVIDE = 200;
 const int LEN_TIME_DIVIDE = 40;
-const int PRE_DISTRIBUTION_TIME = 30;
+const int PRE_DISTRIBUTION_TIME = 35;
 const int READ_CNT_STATES = 8; //读入的状态，根据上一次连续read的个数确定
 int DISK_MIN_PASS = 9; //如果超过这个值放弃read pass过去
 int DISK_MIN_PASS_DP = 13;
@@ -141,6 +141,14 @@ struct Segment_tree_max {
         add_tag = std::vector <int> (n << 2, 0);
     }
 
+    inline void push_up(int o) 
+    {
+        // if (seg[o << 1].max >= seg[o << 1 | 1].max)
+        //     seg[o] = seg[o << 1];
+        // else seg[o] = seg[o << 1 | 1];
+        seg[o] = std::max(seg[o << 1], seg[o << 1 | 1]);
+    }
+
     void reset(int o = 1, int l = 1, int r = V)
     {
         add_tag[o] = seg[o].max = 0;
@@ -148,6 +156,7 @@ struct Segment_tree_max {
         int mid = l + r >> 1;
         reset(o << 1, l, mid);
         reset(o << 1 | 1, mid + 1, r);
+        push_up(o);
     }
 
     void build(int o = 1, int l = 1, int r = V) {
@@ -162,7 +171,7 @@ struct Segment_tree_max {
         int mid = l + r >> 1;
         build(o << 1, l, mid);
         build(o << 1 | 1, mid + 1, r);
-        seg[o] = seg[o << 1];
+        push_up(o);
     }
 
     inline void apply(int o, int now_ad) 
@@ -177,14 +186,6 @@ struct Segment_tree_max {
         apply(o << 1, add_tag[o]);
         apply(o << 1 | 1, add_tag[o]);
         add_tag[o] = 0;
-    }
-
-    inline void push_up(int o) 
-    {
-        if (seg[o << 1].max >= seg[o << 1 | 1].max)
-            seg[o] = seg[o << 1];
-        else seg[o] = seg[o << 1 | 1];
-        // seg[o] = std::max(seg[o << 1], seg[o << 1 | 1]);
     }
     
     //返回差值，方便后面维护density
@@ -755,7 +756,7 @@ inline void distribute_tag_in_disk_new_version_1(int stage)
             int rest_unit = V;
 
             cur_disk.inner_tag_inverse[cur_disk.tag_order[j]] = RAND() & 1;
-            cur_disk.tag_density[cur_tag].preference_left = cur_disk.inner_tag_inverse[cur_tag] ^ 1;
+            cur_disk.tag_density[cur_tag].preference_left = cur_disk.inner_tag_inverse[cur_tag];
             cur_disk.tag_density[cur_tag].init(V);
             cur_disk.tag_density[cur_tag].build();
             int cur_tag_distribution = (1.0 * cur_disk.tag_distribution_size[cur_tag] / all_need) * rest_unit;
