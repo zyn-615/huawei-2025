@@ -31,16 +31,15 @@
 
 const double JUMP_VISCOSITY = 0.9;
 const int LEN_TIME_DIVIDE = 40;
-const int PRE_DISTRIBUTION_TIME = 30;
 const int READ_CNT_STATES = 8; //读入的状态，根据上一次连续read的个数确定
 int DISK_MIN_PASS = 9; //如果超过这个值放弃read pass过去
 int DISK_MIN_PASS_DP = 13;
 const int MIN_TOKEN_STOP_DP = 130;
-const int NUM_PIECE_QUEUE = 2;
+const int NUM_PIECE_QUEUE = 50;
 const double TAG_DENSITY_DIVIDE = 2;
 const double UNIT_REQUEST_DIVIDE = 17;
 
-const double DIVIDE_TAG_IN_DISK_VERSION1 = 0.1;
+const double DIVIDE_TAG_IN_DISK_VERSION1 = 0.05;
 int TEST_DENSITY_LEN = 1200;
 
 //这三个量需要调整   需要退火
@@ -53,15 +52,8 @@ const int TEST_READ_TIME = 3;
 const int CUR_REQUEST_DIVIDE = 344;
 const int MIN_TEST_DENSITY_LEN = 370;
 const int JUMP_MORE_TIME = 0;
-
-
-
-
-
-
-
-
-
+const int PRE_DISTRIBUTION_TIME = 25;
+const double DP_ROUND_TIME = 4;
 
 const int USE_NEW_DISTRIBUTION = 1;
 //不要调
@@ -730,9 +722,11 @@ inline void distribute_tag_in_disk_new_version_1(int stage)
     int piece_size = V * DIVIDE_TAG_IN_DISK_VERSION1;
 
     for (int i = 1; i <= M; ++i) {
-        int piece_num = std::max(MIN_TAG_NUM_IN_DISK, all_time_max_tag_size[i] / piece_size);
+        int piece_num = std::min(N, std::max(MIN_TAG_NUM_IN_DISK, all_time_max_tag_size[i] / piece_size));
         int cur_size = max_cur_tag_size[stage][i];
         int std_size = (max_cur_tag_size[stage][i] + piece_num - 1) / piece_num;
+
+        std::cerr << "tag : " << i << "    disk_num :  " << piece_num << std::endl;
 
         for (int j = 1; j <= piece_num; ++j) {
             int cur_p_size = std::min(cur_size, std_size);
@@ -1598,7 +1592,7 @@ void read_without_jump_dp_version(DISK &cur_disk, int time)
 {
     int begin_pointer = cur_disk.pointer;
     //std::cerr << "start DP_read_without_skip_and_jump" << std::endl;
-    auto [sum_requests, end_pointer] = DP_read_without_skip_and_jump(cur_disk, cur_disk.pointer, 2 * cur_disk.rest_token);
+    auto [sum_requests, end_pointer] = DP_read_without_skip_and_jump(cur_disk, cur_disk.pointer, DP_ROUND_TIME * cur_disk.rest_token);
     //std::cerr << "end DP_read_without_skip_and_jump" << std::endl;
     //std::cerr << "end_pointer: " << end_pointer << std::endl;
     //std::cerr << "dist: " << get_dist(begin_pointer, end_pointer) << std::endl;
