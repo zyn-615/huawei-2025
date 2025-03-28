@@ -348,7 +348,7 @@ def plot_tag_read_density(T, M, tag_reads, tag_exist_size):
     plt.close()
 
 def main():
-    filename = 'data/sample_practice.in'
+    filename = 'data/sample_offical.in'
     T, M, tag_reads, tag_size, tag_exsit_time, tag_exist_size = read_input_file(filename)
     plot_tag_reads_request_count(T, M, tag_reads)
     plot_tag_reads_request_size(T, M, tag_size)
