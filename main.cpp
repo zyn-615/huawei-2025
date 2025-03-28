@@ -752,7 +752,7 @@ inline void distribute_tag_in_disk_new_version_1(int stage)
     for (auto [tag, size] : all_object) {
         std::sort(disk_pos.begin(), disk_pos.end(), [&](const int a, const int b) {
             return disk_rest_size[a] > disk_rest_size[b];
-        });
+        }); 
 
         for (int disk_id : disk_pos) {
             // assert(disk_rest_size[disk_id] >= size);
