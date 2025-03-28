@@ -1188,7 +1188,7 @@ void write_action()
                     disk_id = pos[++now];
                     
                     if (now >= N) {
-                        if (OVER)
+                        if (!OVER)
                             assert(false);
                         // std::cerr << "tag : " << tag << std::endl;
                         for (int k = 0; k < N; ++k) {
