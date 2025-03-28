@@ -44,15 +44,15 @@ const double DIVIDE_TAG_IN_DISK_VERSION1 = 0.1;
 int TEST_DENSITY_LEN = 1200;
 
 //这三个量需要调整   需要退火
-const int WRITE_TEST_DENSITY_LEN = 55;
-const int WRITE_TAG_DENSITY_DIVIDE = 34;
-const int MIN_TEST_TAG_DENSITY_LEN = 66;
-const double JUMP_MIN = 1.9;
-const int MIN_ROUND_TIME = 5;
-const int TEST_READ_TIME = 2;
-const int CUR_REQUEST_DIVIDE = 165;
-const int MIN_TEST_DENSITY_LEN = 922;
-const int JUMP_MORE_TIME = 3;
+const int WRITE_TEST_DENSITY_LEN = 32;
+const int WRITE_TAG_DENSITY_DIVIDE = 29;
+const int MIN_TEST_TAG_DENSITY_LEN = 67;
+const double JUMP_MIN = 2.4;
+const int MIN_ROUND_TIME = 2;
+const int TEST_READ_TIME = 3;
+const int CUR_REQUEST_DIVIDE = 344;
+const int MIN_TEST_DENSITY_LEN = 370;
+const int JUMP_MORE_TIME = 0;
 
 
 
