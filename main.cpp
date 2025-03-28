@@ -35,7 +35,7 @@ const int READ_CNT_STATES = 8; //读入的状态，根据上一次连续read的�
 int DISK_MIN_PASS = 9; //如果超过这个值放弃read pass过去
 int DISK_MIN_PASS_DP = 13;
 const int MIN_TOKEN_STOP_DP = 130;
-const int NUM_PIECE_QUEUE = 50;
+const int NUM_PIECE_QUEUE = 105;
 const double TAG_DENSITY_DIVIDE = 2;
 const double UNIT_REQUEST_DIVIDE = 17;
 
@@ -60,7 +60,7 @@ const int USE_NEW_DISTRIBUTION = 1;
 const int USE_DP = 2;
 const int DP_VERSION1 = 1;
 const int DP_VERSION2 = 2;
-const int MIN_TAG_NUM_IN_DISK = 5;
+const int MIN_TAG_NUM_IN_DISK = 3;
 //int READ_ROUND_TIME = 40; //一轮读取的时间
 const int READ_ROUND_TIME = 3;
 const int OVER = 1;
@@ -562,6 +562,7 @@ struct Predict {
 
 Predict Info[MAX_STAGE][MAX_TAG_NUM];
 int max_cur_tag_size[MAX_STAGE][MAX_TAG_NUM], all_time_max_tag_size[MAX_TAG_NUM];
+double tag_request_size_density[MAX_TAG_NUM];
 int all_tag_request[MAX_TAG_NUM], test_tag_request[MAX_TAG_NUM];
 int go_disk_dist;
 
@@ -770,7 +771,18 @@ inline void distribute_tag_in_disk_new_version_1(int stage)
         int tag_num = cur_disk.tag_num;
         
         std::shuffle(cur_disk.tag_order + 1, cur_disk.tag_order + 1 + tag_num, RAND);
+        
+        std::vector <double> tag_values(MAX_TAG_NUM, 0);
+        for (int j = 1; j <= tag_num; ++j) {
+            tag_values[j] = tag_request_size_density[j] + random(1, 50);
+        }
+
+        // std::sort(disk[i].tag_order + 1, disk[i].tag_order + 1 + tag_num, [&](const int a, const int b) {
+            // return tag_values[a] > tag_values[b];
+        // });
+
         int all_need = V - disk_rest_size[i];
+        std::cerr << "all_need : " << all_need << std::endl;
 
         std::cerr << "nowDisk : ";
         if (i == 1)
@@ -829,6 +841,9 @@ void init()
             max_cur_tag_size[i][j] = max_cur_tag_size[i - 1][j] - Info[i - 1][j].delete_object + Info[i][j].add_object;
             all_tag_request[j] += Info[i][j].read_object;
             all_time_max_tag_size[j] = std::max(all_time_max_tag_size[j], max_cur_tag_size[i][j]);
+
+            if (i >= 10)
+                tag_request_size_density[j] = std::max(tag_request_size_density[j], 1.0 * Info[i][j].read_object / all_time_max_tag_size[j]);
         }
     }
     
@@ -846,6 +861,10 @@ void init()
         }
     }
 
+    for (int i = 1; i <= M; ++i) {
+        std::cerr << tag_request_size_density[i] << " \n"[i == M];
+    }
+
     // std::cerr << "HERE : " << std::endl;
     for (int i = 1; i <= N; i++) {
         disk[i].pointer = 1;
@@ -857,18 +876,21 @@ void init()
         if (!USE_NEW_DISTRIBUTION) {
             std::iota(disk[i].tag_order + 1, disk[i].tag_order + 1 + M, 1);
             std::shuffle(disk[i].tag_order + 1, disk[i].tag_order + 1 + M, RAND);
+
+            std::vector <double> tag_values(MAX_TAG_NUM, 0);
             for (int j = 1; j <= M; ++j) {
-                test_tag_request[j] = max_cur_tag_size[all_stage][j] + ((RAND() & 1) ? 1 : -1) * random(600, 9000);
+                // test_tag_request[j] = max_cur_tag_size[all_stage][j] + ((RAND() & 1) ? 1 : -1) * random(600, 9000);
                 // test_tag_request[j] = all_tag_request[j] + ((RAND() & 1) ? 1 : -1) * random(500, 3000);
+                // tag_values[j] = tag_request_size_density[j] +  random(1, 20);
             }
 
             // std::sort(disk[i].tag_order + 1, disk[i].tag_order + 1 + M, [&](const int a, const int b) {
-                // return test_tag_request[a] > test_tag_request[b];
+            //     return tag_values[a] > tag_values[b];
             // });
             
             // disk[i].is_reverse = i & 1;
             for (int j = 1; j <= M; ++j) {
-                disk[i].inner_tag_inverse[j] = RAND() & 1;
+                disk[i].inner_tag_inverse[j] = random(0, 1);
                 // disk[i].inner_tag_inverse[j] = disk[i].is_reverse;
             }
 
