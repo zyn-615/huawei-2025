@@ -60,7 +60,7 @@ const int USE_NEW_DISTRIBUTION = 1;
 const int USE_DP = 2;
 const int DP_VERSION1 = 1;
 const int DP_VERSION2 = 2;
-const int MIN_TAG_NUM_IN_DISK = 6;
+const int MIN_TAG_NUM_IN_DISK = 5;
 //int READ_ROUND_TIME = 40; //一轮读取的时间
 const int READ_ROUND_TIME = 3;
 
@@ -548,6 +548,8 @@ struct DISK {
 DISK disk[MAX_DISK_NUM];
 std::mt19937 RAND(666666);
 
+int jump_cnt_tot[MAX_DISK_NUM];
+
 inline int random(int l, int r)
 {
     return RAND() % (r - l + 1) + l;
@@ -736,6 +738,7 @@ inline void distribute_tag_in_disk_new_version_1(int stage)
 
         assert(cur_size == 0);
     }
+    
 
     std::sort(all_object.begin(), all_object.end(), [&](const Sub_object& x, const Sub_object&  y) {
         return x.size > y.size;
@@ -763,6 +766,12 @@ inline void distribute_tag_in_disk_new_version_1(int stage)
         int tag_num = cur_disk.tag_num;
         
         std::shuffle(cur_disk.tag_order + 1, cur_disk.tag_order + 1 + tag_num, RAND);
+        /*
+        if (i == 1) {
+            static int p[10] = {0, 10, 14, 6, 15, 4, 16, 11, 8, 3};
+            for (int i = 1; i <= 9; ++i)
+                cur_disk.tag_order[i] = p[i];
+        }*/
         int all_need = V - disk_rest_size[i];
 
         std::cerr << "nowDisk : ";
@@ -1787,8 +1796,10 @@ void read_action(int time)
                 else
                     read_without_jump(cur_disk, time);
             }
-            else 
+            else {
                 do_pointer_jump(cur_disk, p);
+                ++jump_cnt_tot[cur_disk_id];
+            }
         } else {
             if (USE_DP) {
                 if (USE_DP == DP_VERSION1)
@@ -1913,6 +1924,8 @@ int main()
         // std::cerr << "end read_action" <<std::endl;
         // std::cerr << "end time " << t << std::endl;
     }
-
+    for (int i = 1; i <= N; ++i)
+        std::cerr << "jump_cnt" << "[" << i << "]" << ": " << jump_cnt_tot[i] << std::endl;
+    //std::cerr << std::endl;
     return 0;
 }   
