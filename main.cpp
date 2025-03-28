@@ -39,7 +39,7 @@ const int NUM_PIECE_QUEUE = 50;
 const double TAG_DENSITY_DIVIDE = 2;
 const double UNIT_REQUEST_DIVIDE = 17;
 
-const double DIVIDE_TAG_IN_DISK_VERSION1 = 0.05;
+const double DIVIDE_TAG_IN_DISK_VERSION1 = 0.1;
 int TEST_DENSITY_LEN = 1200;
 
 //这三个量需要调整   需要退火
@@ -57,7 +57,7 @@ const double DP_ROUND_TIME = 4;
 
 const int USE_NEW_DISTRIBUTION = 1;
 //不要调
-const int USE_DP = 1;
+const int USE_DP = 2;
 const int DP_VERSION1 = 1;
 const int DP_VERSION2 = 2;
 const int MIN_TAG_NUM_IN_DISK = 6;
@@ -765,8 +765,12 @@ inline void distribute_tag_in_disk_new_version_1(int stage)
         std::shuffle(cur_disk.tag_order + 1, cur_disk.tag_order + 1 + tag_num, RAND);
         int all_need = V - disk_rest_size[i];
 
+        std::cerr << "nowDisk : ";
+        if (i == 1)
+            std::swap(cur_disk.tag_order[4], cur_disk.tag_order[5]);
         for (int j = 1, pre_distribution = 0; j <= tag_num; ++j) {
             int cur_tag = cur_disk.tag_order[j];
+            std::cerr << cur_tag << " ";
             int rest_unit = V;
 
             cur_disk.inner_tag_inverse[cur_disk.tag_order[j]] = RAND() & 1;
@@ -789,6 +793,8 @@ inline void distribute_tag_in_disk_new_version_1(int stage)
 
             pre_distribution += cur_tag_distribution;
         }
+
+        std::cerr << std::endl;
     }
 }
 
@@ -1499,7 +1505,7 @@ std::pair<int, int> DP_read_without_skip_and_jump_range(DISK &cur_disk, int begi
 void trace_dp(DISK &cur_disk, int begin_pos, int end_pos, int time) {
     int cur_state = 0;
     for (int j = 0; j < 7; ++j) {
-        if (dp_without_skip[end_pos][j] < dp_without_skip[end_pos][cur_state])
+        if (dp_without_skip[end_pos][j] <= dp_without_skip[end_pos][cur_state])
             cur_state = j;
     }
     int dp_cost_token = dp_without_skip[end_pos][cur_state];
@@ -1527,7 +1533,7 @@ void trace_dp(DISK &cur_disk, int begin_pos, int end_pos, int time) {
     assert (check_rest_token_start - check_rest_token_end == dp_cost_token);
 }
 
-void read_without_jump(DISK &cur_disk,int time);
+void read_without_jump(DISK &cur_disk, int time);
 void read_without_jump_dp_and_bf_version(DISK &cur_disk, int time) {
     //int begin_pointer = cur_disk.pointer;
     //prel, prer用来处理
@@ -1575,7 +1581,7 @@ void read_without_jump_dp_and_bf_version(DISK &cur_disk, int time) {
             //std::cerr << "rest_token: " << " " << cur_disk.rest_token << std::endl;
             //std::cerr << "pre_request: " << " " << pre_requests << std::endl;*/
             assert(check_pass_cnt >= DISK_MIN_PASS_DP);
-            prel = prer = cur_disk.pointer;
+            prel = prer = cur_disk.pointer;       
             pre_requests = 0;
         }
     }
@@ -1598,7 +1604,7 @@ void read_without_jump_dp_version(DISK &cur_disk, int time)
     //std::cerr << "dist: " << get_dist(begin_pointer, end_pointer) << std::endl;
     int cur_state = 0;
     for (int j = 1; j < READ_CNT_STATES; ++j) {
-        if (dp_without_skip[end_pointer][j] > dp_without_skip[end_pointer][cur_state])
+        if (dp_without_skip[end_pointer][j] >= dp_without_skip[end_pointer][cur_state])
             cur_state = j;
     }
     assert(dp_without_skip[end_pointer][cur_state] != -1);
