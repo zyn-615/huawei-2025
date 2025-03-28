@@ -45,13 +45,13 @@ int TEST_DENSITY_LEN = 1200;
 
 //这三个量需要调整   需要退火
 const int WRITE_TEST_DENSITY_LEN = 66;
-const int WRITE_TAG_DENSITY_DIVIDE = 24;
+const int WRITE_TAG_DENSITY_DIVIDE = 30;
 const int MIN_TEST_TAG_DENSITY_LEN = 62;
 const double JUMP_MIN = 2.5;
-const int MIN_ROUND_TIME = 1;
-const int TEST_READ_TIME = 3;
-const int CUR_REQUEST_DIVIDE = 233;
-const int MIN_TEST_DENSITY_LEN = 426;
+const int MIN_ROUND_TIME = 3;
+const int TEST_READ_TIME = 4;
+const int CUR_REQUEST_DIVIDE = 474;
+const int MIN_TEST_DENSITY_LEN = 878;
 const int JUMP_MORE_TIME = 0;
 
 
