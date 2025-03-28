@@ -13,7 +13,7 @@ PARAMS = {
     'WRITE_TEST_DENSITY_LEN': (20, 50),     # 当前值：32
     'WRITE_TAG_DENSITY_DIVIDE': (20, 40),   # 当前值：29
     'MIN_TEST_TAG_DENSITY_LEN': (50, 80),   # 当前值：67
-    'JUMP_MIN': (1.0, 2.0),                 # 当前值：1.7
+    'JUMP_MIN': (1.0, 3.0),                 # 当前值：1.7
     'MIN_ROUND_TIME': (1, 3),               # 当前值：2
     'TEST_READ_TIME': (1, 5),               # 当前值：3
     'CUR_REQUEST_DIVIDE': (300, 400),       # 当前值：344
@@ -39,7 +39,7 @@ REGEX_PATTERNS = {
 }
 
 # 全局变量
-data_files = ['data/sample_extra.in','data/sample_offical.in','data/practice.in']
+data_files = ['data/sample_offical.in']
 
 def modify_parameters(params):
     """修改code_craft.cpp中的参数"""
