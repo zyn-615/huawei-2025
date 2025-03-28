@@ -10,15 +10,17 @@ import json
 
 # 定义需要调整的参数及其范围
 PARAMS = {
-    'WRITE_TEST_DENSITY_LEN': (30, 70),     # 当前值：50
-    'WRITE_TAG_DENSITY_DIVIDE': (20, 40),   # 当前值：30
-    'MIN_TEST_TAG_DENSITY_LEN': (30, 70),   # 当前值：50
-    'JUMP_MIN': (1.0, 3.0),                 # 当前值：1.6
-    'MIN_ROUND_TIME': (1, 5),               # 当前值：3
-    'TEST_READ_TIME': (1, 15),              # 当前值：10
-    'CUR_REQUEST_DIVIDE': (100, 500),       # 当前值：200
-    'MIN_TEST_DENSITY_LEN': (300, 1000),    # 当前值：500
-    'JUMP_MORE_TIME': (0, 3)                # 当前值：2
+    'WRITE_TEST_DENSITY_LEN': (20, 50),     # 当前值：32
+    'WRITE_TAG_DENSITY_DIVIDE': (20, 40),   # 当前值：29
+    'MIN_TEST_TAG_DENSITY_LEN': (50, 80),   # 当前值：67
+    'JUMP_MIN': (1.0, 2.0),                 # 当前值：1.7
+    'MIN_ROUND_TIME': (1, 3),               # 当前值：2
+    'TEST_READ_TIME': (1, 5),               # 当前值：3
+    'CUR_REQUEST_DIVIDE': (300, 400),       # 当前值：344
+    'MIN_TEST_DENSITY_LEN': (300, 400),     # 当前值：370
+    'PRE_DISTRIBUTION_TIME': (20, 30),      # 当前值：25
+    'DP_ROUND_TIME': (3, 5),                # 当前值：4
+    'SKIP_LOW_REQUEST_NUM': (10, 70)        # 当前值：50
 }
 
 # 定义正则表达式模式
@@ -31,7 +33,9 @@ REGEX_PATTERNS = {
     'TEST_READ_TIME': r'(const\s+int\s+TEST_READ_TIME\s*=\s*)([0-9]+)',
     'CUR_REQUEST_DIVIDE': r'(const\s+int\s+CUR_REQUEST_DIVIDE\s*=\s*)([0-9]+)',
     'MIN_TEST_DENSITY_LEN': r'(const\s+int\s+MIN_TEST_DENSITY_LEN\s*=\s*)([0-9]+)',
-    'JUMP_MORE_TIME': r'(const\s+int\s+JUMP_MORE_TIME\s*=\s*)([0-9]+)'
+    'PRE_DISTRIBUTION_TIME': r'(const\s+int\s+PRE_DISTRIBUTION_TIME\s*=\s*)([0-9]+)',
+    'DP_ROUND_TIME': r'(const\s+double\s+DP_ROUND_TIME\s*=\s*)([0-9.]+)',
+    'SKIP_LOW_REQUEST_NUM': r'(const\s+int\s+SKIP_LOW_REQUEST_NUM\s*=\s*)([0-9]+)'
 }
 
 # 全局变量
