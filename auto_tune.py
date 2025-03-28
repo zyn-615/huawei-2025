@@ -35,7 +35,7 @@ REGEX_PATTERNS = {
 }
 
 # 全局变量
-data_files = ['data/sample.in']
+data_files = ['data/sample_extra.in','data/sample_official.in','data/practice.in']
 
 def modify_parameters(params):
     """修改code_craft.cpp中的参数"""
@@ -230,87 +230,6 @@ def evaluate_single_params(params, data_files):
     """评估单个参数组合的性能"""
     return evaluate_params(params, data_files=data_files)
 
-def random_search(iterations=30, data_files=None):
-    """随机搜索优化"""
-    if data_files is None:
-        data_files = ['data/sample.in']
-    
-    best_score = float('-inf')
-    best_params = None
-    candidates = []
-    
-    # 生成随机候选参数
-    for _ in range(iterations):
-        params = {}
-        for param, (min_val, max_val) in PARAMS.items():
-            if isinstance(min_val, int):
-                params[param] = random.randint(min_val, max_val)
-            else:
-                params[param] = random.uniform(min_val, max_val)
-        candidates.append(params)
-    
-    # 并行评估所有候选参数
-    with concurrent.futures.ProcessPoolExecutor() as executor:
-        futures = [executor.submit(evaluate_single_params, params, data_files) 
-                  for params in candidates]
-        scores = [future.result() for future in concurrent.futures.as_completed(futures)]
-    
-    # 找出最佳参数
-    for params, score in zip(candidates, scores):
-        if score > best_score:
-            best_score = score
-            best_params = params
-            print(f"新的最佳分数: {best_score}")
-            print(f"参数: {best_params}")
-    
-    return best_params, best_score
-
-def bayesian_optimization(iterations=30, data_files=None):
-    """贝叶斯优化"""
-    if data_files is None:
-        data_files = ['data/sample.in']
-    
-    try:
-        from skopt import gp_minimize
-        from skopt.space import Real, Integer
-    except ImportError:
-        print("请先安装scikit-optimize: pip install scikit-optimize")
-        print("使用命令: pip install scikit-optimize")
-        print("改用随机搜索方法...")
-        return random_search(iterations=iterations, data_files=data_files)
-    
-    # 定义参数空间
-    space = []
-    param_names = []
-    for param, (min_val, max_val) in PARAMS.items():
-        param_names.append(param)
-        if isinstance(min_val, int):
-            space.append(Integer(min_val, max_val))
-        else:
-            space.append(Real(min_val, max_val))
-    
-    def objective(params):
-        param_dict = dict(zip(param_names, params))
-        return -evaluate_params(param_dict, data_files=data_files)  # 负号因为gp_minimize是最小化
-    
-    # 运行贝叶斯优化
-    result = gp_minimize(
-        objective,
-        space,
-        n_calls=iterations,
-        n_random_starts=10,
-        noise=0.1
-    )
-    
-    # 转换结果为参数字典
-    best_params = dict(zip(param_names, result.x))
-    best_score = -result.fun  # 转换回正分数
-    
-    print(f"最佳分数: {best_score}")
-    print(f"最佳参数: {best_params}")
-    
-    return best_params, best_score
-
 def simulated_annealing(iterations=30, data_files=None):
     """模拟退火优化"""
     if data_files is None:
@@ -391,32 +310,9 @@ if __name__ == "__main__":
     print("自动参数调优开始")
     print("可以在多个数据集上测试性能")
     
-    # 询问是否在practice数据集上测试
-    use_practice = input("是否在extra数据集上测试? (y/n): ").lower() == 'y'
-    if use_practice:
-        data_files = ['data/sample_extra.in']
-    else:
-        data_files = ['data/sample.in']
-    
-    print("\n1. 随机搜索")
-    print("2. 贝叶斯优化 (需要安装scikit-optimize)")
-    print("3. 模拟退火")
-    choice = input("请选择优化方法 (1/2/3): ")
-    
-    if choice == "1":
-        iterations = int(input("请输入迭代次数 (默认30): ") or "30")
-        best_params, best_score = random_search(iterations, data_files)
-    elif choice == "2":
-        iterations = int(input("请输入贝叶斯优化迭代次数 (默认30): ") or "30")
-        best_params, best_score = bayesian_optimization(iterations, data_files)
-    elif choice == "3":
-        iterations = int(input("请输入模拟退火迭代次数 (默认30): ") or "30")
-        best_params, best_score = simulated_annealing(iterations, data_files)
-    else:
-        print("无效的选择，使用随机搜索方法")
-        iterations = int(input("请输入迭代次数 (默认30): ") or "30")
-        best_params, best_score = random_search(iterations, data_files)
-    
+    # 询问是否在practice数据集上测试        
+    iterations = int(input("请输入模拟退火迭代次数 (默认30): ") or "30")
+    best_params, best_score = simulated_annealing(iterations, data_files)    
     # 保存最佳参数
     with open('best_params.txt', 'w') as f:
         f.write(f"最佳分数: {best_score}\n")
