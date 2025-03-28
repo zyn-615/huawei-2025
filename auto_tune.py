@@ -35,7 +35,7 @@ REGEX_PATTERNS = {
 }
 
 # 全局变量
-data_files = ['data/sample_extra.in','data/sample_official.in','data/practice.in']
+data_files = ['data/sample_extra.in','data/sample_offical.in','data/practice.in']
 
 def modify_parameters(params):
     """修改code_craft.cpp中的参数"""
