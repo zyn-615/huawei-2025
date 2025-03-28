@@ -39,7 +39,7 @@ const int NUM_PIECE_QUEUE = 50;
 const double TAG_DENSITY_DIVIDE = 2;
 const double UNIT_REQUEST_DIVIDE = 17;
 
-const double DIVIDE_TAG_IN_DISK_VERSION1 = 0.1;
+const double DIVIDE_TAG_IN_DISK_VERSION1 = 0.07;
 int TEST_DENSITY_LEN = 1200;
 
 //这三个量需要调整   需要退火
@@ -52,7 +52,7 @@ const int TEST_READ_TIME = 3;
 const int CUR_REQUEST_DIVIDE = 344;
 const int MIN_TEST_DENSITY_LEN = 370;
 const int JUMP_MORE_TIME = 0;
-const int PRE_DISTRIBUTION_TIME = 25;
+const int PRE_DISTRIBUTION_TIME = 20;
 const double DP_ROUND_TIME = 4;
 
 const int USE_NEW_DISTRIBUTION = 1;
@@ -60,10 +60,10 @@ const int USE_NEW_DISTRIBUTION = 1;
 const int USE_DP = 2;
 const int DP_VERSION1 = 1;
 const int DP_VERSION2 = 2;
-const int MIN_TAG_NUM_IN_DISK = 6;
+const int MIN_TAG_NUM_IN_DISK = 5;
 //int READ_ROUND_TIME = 40; //一轮读取的时间
 const int READ_ROUND_TIME = 3;
-
+const int OVER = 1;
 
 
 struct _Object {
@@ -715,6 +715,7 @@ inline void distribute_tag_in_disk_by_density(int disk_id, int stage)
 
 inline void distribute_tag_in_disk_new_version_1(int stage)
 {
+    std::cerr << "DISK_SIZE  : " << V << std::endl;
     std::vector <int> disk_rest_size(N + 1, V);
     std::vector <int> disk_pos(N);
     std::iota(disk_pos.begin(), disk_pos.end(), 1);
@@ -723,6 +724,12 @@ inline void distribute_tag_in_disk_new_version_1(int stage)
 
     for (int i = 1; i <= M; ++i) {
         int piece_num = std::min(N, std::max(MIN_TAG_NUM_IN_DISK, all_time_max_tag_size[i] / piece_size));
+        
+
+        if (i == 8) {
+            piece_num = 3;
+        }
+        
         int cur_size = max_cur_tag_size[stage][i];
         int std_size = (max_cur_tag_size[stage][i] + piece_num - 1) / piece_num;
 
@@ -767,7 +774,13 @@ inline void distribute_tag_in_disk_new_version_1(int stage)
 
         std::cerr << "nowDisk : ";
         if (i == 1)
-            std::swap(cur_disk.tag_order[4], cur_disk.tag_order[5]);
+            std::swap(cur_disk.tag_order[1], cur_disk.tag_order[2]);
+
+        for (int j = 1; j <= M; ++j) {
+            cur_disk.tag_density[j].init(V);
+            cur_disk.tag_density[j].build();
+        }
+
         for (int j = 1, pre_distribution = 0; j <= tag_num; ++j) {
             int cur_tag = cur_disk.tag_order[j];
             std::cerr << cur_tag << " ";
@@ -1072,6 +1085,10 @@ inline void write_unit(int object_id, int disk_id, int unit_id, int write_pos, i
 
 inline int write_unit_in_disk_strategy_1(int disk_id, int tag)
 {
+    if (!disk[disk_id].tag_distribution_size[tag]) {
+        return disk[disk_id].empty_pos.find_next(1);
+    }
+
     int res = 0;
     if (!disk[disk_id].inner_tag_inverse[tag]) {
         res = disk[disk_id].empty_pos.find_next(disk[disk_id].tag_distribution_pointer[tag]);
@@ -1164,21 +1181,24 @@ void write_action()
             // });
             // std::random_shuffle(pos.begin() + 1, pos.end());
             
+            std::vector <int> vised(N + 1, 0);
             for (int j = 1; j <= REP_NUM; ++j) {
                 int disk_id = pos[now];
-                while (disk[disk_id].tag_distribution_size[tag] == 0 || disk[disk_id].empty_pos.query_rest_unit() < size) {
+                while (disk[disk_id].tag_distribution_size[tag] == 0 || disk[disk_id].empty_pos.query_rest_unit() < size || vised[disk_id]) {
                     disk_id = pos[++now];
                     
                     if (now >= N) {
-                        std::cerr << "tag : " << tag << std::endl;
+                        if (OVER)
+                            assert(false);
+                        // std::cerr << "tag : " << tag << std::endl;
                         for (int k = 0; k < N; ++k) {
                             disk_id = pos[k];
-                            std::cerr << "DISK : " << disk_id << " " << disk[disk_id].tag_distribution_size[tag] << " " << disk[disk_id].empty_pos.query_rest_unit() << std::endl;
+                            // std::cerr << "DISK : " << disk_id << " " << disk[disk_id].tag_distribution_size[tag] << " " << disk[disk_id].empty_pos.query_rest_unit() << std::endl;
                         }
                         
                         for (int k = 0; k < N; ++k) {
                             disk_id = pos[k];
-                            if (disk[disk_id].empty_pos.query_rest_unit() >= size) {
+                            if (disk[disk_id].empty_pos.query_rest_unit() >= size && !vised[disk_id]) {
                                 now = k;
                                 break;
                             }
@@ -1187,7 +1207,7 @@ void write_action()
                         assert(disk[pos[now]].empty_pos.query_rest_unit() >= size);
                         disk_id = pos[now];
 
-                        std::cerr << "FIND pos ->  : " << disk_id << " " << disk[disk_id].empty_pos.query_rest_unit() << std::endl;
+                        // std::cerr << "FIND pos ->  : " << disk_id << " " << disk[disk_id].empty_pos.query_rest_unit() << std::endl;
                         break;
                     }
                     
@@ -1195,6 +1215,7 @@ void write_action()
                 }
 
                 printf("%d ", disk_id);
+                vised[disk_id] = 1;
                 // std::cerr << "disk_id : " << disk_id << " ";
 
                 tag_size_in_disk[tag][disk_id] += size;
