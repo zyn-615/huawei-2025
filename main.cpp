@@ -55,7 +55,7 @@ const int CUR_REQUEST_DIVIDE = 344;
 const int MIN_TEST_DENSITY_LEN = 370;
 const int JUMP_MORE_TIME = 0;
 const int PRE_DISTRIBUTION_TIME = 30;
-const int PRE_PROTECTION_TIME = 20;
+const int PRE_PROTECTION_TIME = 30;
 const double DP_ROUND_TIME = 2;
 const int SKIP_LOW_REQUEST_UNIT_TIME = 2e4; //2e4-4e4
 const int SKIP_LOW_REQUEST_NUM = 20;  // 10-70
@@ -70,7 +70,7 @@ const int MIN_TAG_NUM_IN_DISK = 6;
 //int READ_ROUND_TIME = 40; //一轮读取的时间
 const int READ_ROUND_TIME = 3;
 const int OVER = 1;
-const int USE_NEW_DISTRIBUTION = 2;
+const int USE_NEW_DISTRIBUTION = 1;
 const int DISTRIBUTION_VERSION2 = 2;
 const int DISTRIBUTION_VERSION1 = 1;
 const bool OUPUT_AVERAGE_DIST = true;
@@ -128,8 +128,8 @@ struct Segment_tree_max {
     struct Node {
         int max, pos;
         bool preference_left;
-        Node() {}
-        Node(int _max, int _pos) : max(_max), pos(_pos) {}
+        Node() : preference_left(0) {}
+        Node(int _max, int _pos) : max(_max), pos(_pos), preference_left(0) {}
         friend Node operator + (const Node& x, const int& num) {
             return Node(x.max + num, x.pos);
         }
