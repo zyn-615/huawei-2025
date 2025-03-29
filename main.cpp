@@ -54,8 +54,8 @@ const int TEST_READ_TIME = 3;
 const int CUR_REQUEST_DIVIDE = 344;
 const int MIN_TEST_DENSITY_LEN = 370;
 const int JUMP_MORE_TIME = 0;
-const int PRE_DISTRIBUTION_TIME = 20;
-const int PRE_PROTECTION_TIME = 20;
+const int PRE_DISTRIBUTION_TIME = 30;
+const int PRE_PROTECTION_TIME = 30;
 const double DP_ROUND_TIME = 2;
 const int SKIP_LOW_REQUEST_UNIT_TIME = 2e4; //2e4-4e4
 const int SKIP_LOW_REQUEST_NUM = 20;  // 10-70
@@ -69,8 +69,8 @@ const int DP_VERSION2 = 2;
 const int MIN_TAG_NUM_IN_DISK = 6;
 //int READ_ROUND_TIME = 40; //一轮读取的时间
 const int READ_ROUND_TIME = 3;
-const int OVER = 0;
-const int USE_NEW_DISTRIBUTION = 2;
+const int OVER = 1;
+const int USE_NEW_DISTRIBUTION = 1;
 const int DISTRIBUTION_VERSION2 = 2;
 const int DISTRIBUTION_VERSION1 = 1;
 const bool OUPUT_AVERAGE_DIST = true;
@@ -128,8 +128,8 @@ struct Segment_tree_max {
     struct Node {
         int max, pos;
         bool preference_left;
-        Node() {}
-        Node(int _max, int _pos) : max(_max), pos(_pos) {}
+        Node() : preference_left(0) {}
+        Node(int _max, int _pos) : max(_max), pos(_pos), preference_left(0) {}
         friend Node operator + (const Node& x, const int& num) {
             return Node(x.max + num, x.pos);
         }
@@ -513,6 +513,34 @@ struct DensityManager {
         // std::cerr << "get_prefix_sum end" << std::endl;
 
         return cur_prefix_sum;
+    }
+
+    int find_max_point_pre_version(bool find_mid = false)
+    {
+        int max_point = 1;
+
+        // std::cerr << "find_max_point begin" << std::endl;
+
+        for(int i = 1; i <= V; i++)
+            prefix_sum[i] = prefix_sum[i - 1] + request_num[i];
+
+        // std::cerr << "partial_sum end" << std::endl;
+
+        for (int i = 1; i <= V; i++) {
+            int window_sum = get_prefix_sum(i);
+
+            // std::cerr << "window_sum: " << window_sum << std::endl;
+
+            if (window_sum > get_prefix_sum(max_point)) {
+                max_point = i;
+            }
+        }
+
+        // std::cerr << "find_max_point end" << std::endl;
+
+        if (!find_mid)
+            return get_pre_kth(max_point, window_len);
+        else return get_pre_kth(max_point, window_len / 2);
     }
     
     std::vector<int> find_max_point(bool find_mid = false)
@@ -972,10 +1000,11 @@ inline void distribute_tag_in_disk_new_version_1(int stage)
                 //int mid_pos = pre_distribution + cur_tag_distribution / 2;
                 int lpos = pre_distribution + 1, rpos = pre_distribution + cur_tag_distribution;
                 int midpos = lpos + rpos >> 1;
-                protection_pos[i][cur_tag][0] = std::max((lpos + midpos) / 2, midpos - protection_len[cur_tag] / 2);
-                protection_pos[i][cur_tag][1] = std::min((midpos + rpos) / 2, midpos + protection_len[cur_tag] / 2);
+                protection_pos[i][cur_tag][0] = std::max(lpos + (midpos - lpos) / 4, midpos - protection_len[cur_tag] / 2);
+                protection_pos[i][cur_tag][1] = std::min(rpos - (rpos - midpos) / 4, midpos + protection_len[cur_tag] / 2);
+                assert(1 <= protection_pos[i][cur_tag][0] && protection_pos[i][cur_tag][1] <= V);
                 cur_disk.transformer.cover(protection_pos[i][cur_tag][0], protection_pos[i][cur_tag][1], cur_tag);
-                std::cerr << "protection_len of: " << (protection_pos[i][cur_tag][1] - protection_pos[i][cur_tag][0] + 1) * 100 / (double)(rpos - lpos + 1) << "%" << std::endl;
+                std::cerr << "protection_len: " << protection_pos[i][cur_tag][1] - protection_pos[i][cur_tag][0] + 1 << " " << "of: " << (protection_pos[i][cur_tag][1] - protection_pos[i][cur_tag][0] + 1) * 100 / (double)(rpos - lpos + 1) << "%" << std::endl;
             }
 
             pre_distribution += cur_tag_distribution;
@@ -1418,7 +1447,7 @@ inline int write_unit_in_disk_use_protect_area(int disk_id, int tag)
 {   
     auto& cur_disk = disk[disk_id];
     if (!cur_disk.tag_distribution_size[tag]) {
-        assert(false);
+        // assert(false);
         return cur_disk.transformer.transform_pos_to_out(cur_disk.rest_empty_pos.find_next(1));
     }
 
@@ -2127,7 +2156,12 @@ void read_action(int time)
         // std::cerr << "cur_disk_id: " << cur_disk_id << std::endl;
         DISK &cur_disk = disk[cur_disk_id];
         if (time % random(READ_ROUND_TIME, READ_ROUND_TIME) == 1) {
+            /*
             int p = cur_disk.max_density.find_max_point()[0];
+            int test_p = cur_disk.max_density.find_max_point_pre_version();
+            assert(p == test_p);
+            */
+            int p = cur_disk.max_density.find_max_point_pre_version();
             int ans_p = p == -1? -1: DP_read_without_skip_and_jump(cur_disk, p, TEST_READ_TIME * cur_disk.rest_token, time).first;
             int ans_now = DP_read_without_skip_and_jump(cur_disk, cur_disk.pointer, (TEST_READ_TIME + JUMP_MORE_TIME) * cur_disk.rest_token, time).first;
             /*
