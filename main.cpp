@@ -555,6 +555,11 @@ struct DensityManager {
             }
             max_point.push_back(max_index);
         }
+
+        std::sort(max_point.begin(), max_point.end(),[&](int x,int y)
+        {
+            return window_sum[x] == window_sum[y] ? x < y : window_sum[x] > window_sum[y];
+        });
         
         for(int i = 0; i < max_point.size(); i++)
         {
