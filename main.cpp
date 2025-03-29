@@ -70,7 +70,7 @@ const int MIN_TAG_NUM_IN_DISK = 6;
 //int READ_ROUND_TIME = 40; //一轮读取的时间
 const int READ_ROUND_TIME = 3;
 const int OVER = 1;
-const int USE_NEW_DISTRIBUTION = 1;
+const int USE_NEW_DISTRIBUTION = 2;
 const int DISTRIBUTION_VERSION2 = 2;
 const int DISTRIBUTION_VERSION1 = 1;
 const int MIX_DISTRIBUTION_VERSION = 3;
@@ -1390,7 +1390,7 @@ inline void write_unit(int object_id, int disk_id, int unit_id, int write_pos, i
         auto [l, r, _] = cur_disk.tag_protected_area[cur_tag].get_info();
 
         if (cur_disk.transformer.is_in_protected_area(write_pos, cur_tag)) {
-            std::cerr << "IN_protected_area" << std::endl;
+            // std::cerr << "IN_protected_area" << std::endl;
             cur_disk.tag_protected_area[cur_tag].add(write_pos - l + 1, -1);
         } else {
             assert(cur_disk.transformer.is_in_rest_pos(write_pos));
@@ -1416,21 +1416,34 @@ inline void write_unit(int object_id, int disk_id, int unit_id, int write_pos, i
 
 inline int write_unit_in_disk_strategy_1(int disk_id, int tag)
 {
-    if (USE_NEW_DISTRIBUTION == DISTRIBUTION_VERSION2) {
+    if (USE_NEW_DISTRIBUTION == DISTRIBUTION_VERSION2) 
+    {
         if (!disk[disk_id].tag_distribution_size[tag]) {
             return disk[disk_id].rest_empty_pos.find_next(1);
         }
 
-        int res = 0;
+        int pointer = disk[disk_id].tag_distribution_pointer[tag];
+        
+        if (disk[disk_id].transformer.is_in_rest_pos(pointer)) {
+            pointer = disk[disk_id].transformer.transform_pos_to_rest(pointer);
+        } else {
+            int now_tag = disk[disk_id].transformer.get_pos_tag(pointer);
+            pointer = disk[disk_id].tag_protected_area[now_tag].get_rev_pointer();
+        }
+
         if (!disk[disk_id].inner_tag_inverse[tag]) {
-            res = disk[disk_id].rest_empty_pos.find_next(disk[disk_id].tag_distribution_pointer[tag]);
+            pointer = disk[disk_id].rest_empty_pos.find_next(pointer);
             // to_next_pos(disk[disk_id].tag_distribution_pointer[tag]);
         } else {
-            res = disk[disk_id].rest_empty_pos.find_pre(disk[disk_id].tag_distribution_pointer[tag]);
+            pointer = disk[disk_id].rest_empty_pos.find_pre(pointer);
             // to_pre_pos(disk[disk_id].tag_distribution_pointer[tag]);
         }
 
-        return res;
+        assert(pointer >= 1 && pointer <= disk[disk_id].transformer.Len);
+        pointer = disk[disk_id].transformer.transform_pos_to_out(pointer);
+        
+        assert(disk[disk_id].transformer.is_in_rest_pos(pointer));
+        return pointer;
     }
 
     if (!disk[disk_id].tag_distribution_size[tag]) {
