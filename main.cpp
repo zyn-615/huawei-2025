@@ -58,7 +58,7 @@ const int PRE_DISTRIBUTION_TIME = 30;
 const int PRE_PROTECTION_TIME = 20;
 const double DP_ROUND_TIME = 2;
 const int SKIP_LOW_REQUEST_UNIT_TIME = 2e4; //2e4-4e4
-const int SKIP_LOW_REQUEST_NUM = 10;  // 10-70
+const int SKIP_LOW_REQUEST_NUM = 20;  // 10-70
 
 
 
@@ -158,7 +158,14 @@ struct Segment_tree_max {
         add_tag = std::vector <int> (n << 2, 0);
     }
 
+    inline void push_up(int o) 
+    {
+        seg[o] = std::max(seg[o << 1], seg[o << 1 | 1]);
+    }
+
     void build(int o = 1, int l = 1, int r = V) {
+        seg[o].preference_left = preference_left;
+        add_tag[o] = 0;
         if (l == r) {
             seg[o].max = 0;
             seg[o].pos = l;
@@ -168,7 +175,7 @@ struct Segment_tree_max {
         int mid = l + r >> 1;
         build(o << 1, l, mid);
         build(o << 1 | 1, mid + 1, r);
-        seg[o] = seg[o << 1];
+        push_up(o);
     }
 
     inline void apply(int o, int now_ad) 
@@ -183,11 +190,6 @@ struct Segment_tree_max {
         apply(o << 1, add_tag[o]);
         apply(o << 1 | 1, add_tag[o]);
         add_tag[o] = 0;
-    }
-
-    inline void push_up(int o) 
-    {
-        seg[o] = std::max(seg[o << 1], seg[o << 1 | 1]);
     }
     
     //返回差值，方便后面维护density
@@ -878,13 +880,13 @@ inline void distribute_tag_in_disk_new_version_1(int stage)
         piece_num_per_tag[i] = piece_num;        
 
 
-        if (i == 8) {
-            piece_num = 3;
-        }
+        // if (i == 8) {
+        //     piece_num = 3;
+        // }
 
-        if (i == 12) {
-            piece_num = 3;
-        }
+        // if (i == 12) {
+        //     piece_num = 3;
+        // }
 
         // if (i == 1) {
         //     piece_num = 4;
@@ -975,7 +977,7 @@ inline void distribute_tag_in_disk_new_version_1(int stage)
             std::cerr << cur_tag << " ";
             int rest_unit = V;
 
-            cur_disk.inner_tag_inverse[cur_disk.tag_order[j]] = (1) ? (RAND() & 1) : (j & 1);
+            cur_disk.inner_tag_inverse[cur_disk.tag_order[j]] = RAND() & 1;
             cur_disk.tag_density[cur_tag].preference_left = cur_disk.inner_tag_inverse[cur_tag] ^ 1;
             cur_disk.tag_density[cur_tag].init(V);
             cur_disk.tag_density[cur_tag].build();
@@ -1414,7 +1416,7 @@ inline int write_unit_in_disk_by_density(int disk_id, int tag)
     }
 
     int best_pos = disk[disk_id].tag_density[tag].find_max_point();
-    best_pos = get_nxt_kth(best_pos, WRITE_TEST_DENSITY_LEN / 2);
+    best_pos = get_nxt_kth(best_pos, disk[disk_id].tag_density[tag].window_len / 2);
     int pre_pos = disk[disk_id].empty_pos.find_next(best_pos);
     int nxt_pos = disk[disk_id].empty_pos.find_pre(best_pos);
     if (get_dist(pre_pos, best_pos) <= get_dist(best_pos, nxt_pos))
@@ -1431,7 +1433,7 @@ inline int write_unit_in_disk_by_density_version2(int disk_id, int tag)
 
     int best_pos = disk[disk_id].tag_density[tag].find_max_point();
     if (disk[disk_id].inner_tag_inverse[tag]) {
-        best_pos = get_nxt_kth(best_pos, WRITE_TEST_DENSITY_LEN);
+        best_pos = get_nxt_kth(best_pos, disk[disk_id].tag_density[tag].window_len);
         best_pos = disk[disk_id].empty_pos.find_pre(best_pos);
     } else {
         best_pos = disk[disk_id].empty_pos.find_next(best_pos);
@@ -1492,7 +1494,8 @@ void write_action()
         int now = 0;
         printf("%d\n", id);
 
-        if (USE_NEW_DISTRIBUTION) {
+        if (USE_NEW_DISTRIBUTION) 
+        {
             // std::vector <double> disk_values(MAX_DISK_NUM + 1, 0);
             // for (int j = 1; j <= N; ++j) {
             //     // disk_values[j] = DISK_Write_Heuristic::get_val(disk[j]);
@@ -1505,7 +1508,8 @@ void write_action()
             // std::random_shuffle(pos.begin() + 1, pos.end());
             
             std::vector <int> vised(N + 1, 0);
-            for (int j = 1; j <= REP_NUM; ++j) {
+            for (int j = 1; j <= REP_NUM; ++j) 
+            {
                 int disk_id = pos[now];
 
                 if (USE_NEW_DISTRIBUTION == DISTRIBUTION_VERSION2) {
@@ -1592,6 +1596,7 @@ void write_action()
                     
 
                     // std::cerr << "Nxt : " << nxt << " ";
+                    assert(nxt > 0 && nxt <= V);
                     write_unit(id, disk_id, k, nxt, j);
                     printf("%d ", nxt);
                 }
