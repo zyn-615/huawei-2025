@@ -70,7 +70,7 @@ const int MIN_TAG_NUM_IN_DISK = 6;
 //int READ_ROUND_TIME = 40; //一轮读取的时间
 const int READ_ROUND_TIME = 3;
 const int OVER = 0;
-const int USE_NEW_DISTRIBUTION = 1;
+const int USE_NEW_DISTRIBUTION = 2;
 const int DISTRIBUTION_VERSION2 = 2;
 const int DISTRIBUTION_VERSION1 = 1;
 const bool OUPUT_AVERAGE_DIST = true;
@@ -850,13 +850,13 @@ inline void distribute_tag_in_disk_new_version_1(int stage)
         piece_num_per_tag[i] = piece_num;        
 
 
-        if (i == 8) {
-            piece_num = 3;
-        }
+        // if (i == 8) {
+        //     piece_num = 3;
+        // }
 
-        if (i == 12) {
-            piece_num = 3;
-        }
+        // if (i == 12) {
+        //     piece_num = 3;
+        // }
 
         // if (i == 1) {
         //     piece_num = 4;
@@ -899,16 +899,16 @@ inline void distribute_tag_in_disk_new_version_1(int stage)
     }
 
     /*预设保护区大小*/
-    // if (USE_NEW_DISTRIBUTION == DISTRIBUTION_VERSION2) {
-    //     const int inf = 1e6;
-    //     for (int tag_id = 1; tag_id <= M; ++tag_id) {
-    //         protection_len[tag_id] = inf;
-    //         for (int period = PRE_PROTECTION_TIME; period <= all_stage; ++period) {
-    //             protection_len[tag_id] = std::min(protection_len[tag_id], Info[period][tag_id].sum_object);
-    //         }
-    //         protection_len[tag_id] /= piece_num_per_tag[tag_id];
-    //     }
-    // }
+    if (USE_NEW_DISTRIBUTION == DISTRIBUTION_VERSION2) {
+        const int inf = 1e6;
+        for (int tag_id = 1; tag_id <= M; ++tag_id) {
+            protection_len[tag_id] = inf;
+            for (int period = PRE_PROTECTION_TIME; period <= all_stage; ++period) {
+                protection_len[tag_id] = std::min(protection_len[tag_id], Info[period][tag_id].sum_object);
+            }
+            protection_len[tag_id] /= piece_num_per_tag[tag_id];
+        }
+    }
 
     for (int i = 1; i <= N; ++i) {
         auto& cur_disk = disk[i];
@@ -965,32 +965,32 @@ inline void distribute_tag_in_disk_new_version_1(int stage)
                 cur_disk.tag_distribution_pointer[cur_tag] = pre_distribution + cur_tag_distribution;
             }
 
-            // if (USE_NEW_DISTRIBUTION == DISTRIBUTION_VERSION2) {
-            //     //int mid_pos = pre_distribution + cur_tag_distribution / 2;
-            //     int lpos = pre_distribution + 1, rpos = pre_distribution + cur_tag_distribution;
-            //     int midpos = lpos + rpos >> 1;
-            //     protection_pos[i][cur_tag][0] = std::max((lpos + midpos) / 2, midpos - protection_len[cur_tag] / 2);
-            //     protection_pos[i][cur_tag][1] = std::min((midpos + rpos) / 2, midpos + protection_len[cur_tag] / 2);
-            //     cur_disk.transformer.cover(protection_pos[i][cur_tag][0], protection_pos[i][cur_tag][1], cur_tag);
-            //     std::cerr << "protection_len of: " << (protection_pos[i][cur_tag][1] - protection_pos[i][cur_tag][0] + 1) * 100 / (double)(rpos - lpos + 1) << "%" << std::endl;
-            // }
+            if (USE_NEW_DISTRIBUTION == DISTRIBUTION_VERSION2) {
+                //int mid_pos = pre_distribution + cur_tag_distribution / 2;
+                int lpos = pre_distribution + 1, rpos = pre_distribution + cur_tag_distribution;
+                int midpos = lpos + rpos >> 1;
+                protection_pos[i][cur_tag][0] = std::max((lpos + midpos) / 2, midpos - protection_len[cur_tag] / 2);
+                protection_pos[i][cur_tag][1] = std::min((midpos + rpos) / 2, midpos + protection_len[cur_tag] / 2);
+                cur_disk.transformer.cover(protection_pos[i][cur_tag][0], protection_pos[i][cur_tag][1], cur_tag);
+                std::cerr << "protection_len of: " << (protection_pos[i][cur_tag][1] - protection_pos[i][cur_tag][0] + 1) * 100 / (double)(rpos - lpos + 1) << "%" << std::endl;
+            }
 
             pre_distribution += cur_tag_distribution;
         }
 
         std::cerr << std::endl;
 
-        // if (USE_NEW_DISTRIBUTION == DISTRIBUTION_VERSION2) {
-        //     int rest_size = cur_disk.transformer.build_transformer();
+        if (USE_NEW_DISTRIBUTION == DISTRIBUTION_VERSION2) {
+            int rest_size = cur_disk.transformer.build_transformer();
 
-        //     cur_disk.rest_empty_pos.init(rest_size);
-        //     cur_disk.rest_empty_pos.set_one(1, 1, rest_size);
-        //     for (int j = 1; j <= tag_num; ++j) {
-        //         int cur_tag = cur_disk.tag_order[j];
+            cur_disk.rest_empty_pos.init(rest_size);
+            cur_disk.rest_empty_pos.set_one(1, 1, rest_size);
+            for (int j = 1; j <= tag_num; ++j) {
+                int cur_tag = cur_disk.tag_order[j];
 
-        //         cur_disk.tag_protected_area[cur_tag].init(protection_pos[i][cur_tag][0], protection_pos[i][cur_tag][1], cur_disk.transformer.get_tag_protect_pointer(cur_tag));
-        //     }
-        // }
+                cur_disk.tag_protected_area[cur_tag].init(protection_pos[i][cur_tag][0], protection_pos[i][cur_tag][1], cur_disk.transformer.get_tag_protect_pointer(cur_tag));
+            }
+        }
     }
 }
 
@@ -1385,7 +1385,7 @@ inline int write_unit_in_disk_by_density(int disk_id, int tag)
     }
 
     int best_pos = disk[disk_id].tag_density[tag].find_max_point();
-    best_pos = get_nxt_kth(best_pos, WRITE_TEST_DENSITY_LEN / 2);
+    best_pos = get_nxt_kth(best_pos, disk[disk_id].tag_density[tag].window_len / 2);
     int pre_pos = disk[disk_id].empty_pos.find_next(best_pos);
     int nxt_pos = disk[disk_id].empty_pos.find_pre(best_pos);
     if (get_dist(pre_pos, best_pos) <= get_dist(best_pos, nxt_pos))
@@ -1402,7 +1402,7 @@ inline int write_unit_in_disk_by_density_version2(int disk_id, int tag)
 
     int best_pos = disk[disk_id].tag_density[tag].find_max_point();
     if (disk[disk_id].inner_tag_inverse[tag]) {
-        best_pos = get_nxt_kth(best_pos, WRITE_TEST_DENSITY_LEN);
+        best_pos = get_nxt_kth(best_pos, disk[disk_id].tag_density[tag].window_len);
         best_pos = disk[disk_id].empty_pos.find_pre(best_pos);
     } else {
         best_pos = disk[disk_id].empty_pos.find_next(best_pos);
@@ -1463,7 +1463,8 @@ void write_action()
         int now = 0;
         printf("%d\n", id);
 
-        if (USE_NEW_DISTRIBUTION) {
+        if (USE_NEW_DISTRIBUTION) 
+        {
             // std::vector <double> disk_values(MAX_DISK_NUM + 1, 0);
             // for (int j = 1; j <= N; ++j) {
             //     // disk_values[j] = DISK_Write_Heuristic::get_val(disk[j]);
@@ -1476,7 +1477,8 @@ void write_action()
             // std::random_shuffle(pos.begin() + 1, pos.end());
             
             std::vector <int> vised(N + 1, 0);
-            for (int j = 1; j <= REP_NUM; ++j) {
+            for (int j = 1; j <= REP_NUM; ++j) 
+            {
                 int disk_id = pos[now];
 
                 if (USE_NEW_DISTRIBUTION == DISTRIBUTION_VERSION2) {
