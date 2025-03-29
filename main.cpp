@@ -37,6 +37,7 @@ int DISK_MIN_PASS_DP = 13;
 const int MIN_TOKEN_STOP_DP = 130;
 const int NUM_PIECE_QUEUE = 105;
 const double TAG_DENSITY_DIVIDE = 2;
+const int NUM_MAX_POINT = 20;
 const double UNIT_REQUEST_DIVIDE = 17;
 
 const double DIVIDE_TAG_IN_DISK_VERSION1 = 0.1;
