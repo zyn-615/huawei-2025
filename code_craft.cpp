@@ -43,21 +43,21 @@ int TEST_DENSITY_LEN = 1200;
 
 
 //这三个量需要调整   需要退火
-const int WRITE_TEST_DENSITY_LEN = 82;
-const int WRITE_TAG_DENSITY_DIVIDE = 5;
-const int MIN_TEST_TAG_DENSITY_LEN = 87;
-const double JUMP_MIN = 2.4;
+const int WRITE_TEST_DENSITY_LEN = 45;
+const int WRITE_TAG_DENSITY_DIVIDE = 26;
+const int MIN_TEST_TAG_DENSITY_LEN = 96;
+const double JUMP_MIN = 1.1;
 const int MIN_ROUND_TIME = 2;
-const int TEST_READ_TIME = 3;
-const int CUR_REQUEST_DIVIDE = 344;
-const int MIN_TEST_DENSITY_LEN = 370;
+const int TEST_READ_TIME = 2;
+const int CUR_REQUEST_DIVIDE = 292;
+const int MIN_TEST_DENSITY_LEN = 403;
 const int JUMP_MORE_TIME = 0;
-const int PRE_DISTRIBUTION_TIME = 20;
+const int PRE_DISTRIBUTION_TIME = 27;
 const int PRE_PROTECTION_TIME = 30;
-const double DP_ROUND_TIME = 1.5;
-const int SKIP_LOW_REQUEST_UNIT_TIME = 2e4; //2e4-4e4
-const int NUM_PIECE_QUEUE = 90;
-const int NUM_MAX_POINT = 20;
+const double DP_ROUND_TIME = 3.0;
+const int SKIP_LOW_REQUEST_UNIT_TIME = 20000; //2e4-4e4
+const int NUM_PIECE_QUEUE = 64;
+const int NUM_MAX_POINT = 12;
 
 
 
@@ -812,15 +812,20 @@ inline void distribute_tag_in_disk_front(int disk_id, int stage)
 {
     int rest_unit = disk[disk_id].empty_pos.query_rest_unit() + 10;
     int all_need = 0;
-    std::cerr << "DISTRIBUTION : ";
+    // std::cerr << "DISTRIBUTION : ";
+    // for (int i = 1; i <= M; ++i) {
+    //     std::cerr << max_cur_tag_size[stage][cur_tag] << " ";
+    // }
+    // std::cerr << std::endl;
+    // std::cerr << "ALLNEED : " << all_need << " " << rest_unit << std::endl;
     for (int i = 1; i <= disk[disk_id].tag_num; ++i) {
         int cur_tag = disk[disk_id].tag_order[i];
         all_need += std::max(max_cur_tag_size[stage][cur_tag] / N, 3);
-        std::cerr << max_cur_tag_size[stage][cur_tag] << " ";
+        // std::cerr << max_cur_tag_size[stage][cur_tag] << " ";
     }
 
-    std::cerr << std::endl;
-    std::cerr << "ALLNEED : " << all_need << " " << rest_unit << std::endl;
+    // std::cerr << std::endl;
+    // std::cerr << "ALLNEED : " << all_need << " " << rest_unit << std::endl;
 
     for (int i = 1, pre_distribution = 0; i <= disk[disk_id].tag_num; ++i) {
         int cur_tag = disk[disk_id].tag_order[i];
@@ -851,10 +856,10 @@ inline void distribute_tag_in_disk_mid(int disk_id, int stage)
     for (int i = 1; i <= disk[disk_id].tag_num; ++i) {
         int cur_tag = disk[disk_id].tag_order[i];
         all_need += std::max(max_cur_tag_size[stage][cur_tag] / N, 3);
-        std::cerr << max_cur_tag_size[stage][cur_tag] << " ";
+        // std::cerr << max_cur_tag_size[stage][cur_tag] << " ";
     }
-    std::cerr << std::endl;
-    std::cerr << "ALLNEED : " << all_need << " " << rest_unit << std::endl;
+    // std::cerr << std::endl;
+    // std::cerr << "ALLNEED : " << all_need << " " << rest_unit << std::endl;
 
     for (int i = 1, pre_distribution = 0; i <= disk[disk_id].tag_num; ++i) {
         int cur_tag = disk[disk_id].tag_order[i];
@@ -899,7 +904,7 @@ inline void distribute_tag_in_disk_by_density(int disk_id, int stage)
 
 inline void distribute_tag_in_disk_new_version_1(int stage)
 {
-    std::cerr << "DISK_SIZE  : " << V << std::endl;
+    // std::cerr << "DISK_SIZE  : " << V << std::endl;
     std::vector <int> disk_rest_size(N + 1, V);
     std::vector <int> disk_pos(N);
     std::iota(disk_pos.begin(), disk_pos.end(), 1);
@@ -926,7 +931,7 @@ inline void distribute_tag_in_disk_new_version_1(int stage)
         int cur_size = max_cur_tag_size[stage][i];
         int std_size = (max_cur_tag_size[stage][i] + piece_num - 1) / piece_num;
 
-        std::cerr << "tag : " << i << "    disk_num :  " << piece_num << std::endl;
+        // std::cerr << "tag : " << i << "    disk_num :  " << piece_num << std::endl;
 
         for (int j = 1; j <= piece_num; ++j) {
             int cur_p_size = std::min(cur_size, std_size);
@@ -992,9 +997,9 @@ inline void distribute_tag_in_disk_new_version_1(int stage)
         // });
 
         int all_need = V - disk_rest_size[i];
-        std::cerr << "all_need : " << all_need << std::endl;
+        // std::cerr << "all_need : " << all_need << std::endl;
 
-        std::cerr << "nowDisk : ";
+        // std::cerr << "nowDisk : ";
         // if (i == 1)
             // std::swap(cur_disk.tag_order[1], cur_disk.tag_order[2]);
 
@@ -1006,7 +1011,7 @@ inline void distribute_tag_in_disk_new_version_1(int stage)
 
         for (int j = 1, pre_distribution = 0; j <= tag_num; ++j) {
             int cur_tag = cur_disk.tag_order[j];
-            std::cerr << cur_tag << " ";
+            // std::cerr << cur_tag << " ";
             int rest_unit = V;
 
             cur_disk.inner_tag_inverse[cur_disk.tag_order[j]] = RAND() & 1;
@@ -1041,13 +1046,13 @@ inline void distribute_tag_in_disk_new_version_1(int stage)
                     assert(1 <= protection_pos[i][cur_tag][0] && protection_pos[i][cur_tag][1] <= V);
                 }
                 cur_disk.transformer.cover(protection_pos[i][cur_tag][0], protection_pos[i][cur_tag][1], cur_tag);
-                std::cerr << "protection_len: " << protection_pos[i][cur_tag][1] - protection_pos[i][cur_tag][0] + 1 << " " << "of: " << (protection_pos[i][cur_tag][1] - protection_pos[i][cur_tag][0] + 1) * 100 / (double)(rpos - lpos + 1) << "%" << std::endl;
+                // std::cerr << "protection_len: " << protection_pos[i][cur_tag][1] - protection_pos[i][cur_tag][0] + 1 << " " << "of: " << (protection_pos[i][cur_tag][1] - protection_pos[i][cur_tag][0] + 1) * 100 / (double)(rpos - lpos + 1) << "%" << std::endl;
             }
 
             pre_distribution += cur_tag_distribution;
         }
 
-        std::cerr << std::endl;
+        // std::cerr << std::endl;
 
         if (USE_NEW_DISTRIBUTION == DISTRIBUTION_VERSION2) {
             int rest_size = cur_disk.transformer.build_transformer();
@@ -1093,7 +1098,7 @@ void init()
     }
 
     for (int i = 1; i <= M; ++i) {
-        std::cerr << tag_request_size_density[i] << " \n"[i == M];
+        // std::cerr << tag_request_size_density[i] << " \n"[i == M];
     }
 
     // std::cerr << "HERE : " << std::endl;
@@ -1137,14 +1142,12 @@ void init()
     if (USE_NEW_DISTRIBUTION) {
         for (int i = 1; i <= N; ++i) {
             int all_ = 0;
-            std::cerr << "DISK " << i << " ::   ";
-            for (int j = 1; j <= disk[i].tag_num; ++j) {
-                std::cerr << disk[i].tag_distribution_size[disk[i].tag_order[j]] << " ";
-                all_ += disk[i].tag_distribution_size[disk[i].tag_order[j]];
-            }
-
-            std::cerr << "    all : " << all_ << "   rest : " << V << std::endl;
-            // std::cerr << std::endl;
+            // std::cerr << "DISK " << i << " ::   ";
+            // for (int j = 1; j <= disk[i].tag_num; ++j) {
+            //     std::cerr << disk[i].tag_distribution_size[disk[i].tag_order[j]] << " ";
+            // }
+            // std::cerr << "    all : " << all_ << "   rest : " << V << std::endl;
+            // ... existing code ...
         }
     }
     
@@ -1187,7 +1190,7 @@ inline void reset_disk_window_len(int disk_id)
 inline void output_average_dist(int disk_id)
 {
     auto cur_disk = disk[disk_id];
-    std::cerr << "DISK_ID : " << disk_id << '\n';
+    // std::cerr << "DISK_ID : " << disk_id << '\n';
 
     int tag_num = cur_disk.tag_num;
     for (int i = 1; i <= tag_num; ++i) {
@@ -1210,10 +1213,11 @@ inline void output_average_dist(int disk_id)
             }
         }
 
-        std::cerr << "tag : " << now_tag << "    average_dist :  " << (1.0 * all_dist / now_cnt) << std::endl;
+        // std::cerr << "tag : " << now_tag << "    average_dist :  " << (1.0 * all_dist / now_cnt) << std::endl;
+        // std::cerr << '\n';
     }
 
-    std::cerr << '\n';
+    // std::cerr << '\n';
 }
 
 void timestamp_action()
@@ -1229,8 +1233,8 @@ void timestamp_action()
     //READ_ROUND_TIME = 3;
 
     if (get_now_stage(timestamp) != get_now_stage(timestamp - 1)) {
-        std::cerr << "CER_REQUEST : " << cur_request << std::endl;
-        std::cerr << "DIST : " << go_disk_dist << std::endl;
+        // std::cerr << "CER_REQUEST : " << cur_request << std::endl;
+        // std::cerr << "DIST : " << go_disk_dist << std::endl;
         
         if (get_now_stage(timestamp) % 10 == 0) {
             if (OUPUT_AVERAGE_DIST) {
@@ -1253,7 +1257,7 @@ void timestamp_action()
             }
         } else {
 
-            if (get_now_stage(timestamp) % 3 == 0 && get_now_stage(timestamp) > PRE_DISTRIBUTION_TIME) {
+            if (get_now_stage(timestamp) > PRE_DISTRIBUTION_TIME) {
                for (int i = 1; i <= N; ++i) {
                     reset_disk_window_len(i);
                 } 
@@ -2433,13 +2437,13 @@ int main()
         //std::cerr << "end read_action" <<std::endl;
         //std::cerr << "end time " << t << std::endl;
     }
-    for (int i = 1; i <= N; ++i)
-        std::cerr << "jump_cnt" << "[" << i << "]" << ": " << jump_cnt_tot[i] << std::endl;
+    // for (int i = 1; i <= N; ++i)
+    //     std::cerr << "jump_cnt" << "[" << i << "]" << ": " << jump_cnt_tot[i] << std::endl;
     
-    for (int i = 1; i <= M; ++i) {
-        std::cerr << "tag" << "[" << i << "] solved percent: " << solved_request_per_tag[i] * 100.0 / (double) tot_request_per_tag[i] << "%" << std::endl;
-        std::cerr << "tag" << "[" << i << "] solved percent: " << solved_request_time_per_tag[i] / (double) solved_request_per_tag[i] << std::endl << std::endl;
-    }
+    // for (int i = 1; i <= M; ++i) {
+    //     std::cerr << "tag" << "[" << i << "] solved percent: " << solved_request_per_tag[i] * 100.0 / (double) tot_request_per_tag[i] << "%" << std::endl;
+    //     std::cerr << "tag" << "[" << i << "] solved percent: " << solved_request_time_per_tag[i] / (double) solved_request_per_tag[i] << std::endl << std::endl;
+    // }
     //std::cerr << std::endl;
     return 0;
 }   
