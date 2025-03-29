@@ -99,7 +99,6 @@ int tag_size_in_disk[MAX_TAG_NUM][MAX_DISK_NUM];
 
 _Request requests[MAX_REQUEST_NUM];
 std::queue <_Request> request_queue_in_time_order[MAX_PIECE_QUEUE];
-std::vector<int> time_out_of_queue(MAX_PIECE_QUEUE);
 std::vector<int> request_queue_id(MAX_REQUEST_NUM);
 
 //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!注意，objects加了复数
@@ -473,6 +472,11 @@ struct DensityManager {
         prefix_sum.resize(MAX_DISK_SIZE + 1);
         window_sum.resize(MAX_DISK_SIZE + 1);
     }
+
+    void update_window_len()
+    {
+        window_len = std::min(TEST_DENSITY_LEN, V);
+    }
     
     void add(int pos, int value)
     {
@@ -513,6 +517,12 @@ struct DensityManager {
         return cur_prefix_sum;
     }
     
+    int get_suffix_sum(int pos)
+    {
+        pos = get_nxt_kth(pos, window_len - 1);
+        return get_prefix_sum(pos);
+    }
+
     std::vector<int> find_max_point(bool find_mid = false)
     {
         std::vector<int> max_point;
@@ -528,11 +538,12 @@ struct DensityManager {
             window_sum[i] = get_prefix_sum(i);
             // std::cerr << "window_sum: " << window_sum << std::endl;
         }
-        std::nth_element(window_sum.begin() + 1, window_sum.begin() + K, window_sum.end(), std::greater<int>());
+        std::nth_element(window_sum.begin() + 1, window_sum.begin() + K, window_sum.begin() + V + 1, std::greater<int>());
 
         int bound = window_sum[K];
         for(int i = 1; i <= V; i++)
         {
+            window_sum[i] = get_prefix_sum(i);
             if(window_sum[i] > bound)
                 max_point.push_back(i);
         }
@@ -541,19 +552,48 @@ struct DensityManager {
             if(max_point.size() < K && window_sum[i] == bound)
                 max_point.push_back(i);
         }
+
         std::sort(max_point.begin(), max_point.end(),[&](int x,int y)
         {
-            return window_sum[x] > window_sum[y];
+            return window_sum[x] == window_sum[y] ? x < y : window_sum[x] > window_sum[y];
         });
         // std::cerr << "find_max_point end" << std::endl;
 
         for(int i = 0; i < max_point.size(); i++)
         {
             if (!find_mid)
-                max_point[i] = get_pre_kth(max_point[i], window_len);
-            else max_point[i] = get_pre_kth(max_point[i], window_len / 2);
+                max_point[i] = get_pre_kth(max_point[i], window_len - 1);
+            else max_point[i] = get_pre_kth(max_point[i], window_len / 2 - 1);
         }
         return max_point;
+    }
+
+    int find_max_point_version1(bool find_mid = false)
+    {
+        int max_point = 1;
+
+        // std::cerr << "find_max_point begin" << std::endl;
+
+        for(int i = 1; i <= V; i++)
+            prefix_sum[i] = prefix_sum[i - 1] + request_num[i];
+
+        // std::cerr << "partial_sum end" << std::endl;
+
+        for (int i = 1; i <= V; i++) {
+            int window_sum = get_prefix_sum(i);
+
+            // std::cerr << "window_sum: " << window_sum << std::endl;
+
+            if (window_sum > get_prefix_sum(max_point)) {
+                max_point = i;
+            }
+        }
+
+        // std::cerr << "find_max_point end" << std::endl;
+
+        if (!find_mid)
+            return get_pre_kth(max_point, window_len - 1);
+        else return get_pre_kth(max_point, window_len / 2 - 1);
     }
 };
 
@@ -833,6 +873,9 @@ inline void distribute_tag_in_disk_by_density(int disk_id, int stage)
 
     for (int i = 1; i <= M; ++i) {
         cur_disk.tag_distribution_pointer[i] = tag_density[i].find_max_point()[0];
+
+        assert(tag_density[i].find_max_point()[0] == tag_density[i].find_max_point_version1());
+
     }
 }
 
@@ -997,15 +1040,6 @@ inline void distribute_tag_in_disk_new_version_1(int stage)
 /*预处理操作*/
 void init() 
 {
-    int cur_time_out_of_queue = EXTRA_TIME;
-    int delta_time_out_of_queue = EXTRA_TIME / NUM_PIECE_QUEUE;
-    for(int i = NUM_PIECE_QUEUE; i >= 1; i--)
-    {
-        time_out_of_queue[i] = cur_time_out_of_queue;
-        cur_time_out_of_queue -= delta_time_out_of_queue;
-    }
-
-
     DISK_MIN_PASS = std::min(DISK_MIN_PASS, V - 1);
     for (int i = 1; i <= all_stage; ++i) {
         for (int j = 1; j <= M; ++j) {
@@ -1110,7 +1144,7 @@ inline void reset_disk_window_len(int disk_id)
     int n = cur_disk.tag_num;
     for (int i = 1; i <= n; ++i) {
         int j = cur_disk.tag_order[i];
-
+        cur_disk.max_density.update_window_len();
         cur_disk.tag_density[j].build();
         cur_disk.tag_density[j].window_len = std::max(MIN_TEST_TAG_DENSITY_LEN, int(tag_size_in_disk[j][disk_id] / WRITE_TAG_DENSITY_DIVIDE));
     }
@@ -1163,6 +1197,8 @@ void timestamp_action()
     printf("TIMESTAMP %d\n", timestamp);
 
     TEST_DENSITY_LEN = std::max(cur_request / CUR_REQUEST_DIVIDE, MIN_TEST_DENSITY_LEN);
+    
+    
     //READ_ROUND_TIME = std::max(TEST_DENSITY_LEN / LEN_TIME_DIVIDE, MIN_ROUND_TIME);
     //READ_ROUND_TIME = 3;
 
@@ -1654,7 +1690,7 @@ inline void update_unsolved_request(int request_id, int object_id)
 
         for (int i = 1; i <= REP_NUM; ++i) {
             auto [disk_id, unit_id] = objects[object_id].unit_pos[i][j];
-            add_unit_request(disk_id, unit_id, NUM_PIECE_QUEUE);
+            add_unit_request(disk_id, unit_id, EXTRA_TIME);
         }
     }
 }
@@ -2122,6 +2158,10 @@ void read_action(int time)
         DISK &cur_disk = disk[cur_disk_id];
         if (time % random(READ_ROUND_TIME, READ_ROUND_TIME) == 1) {
             int p = cur_disk.max_density.find_max_point()[0];
+
+            std::vector<int> max_point = cur_disk.max_density.find_max_point();
+            assert(p == cur_disk.max_density.find_max_point_version1());
+
             int ans_p = p == -1? -1: DP_read_without_skip_and_jump(cur_disk, p, TEST_READ_TIME * cur_disk.rest_token, time).first;
             int ans_now = DP_read_without_skip_and_jump(cur_disk, cur_disk.pointer, (TEST_READ_TIME + JUMP_MORE_TIME) * cur_disk.rest_token, time).first;
             /*
@@ -2191,7 +2231,7 @@ void read_action(int time)
 inline void update_request_num(int time) {
     for(int i = 1; i <= NUM_PIECE_QUEUE; i++)
     {
-        while (!request_queue_in_time_order[i].empty() && request_queue_in_time_order[i].front().request_time < time - time_out_of_queue[i]) {
+        while (!request_queue_in_time_order[i].empty() && request_queue_in_time_order[i].front().request_time <= time - i) {
             _Request now_request = request_queue_in_time_order[i].front();
             request_queue_in_time_order[i].pop();
             if(request_rest_unit[now_request.request_id] <= 0) continue;
@@ -2203,10 +2243,13 @@ inline void update_request_num(int time) {
             for (int j = 1; j <= objects[now_request.object_id].size; ++j) {   
                 if(((1 << j) & request_rest_unit_state[now_request.request_id]))
                         continue;
-                for (int i = 1; i <= REP_NUM; ++i) {
-                    auto [disk_id, unit_id] = objects[now_request.object_id].unit_pos[i][j];
-                    // add_unit_request(disk_id, unit_id, -(objects[now_request.object_id].size - request_rest_unit[now_request.request_id] + 1));
+                for (int k = 1; k <= REP_NUM; ++k) {
+                    auto [disk_id, unit_id] = objects[now_request.object_id].unit_pos[k][j];
+                    
                     add_unit_request(disk_id, unit_id, -1);
+                    
+                    if(i == NUM_PIECE_QUEUE)
+                        add_unit_request(disk_id, unit_id, -(EXTRA_TIME - NUM_PIECE_QUEUE));
                 }
             }
         }    
