@@ -35,7 +35,7 @@ const int READ_CNT_STATES = 8; //读入的状态，根据上一次连续read的�
 int DISK_MIN_PASS = 9; //如果超过这个值放弃read pass过去
 int DISK_MIN_PASS_DP = 13;
 const int MIN_TOKEN_STOP_DP = 130;
-const int NUM_PIECE_QUEUE = 105;
+const int NUM_PIECE_QUEUE = 2;
 const double TAG_DENSITY_DIVIDE = 2;
 const double UNIT_REQUEST_DIVIDE = 17;
 
@@ -57,7 +57,7 @@ const int PRE_DISTRIBUTION_TIME = 20;
 const int PRE_PROTECTION_TIME = 20;
 const double DP_ROUND_TIME = 2;
 const int SKIP_LOW_REQUEST_UNIT_TIME = 2e4; //2e4-4e4
-const int SKIP_LOW_REQUEST_NUM = 60;  // 10-70
+const int SKIP_LOW_REQUEST_NUM = 0;  // 10-70
 
 
 
@@ -966,6 +966,7 @@ inline void distribute_tag_in_disk_new_version_1(int stage)
             int rest_size = cur_disk.transformer.build_transformer();
 
             cur_disk.rest_empty_pos.init(rest_size);
+            cur_disk.rest_empty_pos.set_one(1, 1, rest_size);
             for (int j = 1; j <= tag_num; ++j) {
                 int cur_tag = cur_disk.tag_order[j];
 
@@ -1236,10 +1237,10 @@ inline void do_object_delete(int object_id)
                     auto [l, r, _] = disk[disk_id].tag_protected_area[cur_tag].get_info();
                     if (disk[disk_id].transformer.is_in_protected_area(pos, cur_tag)) {
                         pos -= l - 1;
-                        disk[disk_id].tag_protected_area[cur_tag].add(pos, -1);
+                        disk[disk_id].tag_protected_area[cur_tag].add(pos, 1);
                     } else {
                         int pos_in_rest = cur_disk.transformer.transform_pos_to_rest(pos);
-                        cur_disk.rest_empty_pos.add(pos_in_rest, -1);
+                        cur_disk.rest_empty_pos.add(pos_in_rest, 1);
                     }
                 }
             }
@@ -1298,10 +1299,21 @@ inline void write_unit(int object_id, int disk_id, int unit_id, int write_pos, i
 {
     // disk[disk_id].empty_pos.add_unit(1, 1, V, 1);
     disk[disk_id].empty_pos.add(1, 1, V, write_pos, -1);
+    auto& cur_disk = disk[disk_id];
+    int cur_tag = objects[object_id].tag;
     
     if (USE_NEW_DISTRIBUTION == DISTRIBUTION_VERSION2) {
-        ++disk[disk_id].tag_cnt[objects[object_id].tag];
-        disk[disk_id].tag_density[objects[object_id].tag].add_tag_density(write_pos, 1);
+        ++disk[disk_id].tag_cnt[cur_tag];
+        disk[disk_id].tag_density[cur_tag].add_tag_density(write_pos, 1);
+        auto [l, r, _] = cur_disk.tag_protected_area[cur_tag].get_info();
+
+        if (cur_disk.transformer.is_in_protected_area(write_pos, cur_tag)) {
+            // std::cerr << "IN_protected_area" << std::endl;
+            cur_disk.tag_protected_area[cur_tag].add(write_pos - l + 1, -1);
+        } else {
+            int pos_in_rest = cur_disk.transformer.transform_pos_to_rest(write_pos);
+            cur_disk.rest_empty_pos.add(pos_in_rest, -1);
+        }
     }
     
 
@@ -1309,8 +1321,8 @@ inline void write_unit(int object_id, int disk_id, int unit_id, int write_pos, i
         // if (disk[disk_id].tag_distribution_size[objects[object_id].tag] > 0) {
 
         // }
-            ++disk[disk_id].tag_cnt[objects[object_id].tag];
-            disk[disk_id].tag_density[objects[object_id].tag].add_tag_density(write_pos, 1);
+            ++disk[disk_id].tag_cnt[cur_tag];
+            disk[disk_id].tag_density[cur_tag].add_tag_density(write_pos, 1);
             // add_tag_density(disk_id, objects[object_id].tag, write_pos, 1);
         // disk[disk_id].tag_in_disk[].add(write_pos, 1);
     }
@@ -1417,7 +1429,7 @@ void write_action()
     scanf("%d", &n_write);
     // std::cerr << "n_write: " << n_write << std::endl;
     for (int i = 1; i <= n_write; ++i) {
-        std::cerr << "write : "  << i << std::endl;
+        // std::cerr << "write : "  << i << std::endl;
         int id, size, tag;
         scanf("%d %d %d", &id, &size, &tag);
         objects[id].size = size;
@@ -1480,7 +1492,7 @@ void write_action()
 
                 printf("%d ", disk_id);
                 vised[disk_id] = 1;
-                std::cerr << "disk_id : " << disk_id << " ";
+                // std::cerr << "disk_id : " << disk_id << " ";
 
                 tag_size_in_disk[tag][disk_id] += size;
                 for (int k = 1; k <= size; ++k) {
@@ -1500,13 +1512,13 @@ void write_action()
                     }
                     
 
-                    std::cerr << "Nxt : " << nxt << " ";
+                    // std::cerr << "Nxt : " << nxt << " ";
                     write_unit(id, disk_id, k, nxt, j);
                     printf("%d ", nxt);
                 }
 
                 printf("\n");
-                std::cerr << std::endl;
+                // std::cerr << std::endl;
                 ++now;
             }
 
