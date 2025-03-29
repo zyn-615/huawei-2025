@@ -940,7 +940,7 @@ inline void distribute_tag_in_disk_new_version_1(int stage)
             // std::swap(cur_disk.tag_order[1], cur_disk.tag_order[2]);
 
         for (int j = 1; j <= M; ++j) {
-            cur_disk.tag_density[j].preference_left = 0;
+            cur_disk.tag_density[j].preference_left = false;
             cur_disk.tag_density[j].init(V);
             cur_disk.tag_density[j].build();
         }
