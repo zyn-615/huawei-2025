@@ -70,7 +70,7 @@ const int MIN_TAG_NUM_IN_DISK = 6;
 //int READ_ROUND_TIME = 40; //一轮读取的时间
 const int READ_ROUND_TIME = 3;
 const int OVER = 1;
-const int USE_NEW_DISTRIBUTION = 1;
+const int USE_NEW_DISTRIBUTION = 2;
 const int DISTRIBUTION_VERSION2 = 2;
 const int DISTRIBUTION_VERSION1 = 1;
 const int MIX_DISTRIBUTION_VERSION = 3;
@@ -1477,7 +1477,7 @@ inline int write_unit_in_disk_by_density_version2(int disk_id, int tag)
             best_pos = get_nxt_kth(best_pos, disk[disk_id].tag_density[tag].window_len);
         } 
         
-        if (disk[disk_id].transformer.is_in_rest_pos(best_pos)) {
+        if (!disk[disk_id].transformer.is_in_rest_pos(best_pos)) {
             int now_tag = disk[disk_id].transformer.get_pos_tag(best_pos);
             best_pos = disk[disk_id].tag_protected_area[now_tag].get_rev_pointer();  
         } else {
@@ -1642,7 +1642,7 @@ void write_action()
                 for (int k = 1; k <= size; ++k) {
                     int nxt = 0;
 
-                    if (!disk[disk_id].tag_protected_area[tag].empty() && USE_NEW_DISTRIBUTION > 1) {
+                    if (!disk[disk_id].tag_protected_area[tag].empty()) {
                         // std::cerr << "Have " << std::endl;
                         nxt = write_unit_in_disk_use_protect_area(disk_id, tag);
                     } else {
