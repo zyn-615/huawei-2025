@@ -2245,7 +2245,7 @@ void read_action(int time)
             //assert(p == cur_disk.max_density.find_max_point_version1());
             //int ans_p = p == -1? -1: DP_read_without_skip_and_jump(cur_disk, p, TEST_READ_TIME * cur_disk.rest_token, time).first;
             int ans_now = DP_read_without_skip_and_jump(cur_disk, cur_disk.pointer, (TEST_READ_TIME + JUMP_MORE_TIME) * cur_disk.rest_token, time).first;
-            std::cerr << "start dp" << std::endl;
+            //std::cerr << "start dp" << std::endl;
             /*
             if (cur_disk.max_density.get(p) * JUMP_VISCOSITY <= cur_disk.max_density.get(cur_disk.pointer))
                 p = cur_disk.pointer;
@@ -2384,26 +2384,26 @@ int main()
         now_stage = get_now_stage(t);
         update_request_num(t);
 
-         std::cerr << "start time " << t << std::endl;
-         std::cerr << "start timestamp_action" <<std::endl;
+        //std::cerr << "start time " << t << std::endl;
+        //std::cerr << "start timestamp_action" <<std::endl;
 
         timestamp_action();
 
-         std::cerr << "end timestamp_action" <<std::endl;
-         std::cerr << "start delete_action" <<std::endl;
+        //std::cerr << "end timestamp_action" <<std::endl;
+        //std::cerr << "start delete_action" <<std::endl;
         delete_action();
 
-         std::cerr << "end delete_action" <<std::endl;
-         std::cerr << "start write_action" <<std::endl;
+        //std::cerr << "end delete_action" <<std::endl;
+        //std::cerr << "start write_action" <<std::endl;
 
         write_action();
 
-         std::cerr << "end write_action" <<std::endl;
-         std::cerr << "start read_action" <<std::endl;
+        //std::cerr << "end write_action" <<std::endl;
+        //std::cerr << "start read_action" <<std::endl;
         read_action(t);
 
-         std::cerr << "end read_action" <<std::endl;
-         std::cerr << "end time " << t << std::endl;
+        //std::cerr << "end read_action" <<std::endl;
+        //std::cerr << "end time " << t << std::endl;
     }
     for (int i = 1; i <= N; ++i)
         std::cerr << "jump_cnt" << "[" << i << "]" << ": " << jump_cnt_tot[i] << std::endl;
