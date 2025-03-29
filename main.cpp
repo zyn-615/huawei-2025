@@ -2230,7 +2230,6 @@ void read_action(int time)
         // std::cerr << "cur_disk_id: " << cur_disk_id << std::endl;
         DISK &cur_disk = disk[cur_disk_id];
         if (time % random(READ_ROUND_TIME, READ_ROUND_TIME) == 1) {
-            /*
             int p = cur_disk.max_density.find_max_point()[0];
 
             std::vector<int> max_point = cur_disk.max_density.find_max_point();
