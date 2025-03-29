@@ -532,7 +532,7 @@ struct DensityManager {
         std::vector<int> max_point;
         int K = std::min(V, NUM_MAX_POINT);
         // std::cerr << "find_max_point begin" << std::endl;
-
+        
         for(int i = 1; i <= V; i++)
             prefix_sum[i] = prefix_sum[i - 1] + request_num[i];
 
@@ -542,27 +542,20 @@ struct DensityManager {
             window_sum[i] = get_prefix_sum(i);
             // std::cerr << "window_sum: " << window_sum << std::endl;
         }
-        std::nth_element(window_sum.begin() + 1, window_sum.begin() + K, window_sum.begin() + V + 1, std::greater<int>());
 
-        int bound = window_sum[K];
-        for(int i = 1; i <= V; i++)
-        {
-            window_sum[i] = get_prefix_sum(i);
-            if(window_sum[i] > bound)
-                max_point.push_back(i);
+        int block_size = V / NUM_MAX_POINT;
+        for (int i = 0; i < NUM_MAX_POINT; ++i) {
+            int start = i * block_size + 1;
+            int end = (i == NUM_MAX_POINT - 1) ? V : (i + 1) * block_size;
+            int max_index = start;
+            for (int j = start; j <= end; ++j) {
+                if (window_sum[j] > window_sum[max_index]) {
+                    max_index = j;
+                }
+            }
+            max_point.push_back(max_index);
         }
-        for(int i = 1; i <= V; i++)
-        {
-            if(max_point.size() < K && window_sum[i] == bound)
-                max_point.push_back(i);
-        }
-
-        std::sort(max_point.begin(), max_point.end(),[&](int x,int y)
-        {
-            return window_sum[x] == window_sum[y] ? x < y : window_sum[x] > window_sum[y];
-        });
-        // std::cerr << "find_max_point end" << std::endl;
-
+        
         for(int i = 0; i < max_point.size(); i++)
         {
             if (!find_mid)
