@@ -850,13 +850,13 @@ inline void distribute_tag_in_disk_new_version_1(int stage)
         piece_num_per_tag[i] = piece_num;        
 
 
-        // if (i == 8) {
-        //     piece_num = 3;
-        // }
+        if (i == 8) {
+            piece_num = 3;
+        }
 
-        // if (i == 12) {
-        //     piece_num = 3;
-        // }
+        if (i == 12) {
+            piece_num = 3;
+        }
 
         // if (i == 1) {
         //     piece_num = 4;
@@ -1481,36 +1481,63 @@ void write_action()
 
                 if (USE_NEW_DISTRIBUTION == DISTRIBUTION_VERSION2) {
 
-                }
+                    while (disk[disk_id].tag_distribution_size[tag] == 0 || disk[disk_id].rest_empty_pos.query_rest_unit() + disk[disk_id].tag_protected_area[tag].query_rest_unit() < size || vised[disk_id]) 
+                    {
+                        disk_id = pos[++now];
 
-                while (disk[disk_id].tag_distribution_size[tag] == 0 || disk[disk_id].empty_pos.query_rest_unit() < size || vised[disk_id]) {
-                    disk_id = pos[++now];
-                    
-                    if (now >= N) {
-                        if (!OVER)
-                            assert(false);
-                        // std::cerr << "tag : " << tag << std::endl;
-                        for (int k = 0; k < N; ++k) {
-                            disk_id = pos[k];
-                            // std::cerr << "DISK : " << disk_id << " " << disk[disk_id].tag_distribution_size[tag] << " " << disk[disk_id].empty_pos.query_rest_unit() << std::endl;
+                        if (now >= N) 
+                        {
+                            if (!OVER)
+                                assert(false);
+                            
+                            for (int k = 0; k < N; ++k) 
+                            {
+                                disk_id = pos[k];
+                                if (disk[disk_id].rest_empty_pos.query_rest_unit() + (disk[disk_id].tag_distribution_size[tag] > 0 ? disk[disk_id].tag_protected_area[tag].query_rest_unit() : 0) >= size && !vised[disk_id])
+                                {
+                                    now = k;
+                                    break;
+                                }
+                            }
+
+                            assert(now < N);
+                            disk_id = pos[now];
+                            break;
+                        }
+
+                        assert(now < N);
+                    }
+
+                } else {
+                    while (disk[disk_id].tag_distribution_size[tag] == 0 || disk[disk_id].empty_pos.query_rest_unit() < size || vised[disk_id]) {
+                        disk_id = pos[++now];
+                        
+                        if (now >= N) {
+                            if (!OVER)
+                                assert(false);
+                            // std::cerr << "tag : " << tag << std::endl;
+                            for (int k = 0; k < N; ++k) {
+                                disk_id = pos[k];
+                                // std::cerr << "DISK : " << disk_id << " " << disk[disk_id].tag_distribution_size[tag] << " " << disk[disk_id].empty_pos.query_rest_unit() << std::endl;
+                            }
+                            
+                            for (int k = 0; k < N; ++k) {
+                                disk_id = pos[k];
+                                if (disk[disk_id].empty_pos.query_rest_unit() >= size && !vised[disk_id]) {
+                                    now = k;
+                                    break;
+                                }
+                            }
+
+                            assert(disk[pos[now]].empty_pos.query_rest_unit() >= size);
+                            disk_id = pos[now];
+
+                            // std::cerr << "FIND pos ->  : " << disk_id << " " << disk[disk_id].empty_pos.query_rest_unit() << std::endl;
+                            break;
                         }
                         
-                        for (int k = 0; k < N; ++k) {
-                            disk_id = pos[k];
-                            if (disk[disk_id].empty_pos.query_rest_unit() >= size && !vised[disk_id]) {
-                                now = k;
-                                break;
-                            }
-                        }
-
-                        assert(disk[pos[now]].empty_pos.query_rest_unit() >= size);
-                        disk_id = pos[now];
-
-                        // std::cerr << "FIND pos ->  : " << disk_id << " " << disk[disk_id].empty_pos.query_rest_unit() << std::endl;
-                        break;
+                        assert(now < N);
                     }
-                    
-                    assert(now < N);
                 }
 
                 printf("%d ", disk_id);
