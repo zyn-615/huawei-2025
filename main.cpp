@@ -158,7 +158,14 @@ struct Segment_tree_max {
         add_tag = std::vector <int> (n << 2, 0);
     }
 
+    inline void push_up(int o) 
+    {
+        seg[o] = std::max(seg[o << 1], seg[o << 1 | 1]);
+    }
+
     void build(int o = 1, int l = 1, int r = V) {
+        seg[o].preference_left = preference_left;
+        add_tag[o] = 0;
         if (l == r) {
             seg[o].max = 0;
             seg[o].pos = l;
@@ -168,7 +175,7 @@ struct Segment_tree_max {
         int mid = l + r >> 1;
         build(o << 1, l, mid);
         build(o << 1 | 1, mid + 1, r);
-        seg[o] = seg[o << 1];
+        push_up(o);
     }
 
     inline void apply(int o, int now_ad) 
@@ -183,11 +190,6 @@ struct Segment_tree_max {
         apply(o << 1, add_tag[o]);
         apply(o << 1 | 1, add_tag[o]);
         add_tag[o] = 0;
-    }
-
-    inline void push_up(int o) 
-    {
-        seg[o] = std::max(seg[o << 1], seg[o << 1 | 1]);
     }
     
     //返回差值，方便后面维护density
@@ -1565,6 +1567,7 @@ void write_action()
                     
 
                     // std::cerr << "Nxt : " << nxt << " ";
+                    assert(nxt > 0 && nxt <= V);
                     write_unit(id, disk_id, k, nxt, j);
                     printf("%d ", nxt);
                 }
