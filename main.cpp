@@ -1248,7 +1248,7 @@ inline void do_object_delete(int object_id)
             disk[disk_id].empty_pos.delete_unit(1, 1, V, pos);
 
             if (USE_NEW_DISTRIBUTION) {
-                disk[disk_id].tag_density[cur_tag].add(pos, -1);
+                disk[disk_id].tag_density[cur_tag].add_tag_density(pos, -1);
                 // add_tag_density(disk_id, cur_tag, pos, -1);
 
                 if (USE_NEW_DISTRIBUTION == DISTRIBUTION_VERSION2) {
