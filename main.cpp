@@ -69,8 +69,8 @@ const int DP_VERSION2 = 2;
 const int MIN_TAG_NUM_IN_DISK = 6;
 //int READ_ROUND_TIME = 40; //一轮读取的时间
 const int READ_ROUND_TIME = 3;
-const int OVER = 0;
-const int USE_NEW_DISTRIBUTION = 1;
+const int OVER = 1;
+const int USE_NEW_DISTRIBUTION = 2;
 const int DISTRIBUTION_VERSION2 = 2;
 const int DISTRIBUTION_VERSION1 = 1;
 const bool OUPUT_AVERAGE_DIST = true;
@@ -511,6 +511,34 @@ struct DensityManager {
         // std::cerr << "get_prefix_sum end" << std::endl;
 
         return cur_prefix_sum;
+    }
+
+    int find_max_point_pre_version(bool find_mid = false)
+    {
+        int max_point = 1;
+
+        // std::cerr << "find_max_point begin" << std::endl;
+
+        for(int i = 1; i <= V; i++)
+            prefix_sum[i] = prefix_sum[i - 1] + request_num[i];
+
+        // std::cerr << "partial_sum end" << std::endl;
+
+        for (int i = 1; i <= V; i++) {
+            int window_sum = get_prefix_sum(i);
+
+            // std::cerr << "window_sum: " << window_sum << std::endl;
+
+            if (window_sum > get_prefix_sum(max_point)) {
+                max_point = i;
+            }
+        }
+
+        // std::cerr << "find_max_point end" << std::endl;
+
+        if (!find_mid)
+            return get_pre_kth(max_point, window_len);
+        else return get_pre_kth(max_point, window_len / 2);
     }
     
     std::vector<int> find_max_point(bool find_mid = false)
@@ -1416,7 +1444,7 @@ inline int write_unit_in_disk_use_protect_area(int disk_id, int tag)
 {   
     auto& cur_disk = disk[disk_id];
     if (!cur_disk.tag_distribution_size[tag]) {
-        assert(false);
+        // assert(false);
         return cur_disk.transformer.transform_pos_to_out(cur_disk.rest_empty_pos.find_next(1));
     }
 
@@ -2122,7 +2150,12 @@ void read_action(int time)
         // std::cerr << "cur_disk_id: " << cur_disk_id << std::endl;
         DISK &cur_disk = disk[cur_disk_id];
         if (time % random(READ_ROUND_TIME, READ_ROUND_TIME) == 1) {
+            /*
             int p = cur_disk.max_density.find_max_point()[0];
+            int test_p = cur_disk.max_density.find_max_point_pre_version();
+            assert(p == test_p);
+            */
+            int p = cur_disk.max_density.find_max_point_pre_version();
             int ans_p = p == -1? -1: DP_read_without_skip_and_jump(cur_disk, p, TEST_READ_TIME * cur_disk.rest_token, time).first;
             int ans_now = DP_read_without_skip_and_jump(cur_disk, cur_disk.pointer, (TEST_READ_TIME + JUMP_MORE_TIME) * cur_disk.rest_token, time).first;
             /*
