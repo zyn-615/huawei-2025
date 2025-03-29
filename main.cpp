@@ -2301,13 +2301,18 @@ void read_action(int time)
 }
 
 inline void update_request_num(int time) {
-    for(int i = 1; i <= NUM_PIECE_QUEUE; i++)
+
+    int NORMAL_NUM_QUEUE = EXTRA_TIME;
+    if(time > SKIP_LOW_REQUEST_UNIT_TIME)
+        NORMAL_NUM_QUEUE = NUM_PIECE_QUEUE;
+
+    for(int i = 1; i <= NORMAL_NUM_QUEUE; i++)
     {
         while (!request_queue_in_time_order[i].empty() && request_queue_in_time_order[i].front().request_time <= time - i) {
             _Request now_request = request_queue_in_time_order[i].front();
             request_queue_in_time_order[i].pop();
             if(request_rest_unit[now_request.request_id] <= 0) continue;
-            if(i < NUM_PIECE_QUEUE)
+            if(i < NORMAL_NUM_QUEUE)
             {
                 request_queue_in_time_order[i + 1].push(now_request);
                 request_queue_id[now_request.request_id] = i + 1;
@@ -2317,11 +2322,24 @@ inline void update_request_num(int time) {
                         continue;
                 for (int k = 1; k <= REP_NUM; ++k) {
                     auto [disk_id, unit_id] = objects[now_request.object_id].unit_pos[k][j];
-                    
                     add_unit_request(disk_id, unit_id, -1);
-                    
-                    if(i == NUM_PIECE_QUEUE)
-                        add_unit_request(disk_id, unit_id, -(EXTRA_TIME - NUM_PIECE_QUEUE));
+                }
+            }
+        }    
+    }
+
+    for(int i = NORMAL_NUM_QUEUE + 1; i <= EXTRA_TIME; i++)
+    {
+        while (!request_queue_in_time_order[i].empty() && request_queue_in_time_order[i].front().request_time <= time - i) {
+            _Request now_request = request_queue_in_time_order[i].front();
+            request_queue_in_time_order[i].pop();
+            if(request_rest_unit[now_request.request_id] <= 0) continue;
+            for (int j = 1; j <= objects[now_request.object_id].size; ++j) {   
+                if(((1 << j) & request_rest_unit_state[now_request.request_id]))
+                        continue;
+                for (int k = 1; k <= REP_NUM; ++k) {
+                    auto [disk_id, unit_id] = objects[now_request.object_id].unit_pos[k][j];
+                    add_unit_request(disk_id, unit_id, -(EXTRA_TIME - i + 1));
                 }
             }
         }    

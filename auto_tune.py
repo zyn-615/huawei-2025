@@ -10,17 +10,20 @@ import json
 
 # 定义需要调整的参数及其范围
 PARAMS = {
-    'WRITE_TEST_DENSITY_LEN': (20, 400),     # 当前值：32
-    'WRITE_TAG_DENSITY_DIVIDE': (10, 40),   # 当前值：29
-    'MIN_TEST_TAG_DENSITY_LEN': (50, 400),   # 当前值：67
-    'JUMP_MIN': (1.0, 3.5),                 # 当前值：1.7
-    'MIN_ROUND_TIME': (1, 5),               # 当前值：2
-    'TEST_READ_TIME': (1, 5),               # 当前值：3
-    'CUR_REQUEST_DIVIDE': (100, 600),       # 当前值：344
-    'MIN_TEST_DENSITY_LEN': (200, 800),     # 当前值：370
-    'PRE_DISTRIBUTION_TIME': (15, 35),      # 当前值：25
-    'DP_ROUND_TIME': (1.1, 5),                # 当前值：4
-    'SKIP_LOW_REQUEST_NUM': (10, 70)        # 当前值：50
+    'WRITE_TEST_DENSITY_LEN': (20, 60),      # 当前值：32
+    'WRITE_TAG_DENSITY_DIVIDE': (15, 40),    # 当前值：29
+    'MIN_TEST_TAG_DENSITY_LEN': (40, 100),   # 当前值：67
+    'JUMP_MIN': (1.5, 3.5),                  # 当前值：2.4
+    'MIN_ROUND_TIME': (1, 5),                # 当前值：2
+    'TEST_READ_TIME': (1, 5),                # 当前值：3
+    'CUR_REQUEST_DIVIDE': (200, 500),        # 当前值：344
+    'MIN_TEST_DENSITY_LEN': (250, 500),      # 当前值：370
+    'JUMP_MORE_TIME': (0, 3),                # 当前值：0
+    'PRE_DISTRIBUTION_TIME': (10, 30),       # 当前值：20
+    'PRE_PROTECTION_TIME': (20, 40),         # 当前值：30
+    'DP_ROUND_TIME': (2.0, 6.0),             # 当前值：4
+    'SKIP_LOW_REQUEST_UNIT_TIME': (10000, 30000),  # 当前值：20000 (2e4)
+    'SKIP_LOW_REQUEST_NUM': (10, 70)         # 当前值：30
 }
 
 # 定义正则表达式模式
@@ -33,8 +36,11 @@ REGEX_PATTERNS = {
     'TEST_READ_TIME': r'(const\s+int\s+TEST_READ_TIME\s*=\s*)([0-9]+)',
     'CUR_REQUEST_DIVIDE': r'(const\s+int\s+CUR_REQUEST_DIVIDE\s*=\s*)([0-9]+)',
     'MIN_TEST_DENSITY_LEN': r'(const\s+int\s+MIN_TEST_DENSITY_LEN\s*=\s*)([0-9]+)',
+    'JUMP_MORE_TIME': r'(const\s+int\s+JUMP_MORE_TIME\s*=\s*)([0-9]+)',
     'PRE_DISTRIBUTION_TIME': r'(const\s+int\s+PRE_DISTRIBUTION_TIME\s*=\s*)([0-9]+)',
+    'PRE_PROTECTION_TIME': r'(const\s+int\s+PRE_PROTECTION_TIME\s*=\s*)([0-9]+)',
     'DP_ROUND_TIME': r'(const\s+double\s+DP_ROUND_TIME\s*=\s*)([0-9.]+)',
+    'SKIP_LOW_REQUEST_UNIT_TIME': r'(const\s+int\s+SKIP_LOW_REQUEST_UNIT_TIME\s*=\s*)([0-9e]+)',
     'SKIP_LOW_REQUEST_NUM': r'(const\s+int\s+SKIP_LOW_REQUEST_NUM\s*=\s*)([0-9]+)'
 }
 
