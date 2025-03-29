@@ -2234,6 +2234,7 @@ void read_action(int time)
             //first ans second point
             std::pair<int, int> res = std::make_pair(-1, -1);
             std::vector<int> max_point = cur_disk.max_density.find_max_point();
+            max_point.resize(1);
             for (auto p : max_point) {
                 int ans_p = DP_read_without_skip_and_jump(cur_disk, p, TEST_READ_TIME * cur_disk.rest_token, time).first;
                 if (res.first < ans_p) {
