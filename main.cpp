@@ -32,10 +32,10 @@
 const double JUMP_VISCOSITY = 0.9;
 const int LEN_TIME_DIVIDE = 40;
 const int READ_CNT_STATES = 8; //读入的状态，根据上一次连续read的个数确定
-int DISK_MIN_PASS = 9; //如果超过这个值放弃read pass过去
+int DISK_MIN_PASS = 15; //如果超过这个值放弃read pass过去
 int DISK_MIN_PASS_DP = 13;
 const int MIN_TOKEN_STOP_DP = 130;
-const int NUM_PIECE_QUEUE = 105;
+const int NUM_PIECE_QUEUE = 90;
 const double TAG_DENSITY_DIVIDE = 2;
 const int NUM_MAX_POINT = 20;
 const double UNIT_REQUEST_DIVIDE = 17;
@@ -45,9 +45,9 @@ int TEST_DENSITY_LEN = 1200;
 
 
 //这三个量需要调整   需要退火
-const int WRITE_TEST_DENSITY_LEN = 32;
-const int WRITE_TAG_DENSITY_DIVIDE = 29;
-const int MIN_TEST_TAG_DENSITY_LEN = 67;
+const int WRITE_TEST_DENSITY_LEN = 82;
+const int WRITE_TAG_DENSITY_DIVIDE = 5;
+const int MIN_TEST_TAG_DENSITY_LEN = 87;
 const double JUMP_MIN = 2.4;
 const int MIN_ROUND_TIME = 2;
 const int TEST_READ_TIME = 3;
@@ -56,7 +56,7 @@ const int MIN_TEST_DENSITY_LEN = 370;
 const int JUMP_MORE_TIME = 0;
 const int PRE_DISTRIBUTION_TIME = 20;
 const int PRE_PROTECTION_TIME = 30;
-const double DP_ROUND_TIME = 4;
+const double DP_ROUND_TIME = 1.5;
 const int SKIP_LOW_REQUEST_UNIT_TIME = 2e4; //2e4-4e4
 const int SKIP_LOW_REQUEST_NUM = 30;  // 10-70
 
@@ -70,7 +70,7 @@ const int MIN_TAG_NUM_IN_DISK = 6;
 //int READ_ROUND_TIME = 40; //一轮读取的时间
 const int READ_ROUND_TIME = 3;
 const int OVER = 1;
-const int USE_NEW_DISTRIBUTION = 2;
+const int USE_NEW_DISTRIBUTION = 1;
 const int DISTRIBUTION_VERSION2 = 2;
 const int DISTRIBUTION_VERSION1 = 1;
 const int MIX_DISTRIBUTION_VERSION = 3;
@@ -1033,11 +1033,11 @@ inline void distribute_tag_in_disk_new_version_1(int stage)
                 int lpos = pre_distribution + 1, rpos = pre_distribution + cur_tag_distribution;
                 int midpos = lpos + rpos >> 1;
                 protection_pos[i][cur_tag][0] = std::max(lpos + (midpos - lpos) / 4, midpos - protection_len[cur_tag] / 2);
-                if (cur_tag != 3 && cur_tag != 15 && cur_tag != 16) {
+                if (false) {
                     protection_pos[i][cur_tag][1] = protection_pos[i][cur_tag][0] - 1;
                 }
                 else {
-                    assert(cur_tag == 3 || cur_tag == 15 || cur_tag == 16);
+                    // assert(cur_tag == 3 || cur_tag == 15 || cur_tag == 16);
                     protection_pos[i][cur_tag][1] = std::min(rpos - (rpos - midpos) / 4, midpos + protection_len[cur_tag] / 2);
                     assert(1 <= protection_pos[i][cur_tag][0] && protection_pos[i][cur_tag][1] <= V);
                 }
