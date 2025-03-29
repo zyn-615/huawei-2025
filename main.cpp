@@ -41,6 +41,7 @@ const double UNIT_REQUEST_DIVIDE = 17;
 
 const double DIVIDE_TAG_IN_DISK_VERSION1 = 0.1;
 int TEST_DENSITY_LEN = 1200;
+const int NUM_MAX_POINT = 20;
 
 
 //这三个量需要调整   需要退火
@@ -449,6 +450,7 @@ struct Segment_tree_add {
 struct DensityManager {
     std::vector<int> request_num;
     std::vector<int> prefix_sum;
+    std::vector<int> window_sum;
     int window_len;
     
     //传入TEST_DENSITY_LEN并初始化
@@ -457,6 +459,7 @@ struct DensityManager {
         window_len =  std::min(len, V);
         request_num.resize(MAX_DISK_SIZE + 1);
         prefix_sum.resize(MAX_DISK_SIZE + 1);
+        window_sum.resize(MAX_DISK_SIZE + 1);
     }
     
     void add(int pos, int value)
@@ -498,10 +501,10 @@ struct DensityManager {
         return cur_prefix_sum;
     }
     
-    int find_max_point(bool find_mid = false)
+    std::vector<int> find_max_point(bool find_mid = false)
     {
-        int max_point = 1;
-
+        std::vector<int> max_point;
+        int K = std::min(V, NUM_MAX_POINT);
         // std::cerr << "find_max_point begin" << std::endl;
 
         for(int i = 1; i <= V; i++)
@@ -510,20 +513,36 @@ struct DensityManager {
         // std::cerr << "partial_sum end" << std::endl;
 
         for (int i = 1; i <= V; i++) {
-            int window_sum = get_prefix_sum(i);
-
+            window_sum[i] = get_prefix_sum(i);
             // std::cerr << "window_sum: " << window_sum << std::endl;
-
-            if (window_sum > get_prefix_sum(max_point)) {
-                max_point = i;
-            }
         }
+        std::nth_element(window_sum.begin() + 1, window_sum.begin() + K, window_sum.end(), std::greater<int>());
 
+        int bound = window_sum[K];
+        for(int i = 1; i <= V; i++)
+        {
+            if(window_sum[i] > bound)
+                max_point.push_back(i);
+        }
+        for(int i = 1; i <= V; i++)
+        {
+            if(max_point.size() < K && window_sum[i] == bound)
+                max_point.push_back(i);
+        }
+        std::sort(max_point.begin(), max_point.end(),[&](int x,int y)
+        {
+            return window_sum[x] > window_sum[y];
+        });
         // std::cerr << "find_max_point end" << std::endl;
 
-        if (!find_mid)
-            return get_pre_kth(max_point, window_len);
-        else return get_pre_kth(max_point, window_len / 2);
+        for(int i = 0; i < max_point.size(); i++)
+        {
+            if (!find_mid)
+                max_point[i] = get_pre_kth(max_point[i], window_len);
+            else 
+                max_point[i] = get_pre_kth(max_point[i], window_len / 2);
+        }
+        return max_point;
     }
 };
 struct DISK {
@@ -718,7 +737,7 @@ inline void distribute_tag_in_disk_by_density(int disk_id, int stage)
     }
 
     for (int i = 1; i <= M; ++i) {
-        cur_disk.tag_distribution_pointer[i] = tag_density[i].find_max_point();
+        cur_disk.tag_distribution_pointer[i] = tag_density[i].find_max_point()[0];
     }
 }
 
@@ -1827,7 +1846,7 @@ void read_action(int time)
         // std::cerr << "cur_disk_id: " << cur_disk_id << std::endl;
         DISK &cur_disk = disk[cur_disk_id];
         if (time % random(READ_ROUND_TIME, READ_ROUND_TIME) == 1) {
-            int p = cur_disk.max_density.find_max_point();
+            int p = cur_disk.max_density.find_max_point()[0];
             int ans_p = p == -1? -1: DP_read_without_skip_and_jump(cur_disk, p, TEST_READ_TIME * cur_disk.rest_token, time).first;
             int ans_now = DP_read_without_skip_and_jump(cur_disk, cur_disk.pointer, (TEST_READ_TIME + JUMP_MORE_TIME) * cur_disk.rest_token, time).first;
             /*
