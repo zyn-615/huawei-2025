@@ -35,7 +35,7 @@ const int READ_CNT_STATES = 8; //读入的状态，根据上一次连续read的�
 int DISK_MIN_PASS = 9; //如果超过这个值放弃read pass过去
 int DISK_MIN_PASS_DP = 13;
 const int MIN_TOKEN_STOP_DP = 130;
-const int NUM_PIECE_QUEUE = 2;
+const int NUM_PIECE_QUEUE = 105;
 const double TAG_DENSITY_DIVIDE = 2;
 const int NUM_MAX_POINT = 20;
 const double UNIT_REQUEST_DIVIDE = 17;
@@ -58,7 +58,7 @@ const int PRE_DISTRIBUTION_TIME = 20;
 const int PRE_PROTECTION_TIME = 20;
 const double DP_ROUND_TIME = 2;
 const int SKIP_LOW_REQUEST_UNIT_TIME = 2e4; //2e4-4e4
-const int SKIP_LOW_REQUEST_NUM = 0;  // 10-70
+const int SKIP_LOW_REQUEST_NUM = 10;  // 10-70
 
 
 
@@ -69,7 +69,7 @@ const int DP_VERSION2 = 2;
 const int MIN_TAG_NUM_IN_DISK = 6;
 //int READ_ROUND_TIME = 40; //一轮读取的时间
 const int READ_ROUND_TIME = 3;
-const int OVER = 1;
+const int OVER = 0;
 const int USE_NEW_DISTRIBUTION = 2;
 const int DISTRIBUTION_VERSION2 = 2;
 const int DISTRIBUTION_VERSION1 = 1;
@@ -934,8 +934,8 @@ inline void distribute_tag_in_disk_new_version_1(int stage)
         std::cerr << "all_need : " << all_need << std::endl;
 
         std::cerr << "nowDisk : ";
-        if (i == 1)
-            std::swap(cur_disk.tag_order[1], cur_disk.tag_order[2]);
+        // if (i == 1)
+            // std::swap(cur_disk.tag_order[1], cur_disk.tag_order[2]);
 
         for (int j = 1; j <= M; ++j) {
             cur_disk.tag_density[j].init(V);
@@ -1254,8 +1254,7 @@ inline void do_object_delete(int object_id)
                 if (USE_NEW_DISTRIBUTION == DISTRIBUTION_VERSION2) {
                     auto [l, r, _] = disk[disk_id].tag_protected_area[cur_tag].get_info();
                     if (disk[disk_id].transformer.is_in_protected_area(pos, cur_tag)) {
-                        pos -= l - 1;
-                        disk[disk_id].tag_protected_area[cur_tag].add(pos, 1);
+                        disk[disk_id].tag_protected_area[cur_tag].add(pos - l + 1, 1);
                     } else {
                         int pos_in_rest = cur_disk.transformer.transform_pos_to_rest(pos);
                         cur_disk.rest_empty_pos.add(pos_in_rest, 1);
@@ -1416,6 +1415,7 @@ inline int write_unit_in_disk_use_protect_area(int disk_id, int tag)
 {   
     auto& cur_disk = disk[disk_id];
     if (!cur_disk.tag_distribution_size[tag]) {
+        assert(false);
         return cur_disk.transformer.transform_pos_to_out(cur_disk.rest_empty_pos.find_next(1));
     }
 
@@ -1478,6 +1478,11 @@ void write_action()
             std::vector <int> vised(N + 1, 0);
             for (int j = 1; j <= REP_NUM; ++j) {
                 int disk_id = pos[now];
+
+                if (USE_NEW_DISTRIBUTION == DISTRIBUTION_VERSION2) {
+
+                }
+
                 while (disk[disk_id].tag_distribution_size[tag] == 0 || disk[disk_id].empty_pos.query_rest_unit() < size || vised[disk_id]) {
                     disk_id = pos[++now];
                     
