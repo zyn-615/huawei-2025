@@ -1020,9 +1020,14 @@ inline void distribute_tag_in_disk_new_version_1(int stage)
                 int lpos = pre_distribution + 1, rpos = pre_distribution + cur_tag_distribution;
                 int midpos = lpos + rpos >> 1;
                 protection_pos[i][cur_tag][0] = std::max(lpos + (midpos - lpos) / 4, midpos - protection_len[cur_tag] / 2);
-                // protection_pos[i][cur_tag][1] = std::min(rpos - (rpos - midpos) / 4, midpos + protection_len[cur_tag] / 2);
-                protection_pos[i][cur_tag][1] = protection_pos[i][cur_tag][0] - 1;
-                // assert(1 <= protection_pos[i][cur_tag][0] && protection_pos[i][cur_tag][1] <= V);
+                if (cur_tag != 3 && cur_tag != 15 && cur_tag != 16) {
+                    protection_pos[i][cur_tag][1] = protection_pos[i][cur_tag][0] - 1;
+                }
+                else {
+                    assert(cur_tag == 3 || cur_tag == 15 || cur_tag == 16);
+                    protection_pos[i][cur_tag][1] = std::min(rpos - (rpos - midpos) / 4, midpos + protection_len[cur_tag] / 2);
+                    assert(1 <= protection_pos[i][cur_tag][0] && protection_pos[i][cur_tag][1] <= V);
+                }
                 cur_disk.transformer.cover(protection_pos[i][cur_tag][0], protection_pos[i][cur_tag][1], cur_tag);
                 std::cerr << "protection_len: " << protection_pos[i][cur_tag][1] - protection_pos[i][cur_tag][0] + 1 << " " << "of: " << (protection_pos[i][cur_tag][1] - protection_pos[i][cur_tag][0] + 1) * 100 / (double)(rpos - lpos + 1) << "%" << std::endl;
             }
