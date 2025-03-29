@@ -44,19 +44,19 @@ int TEST_DENSITY_LEN = 1200;
 
 
 //这三个量需要调整   需要退火
-const int WRITE_TEST_DENSITY_LEN = 32;
-const int WRITE_TAG_DENSITY_DIVIDE = 29;
-const int MIN_TEST_TAG_DENSITY_LEN = 67;
-const double JUMP_MIN = 1.7;
+const int WRITE_TEST_DENSITY_LEN = 184;
+const int WRITE_TAG_DENSITY_DIVIDE = 39;
+const int MIN_TEST_TAG_DENSITY_LEN = 378;
+const double JUMP_MIN = 2.2;
 const int MIN_ROUND_TIME = 2;
 const int TEST_READ_TIME = 3;
-const int CUR_REQUEST_DIVIDE = 344;
-const int MIN_TEST_DENSITY_LEN = 370;
+const int CUR_REQUEST_DIVIDE = 260;
+const int MIN_TEST_DENSITY_LEN = 450;
 const int JUMP_MORE_TIME = 0;
-const int PRE_DISTRIBUTION_TIME = 25;
-const double DP_ROUND_TIME = 4;
+const int PRE_DISTRIBUTION_TIME = 28;
+const double DP_ROUND_TIME = 1;
 const int SKIP_LOW_REQUEST_UNIT_TIME = 2e4; //2e4-4e4
-const int SKIP_LOW_REQUEST_NUM = 50;  // 10-70
+const int SKIP_LOW_REQUEST_NUM = 10;  // 10-70
 
 
 

@@ -10,16 +10,16 @@ import json
 
 # 定义需要调整的参数及其范围
 PARAMS = {
-    'WRITE_TEST_DENSITY_LEN': (20, 50),     # 当前值：32
-    'WRITE_TAG_DENSITY_DIVIDE': (20, 40),   # 当前值：29
-    'MIN_TEST_TAG_DENSITY_LEN': (50, 80),   # 当前值：67
-    'JUMP_MIN': (1.0, 3.0),                 # 当前值：1.7
-    'MIN_ROUND_TIME': (1, 3),               # 当前值：2
+    'WRITE_TEST_DENSITY_LEN': (20, 400),     # 当前值：32
+    'WRITE_TAG_DENSITY_DIVIDE': (10, 40),   # 当前值：29
+    'MIN_TEST_TAG_DENSITY_LEN': (50, 400),   # 当前值：67
+    'JUMP_MIN': (1.0, 3.5),                 # 当前值：1.7
+    'MIN_ROUND_TIME': (1, 5),               # 当前值：2
     'TEST_READ_TIME': (1, 5),               # 当前值：3
-    'CUR_REQUEST_DIVIDE': (300, 400),       # 当前值：344
-    'MIN_TEST_DENSITY_LEN': (300, 400),     # 当前值：370
-    'PRE_DISTRIBUTION_TIME': (20, 30),      # 当前值：25
-    'DP_ROUND_TIME': (3, 5),                # 当前值：4
+    'CUR_REQUEST_DIVIDE': (100, 600),       # 当前值：344
+    'MIN_TEST_DENSITY_LEN': (200, 800),     # 当前值：370
+    'PRE_DISTRIBUTION_TIME': (15, 35),      # 当前值：25
+    'DP_ROUND_TIME': (1.1, 5),                # 当前值：4
     'SKIP_LOW_REQUEST_NUM': (10, 70)        # 当前值：50
 }
 
