@@ -70,7 +70,7 @@ const int MIN_TAG_NUM_IN_DISK = 6;
 //int READ_ROUND_TIME = 40; //一轮读取的时间
 const int READ_ROUND_TIME = 3;
 const int OVER = 1;
-const int USE_NEW_DISTRIBUTION = 2;
+const int USE_NEW_DISTRIBUTION = 1;
 const int DISTRIBUTION_VERSION2 = 2;
 const int DISTRIBUTION_VERSION1 = 1;
 const int MIX_DISTRIBUTION_VERSION = 3;
@@ -1383,9 +1383,10 @@ inline void write_unit(int object_id, int disk_id, int unit_id, int write_pos, i
         auto [l, r, _] = cur_disk.tag_protected_area[cur_tag].get_info();
 
         if (cur_disk.transformer.is_in_protected_area(write_pos, cur_tag)) {
-            // std::cerr << "IN_protected_area" << std::endl;
+            std::cerr << "IN_protected_area" << std::endl;
             cur_disk.tag_protected_area[cur_tag].add(write_pos - l + 1, -1);
         } else {
+            assert(cur_disk.transformer.is_in_rest_pos(write_pos));
             int pos_in_rest = cur_disk.transformer.transform_pos_to_rest(write_pos);
             cur_disk.rest_empty_pos.add(pos_in_rest, -1);
         }
@@ -1648,11 +1649,11 @@ void write_action()
                 for (int k = 1; k <= size; ++k) {
                     int nxt = 0;
 
-                    if (!disk[disk_id].tag_protected_area[tag].empty()) {
-                        // std::cerr << "Have " << std::endl;
+                    if (!disk[disk_id].tag_protected_area[tag].empty() && USE_NEW_DISTRIBUTION > 1) {
+                        // std::cerr << "Have " << std::endl;  
                         nxt = write_unit_in_disk_use_protect_area(disk_id, tag);
                     } else {
-
+                        // std::cerr << "here" << std::endl;
                         if (now_stage <= PRE_DISTRIBUTION_TIME) {
                             nxt = write_unit_in_disk_strategy_1(disk_id, tag);
                         } else {
