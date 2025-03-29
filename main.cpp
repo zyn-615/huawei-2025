@@ -532,7 +532,7 @@ struct DensityManager {
         std::vector<int> max_point;
         int K = std::min(V, NUM_MAX_POINT);
         // std::cerr << "find_max_point begin" << std::endl;
-
+        
         for(int i = 1; i <= V; i++)
             prefix_sum[i] = prefix_sum[i - 1] + request_num[i];
 
@@ -542,27 +542,25 @@ struct DensityManager {
             window_sum[i] = get_prefix_sum(i);
             // std::cerr << "window_sum: " << window_sum << std::endl;
         }
-        std::nth_element(window_sum.begin() + 1, window_sum.begin() + K, window_sum.begin() + V + 1, std::greater<int>());
 
-        int bound = window_sum[K];
-        for(int i = 1; i <= V; i++)
-        {
-            window_sum[i] = get_prefix_sum(i);
-            if(window_sum[i] > bound)
-                max_point.push_back(i);
-        }
-        for(int i = 1; i <= V; i++)
-        {
-            if(max_point.size() < K && window_sum[i] == bound)
-                max_point.push_back(i);
+        int block_size = V / NUM_MAX_POINT;
+        for (int i = 0; i < NUM_MAX_POINT; ++i) {
+            int start = i * block_size + 1;
+            int end = (i == NUM_MAX_POINT - 1) ? V : (i + 1) * block_size;
+            int max_index = start;
+            for (int j = start; j <= end; ++j) {
+                if (window_sum[j] > window_sum[max_index]) {
+                    max_index = j;
+                }
+            }
+            max_point.push_back(max_index);
         }
 
         std::sort(max_point.begin(), max_point.end(),[&](int x,int y)
         {
             return window_sum[x] == window_sum[y] ? x < y : window_sum[x] > window_sum[y];
         });
-        // std::cerr << "find_max_point end" << std::endl;
-
+        
         for(int i = 0; i < max_point.size(); i++)
         {
             if (!find_mid)
@@ -2244,20 +2242,29 @@ void read_action(int time)
         // std::cerr << "cur_disk_id: " << cur_disk_id << std::endl;
         DISK &cur_disk = disk[cur_disk_id];
         if (time % random(READ_ROUND_TIME, READ_ROUND_TIME) == 1) {
-            int p = cur_disk.max_density.find_max_point()[0];
+            //int p = cur_disk.max_density.find_max_point()[0];
 
+            //first ans second point
+            std::pair<int, int> res = std::make_pair(-1, -1);
             std::vector<int> max_point = cur_disk.max_density.find_max_point();
-            assert(p == cur_disk.max_density.find_max_point_version1());
-
-            int ans_p = p == -1? -1: DP_read_without_skip_and_jump(cur_disk, p, TEST_READ_TIME * cur_disk.rest_token, time).first;
+            max_point.resize(1);
+            for (auto p : max_point) {
+                int ans_p = DP_read_without_skip_and_jump(cur_disk, p, TEST_READ_TIME * cur_disk.rest_token, time).first;
+                if (res.first < ans_p) {
+                    res = std::make_pair(ans_p, p);
+                }
+            }
+            //assert(p == cur_disk.max_density.find_max_point_version1());
+            //int ans_p = p == -1? -1: DP_read_without_skip_and_jump(cur_disk, p, TEST_READ_TIME * cur_disk.rest_token, time).first;
             int ans_now = DP_read_without_skip_and_jump(cur_disk, cur_disk.pointer, (TEST_READ_TIME + JUMP_MORE_TIME) * cur_disk.rest_token, time).first;
+            //std::cerr << "start dp" << std::endl;
             /*
             if (cur_disk.max_density.get(p) * JUMP_VISCOSITY <= cur_disk.max_density.get(cur_disk.pointer))
                 p = cur_disk.pointer;
             */
                 // std::cerr << "max_point: " << p << std::endl;
 
-                if (p == -1 || get_dist(cur_disk.pointer, p) <= G * JUMP_VISCOSITY || ans_p < ans_now * JUMP_MIN) { //如果距离足够近
+                if (res.first == -1 || get_dist(cur_disk.pointer, res.second) <= G * JUMP_VISCOSITY || res.first < ans_now * JUMP_MIN) { //如果距离足够近
                 
                 // std::cerr << "start read_without_jump" << std::endl;
                 
@@ -2275,7 +2282,7 @@ void read_action(int time)
                     read_without_jump(cur_disk, time);
             }
             else {
-                do_pointer_jump(cur_disk, p);
+                do_pointer_jump(cur_disk, res.second);
                 ++jump_cnt_tot[cur_disk_id];
             }
         } else {
@@ -2389,26 +2396,26 @@ int main()
         now_stage = get_now_stage(t);
         update_request_num(t);
 
-        // std::cerr << "start time " << t << std::endl;
-        // std::cerr << "start timestamp_action" <<std::endl;
+        //std::cerr << "start time " << t << std::endl;
+        //std::cerr << "start timestamp_action" <<std::endl;
 
         timestamp_action();
 
-        // std::cerr << "end timestamp_action" <<std::endl;
-        // std::cerr << "start delete_action" <<std::endl;
+        //std::cerr << "end timestamp_action" <<std::endl;
+        //std::cerr << "start delete_action" <<std::endl;
         delete_action();
 
-        // std::cerr << "end delete_action" <<std::endl;
-        // std::cerr << "start write_action" <<std::endl;
+        //std::cerr << "end delete_action" <<std::endl;
+        //std::cerr << "start write_action" <<std::endl;
 
         write_action();
 
-        // std::cerr << "end write_action" <<std::endl;
-        // std::cerr << "start read_action" <<std::endl;
+        //std::cerr << "end write_action" <<std::endl;
+        //std::cerr << "start read_action" <<std::endl;
         read_action(t);
 
-        // std::cerr << "end read_action" <<std::endl;
-        // std::cerr << "end time " << t << std::endl;
+        //std::cerr << "end read_action" <<std::endl;
+        //std::cerr << "end time " << t << std::endl;
     }
     for (int i = 1; i <= N; ++i)
         std::cerr << "jump_cnt" << "[" << i << "]" << ": " << jump_cnt_tot[i] << std::endl;
