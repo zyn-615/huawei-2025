@@ -32,10 +32,10 @@
 const double JUMP_VISCOSITY = 0.9;
 const int LEN_TIME_DIVIDE = 40;
 const int READ_CNT_STATES = 8; //读入的状态，根据上一次连续read的个数确定
-int DISK_MIN_PASS = 9; //如果超过这个值放弃read pass过去
+int DISK_MIN_PASS = 15; //如果超过这个值放弃read pass过去
 int DISK_MIN_PASS_DP = 13;
 const int MIN_TOKEN_STOP_DP = 130;
-const int NUM_PIECE_QUEUE = 105;
+const int NUM_PIECE_QUEUE = 90;
 const double TAG_DENSITY_DIVIDE = 2;
 const int NUM_MAX_POINT = 20;
 const double UNIT_REQUEST_DIVIDE = 17;
@@ -45,9 +45,9 @@ int TEST_DENSITY_LEN = 1200;
 
 
 //这三个量需要调整   需要退火
-const int WRITE_TEST_DENSITY_LEN = 32;
-const int WRITE_TAG_DENSITY_DIVIDE = 29;
-const int MIN_TEST_TAG_DENSITY_LEN = 67;
+const int WRITE_TEST_DENSITY_LEN = 82;
+const int WRITE_TAG_DENSITY_DIVIDE = 5;
+const int MIN_TEST_TAG_DENSITY_LEN = 87;
 const double JUMP_MIN = 2.4;
 const int MIN_ROUND_TIME = 2;
 const int TEST_READ_TIME = 3;
@@ -56,7 +56,7 @@ const int MIN_TEST_DENSITY_LEN = 370;
 const int JUMP_MORE_TIME = 0;
 const int PRE_DISTRIBUTION_TIME = 20;
 const int PRE_PROTECTION_TIME = 30;
-const double DP_ROUND_TIME = 4;
+const double DP_ROUND_TIME = 1.5;
 const int SKIP_LOW_REQUEST_UNIT_TIME = 2e4; //2e4-4e4
 const int SKIP_LOW_REQUEST_NUM = 30;  // 10-70
 
@@ -1033,11 +1033,11 @@ inline void distribute_tag_in_disk_new_version_1(int stage)
                 int lpos = pre_distribution + 1, rpos = pre_distribution + cur_tag_distribution;
                 int midpos = lpos + rpos >> 1;
                 protection_pos[i][cur_tag][0] = std::max(lpos + (midpos - lpos) / 4, midpos - protection_len[cur_tag] / 2);
-                if (cur_tag != 3 && cur_tag != 15 && cur_tag != 16) {
+                if (false) {
                     protection_pos[i][cur_tag][1] = protection_pos[i][cur_tag][0] - 1;
                 }
                 else {
-                    assert(cur_tag == 3 || cur_tag == 15 || cur_tag == 16);
+                    // assert(cur_tag == 3 || cur_tag == 15 || cur_tag == 16);
                     protection_pos[i][cur_tag][1] = std::min(rpos - (rpos - midpos) / 4, midpos + protection_len[cur_tag] / 2);
                     assert(1 <= protection_pos[i][cur_tag][0] && protection_pos[i][cur_tag][1] <= V);
                 }
@@ -1388,7 +1388,7 @@ inline void write_unit(int object_id, int disk_id, int unit_id, int write_pos, i
         auto [l, r, _] = cur_disk.tag_protected_area[cur_tag].get_info();
 
         if (cur_disk.transformer.is_in_protected_area(write_pos, cur_tag)) {
-            std::cerr << "IN_protected_area" << std::endl;
+            // std::cerr << "IN_protected_area" << std::endl;
             cur_disk.tag_protected_area[cur_tag].add(write_pos - l + 1, -1);
         } else {
             assert(cur_disk.transformer.is_in_rest_pos(write_pos));
@@ -1414,21 +1414,34 @@ inline void write_unit(int object_id, int disk_id, int unit_id, int write_pos, i
 
 inline int write_unit_in_disk_strategy_1(int disk_id, int tag)
 {
-    if (USE_NEW_DISTRIBUTION == DISTRIBUTION_VERSION2) {
+    if (USE_NEW_DISTRIBUTION == DISTRIBUTION_VERSION2) 
+    {
         if (!disk[disk_id].tag_distribution_size[tag]) {
             return disk[disk_id].rest_empty_pos.find_next(1);
         }
 
-        int res = 0;
+        int pointer = disk[disk_id].tag_distribution_pointer[tag];
+        
+        if (disk[disk_id].transformer.is_in_rest_pos(pointer)) {
+            pointer = disk[disk_id].transformer.transform_pos_to_rest(pointer);
+        } else {
+            int now_tag = disk[disk_id].transformer.get_pos_tag(pointer);
+            pointer = disk[disk_id].tag_protected_area[now_tag].get_rev_pointer();
+        }
+
         if (!disk[disk_id].inner_tag_inverse[tag]) {
-            res = disk[disk_id].rest_empty_pos.find_next(disk[disk_id].tag_distribution_pointer[tag]);
+            pointer = disk[disk_id].rest_empty_pos.find_next(pointer);
             // to_next_pos(disk[disk_id].tag_distribution_pointer[tag]);
         } else {
-            res = disk[disk_id].rest_empty_pos.find_pre(disk[disk_id].tag_distribution_pointer[tag]);
+            pointer = disk[disk_id].rest_empty_pos.find_pre(pointer);
             // to_pre_pos(disk[disk_id].tag_distribution_pointer[tag]);
         }
 
-        return res;
+        assert(pointer >= 1 && pointer <= disk[disk_id].transformer.Len);
+        pointer = disk[disk_id].transformer.transform_pos_to_out(pointer);
+        
+        assert(disk[disk_id].transformer.is_in_rest_pos(pointer));
+        return pointer;
     }
 
     if (!disk[disk_id].tag_distribution_size[tag]) {
@@ -2229,20 +2242,29 @@ void read_action(int time)
         // std::cerr << "cur_disk_id: " << cur_disk_id << std::endl;
         DISK &cur_disk = disk[cur_disk_id];
         if (time % random(READ_ROUND_TIME, READ_ROUND_TIME) == 1) {
-            int p = cur_disk.max_density.find_max_point()[0];
+            //int p = cur_disk.max_density.find_max_point()[0];
 
+            //first ans second point
+            std::pair<int, int> res = std::make_pair(-1, -1);
             std::vector<int> max_point = cur_disk.max_density.find_max_point();
-            assert(p == cur_disk.max_density.find_max_point_version1());
-
-            int ans_p = p == -1? -1: DP_read_without_skip_and_jump(cur_disk, p, TEST_READ_TIME * cur_disk.rest_token, time).first;
+            max_point.resize(1);
+            for (auto p : max_point) {
+                int ans_p = DP_read_without_skip_and_jump(cur_disk, p, TEST_READ_TIME * cur_disk.rest_token, time).first;
+                if (res.first < ans_p) {
+                    res = std::make_pair(ans_p, p);
+                }
+            }
+            //assert(p == cur_disk.max_density.find_max_point_version1());
+            //int ans_p = p == -1? -1: DP_read_without_skip_and_jump(cur_disk, p, TEST_READ_TIME * cur_disk.rest_token, time).first;
             int ans_now = DP_read_without_skip_and_jump(cur_disk, cur_disk.pointer, (TEST_READ_TIME + JUMP_MORE_TIME) * cur_disk.rest_token, time).first;
+            //std::cerr << "start dp" << std::endl;
             /*
             if (cur_disk.max_density.get(p) * JUMP_VISCOSITY <= cur_disk.max_density.get(cur_disk.pointer))
                 p = cur_disk.pointer;
             */
                 // std::cerr << "max_point: " << p << std::endl;
 
-                if (p == -1 || get_dist(cur_disk.pointer, p) <= G * JUMP_VISCOSITY || ans_p < ans_now * JUMP_MIN) { //如果距离足够近
+                if (res.first == -1 || get_dist(cur_disk.pointer, res.second) <= G * JUMP_VISCOSITY || res.first < ans_now * JUMP_MIN) { //如果距离足够近
                 
                 // std::cerr << "start read_without_jump" << std::endl;
                 
@@ -2260,7 +2282,7 @@ void read_action(int time)
                     read_without_jump(cur_disk, time);
             }
             else {
-                do_pointer_jump(cur_disk, p);
+                do_pointer_jump(cur_disk, res.second);
                 ++jump_cnt_tot[cur_disk_id];
             }
         } else {
@@ -2392,26 +2414,26 @@ int main()
         now_stage = get_now_stage(t);
         update_request_num(t);
 
-        // std::cerr << "start time " << t << std::endl;
-        // std::cerr << "start timestamp_action" <<std::endl;
+        //std::cerr << "start time " << t << std::endl;
+        //std::cerr << "start timestamp_action" <<std::endl;
 
         timestamp_action();
 
-        // std::cerr << "end timestamp_action" <<std::endl;
-        // std::cerr << "start delete_action" <<std::endl;
+        //std::cerr << "end timestamp_action" <<std::endl;
+        //std::cerr << "start delete_action" <<std::endl;
         delete_action();
 
-        // std::cerr << "end delete_action" <<std::endl;
-        // std::cerr << "start write_action" <<std::endl;
+        //std::cerr << "end delete_action" <<std::endl;
+        //std::cerr << "start write_action" <<std::endl;
 
         write_action();
 
-        // std::cerr << "end write_action" <<std::endl;
-        // std::cerr << "start read_action" <<std::endl;
+        //std::cerr << "end write_action" <<std::endl;
+        //std::cerr << "start read_action" <<std::endl;
         read_action(t);
 
-        // std::cerr << "end read_action" <<std::endl;
-        // std::cerr << "end time " << t << std::endl;
+        //std::cerr << "end read_action" <<std::endl;
+        //std::cerr << "end time " << t << std::endl;
     }
     for (int i = 1; i <= N; ++i)
         std::cerr << "jump_cnt" << "[" << i << "]" << ": " << jump_cnt_tot[i] << std::endl;
