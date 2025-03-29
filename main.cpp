@@ -54,6 +54,7 @@ const int CUR_REQUEST_DIVIDE = 344;
 const int MIN_TEST_DENSITY_LEN = 370;
 const int JUMP_MORE_TIME = 0;
 const int PRE_DISTRIBUTION_TIME = 20;
+const int PRE_PROTECTION_TIME = 20;
 const double DP_ROUND_TIME = 2;
 const int SKIP_LOW_REQUEST_UNIT_TIME = 2e4; //2e4-4e4
 const int SKIP_LOW_REQUEST_NUM = 60;  // 10-70
@@ -68,7 +69,7 @@ const int MIN_TAG_NUM_IN_DISK = 6;
 //int READ_ROUND_TIME = 40; //一轮读取的时间
 const int READ_ROUND_TIME = 3;
 const int OVER = 1;
-const int USE_NEW_DISTRIBUTION = 1;
+const int USE_NEW_DISTRIBUTION = 2;
 const int DISTRIBUTION_VERSION2 = 2;
 const int DISTRIBUTION_VERSION1 = 1;
 const bool OUPUT_AVERAGE_DIST = true;
@@ -293,7 +294,7 @@ struct Segment_tree_add {
         seg = std::vector <int> (n << 2, 0);
     }
 
-    void set_one(int o = 1, int l = 1, int r) 
+    void set_one(int o, int l, int r) 
     {
         if (l == r) return seg[o] = 1, void();
         int mid = l + r >> 1;
@@ -422,12 +423,12 @@ struct Segment_tree_add {
 
     inline void add(int p, int v) 
     {
-        add(1, 1, Len, p, Len);
+        add(1, 1, Len, p, v);
     }
 
     inline void modify(int p, int v)
     {
-        modify(1, 1, Len, p, Len);
+        modify(1, 1, Len, p, v);
     }
 
     inline int query_rest_unit() 
@@ -540,10 +541,11 @@ struct DensityManager {
 
 struct Protected_area : Segment_tree_add {
     int start, end, _rev_pointer;
-    void init(int n, int l, int r, int rev_pointer) 
+    void init(int l, int r, int rev_pointer) 
     {
+        int n = r - l + 1;
         Segment_tree_add :: init(n);
-        set_one();
+        set_one(1, 1, n);
         start = l;
         end = r;
         _rev_pointer = rev_pointer;
@@ -561,6 +563,8 @@ struct Protected_area : Segment_tree_add {
 struct Transformer {
     int used[MAX_DISK_SIZE];
     int map_rev_pos[MAX_DISK_SIZE];
+    int map_to_rest[MAX_DISK_SIZE];
+    int Len;
 
     inline void cover(int l, int r, int tag)
     {
@@ -577,14 +581,40 @@ struct Transformer {
             if (!used[i]) {
                 map_rev_pos[++now] = i;
             }
+
+            map_to_rest[i] = now;
         }
 
+        Len = now;
         return now;
     }
 
-    inline int transform_pos(int pos) 
+    inline int transform_pos_to_out(int pos) 
     {
+        assert(pos >= 1 && pos <= Len);
         return map_rev_pos[pos];
+    }
+
+    inline int transform_pos_to_rest(int pos)
+    {
+        return map_to_rest[pos];
+    }
+
+    inline int get_tag_protect_pointer(int cur_tag)
+    {
+        for (int i = 1; i <= V; ++i) {
+            if (used[i] == cur_tag) {
+                return map_to_rest[i] == 0 ? Len : map_to_rest[i];
+            }
+        }
+
+        assert(false);
+        return -1;
+    }
+
+    bool is_in_protected_area(int pos, int tag)
+    {
+        return used[pos] == tag;
     }
 };
 struct DISK {
@@ -629,7 +659,7 @@ struct Predict {
     int add_object;
     int delete_object;
     int read_object;
-    // int sum_object;
+    int sum_object;
 };
 
 Predict Info[MAX_STAGE][MAX_TAG_NUM];
@@ -649,6 +679,8 @@ char read_oper[MAX_TOKEN]; //存储读操作
 //info_without_skip最后一位存储0 pass 1 read,除去最后一位存储上一位的状态
 int dp_without_skip[MAX_DISK_SIZE][READ_CNT_STATES], info_without_skip[MAX_DISK_SIZE][READ_CNT_STATES];
 int read_cost[READ_CNT_STATES] = {64, 52, 42, 34, 28, 23, 19, 16};
+int protection_len[MAX_TAG_NUM], piece_num_per_tag[MAX_TAG_NUM];
+int protection_pos[MAX_DISK_NUM][MAX_TAG_NUM][2]; //记录每个磁盘内每个标签保护区的左右端点
 inline void to_next_pos(int& x) 
 {
     x = x % V + 1;
@@ -797,19 +829,20 @@ inline void distribute_tag_in_disk_new_version_1(int stage)
 
     for (int i = 1; i <= M; ++i) {
         int piece_num = std::min(N, std::max(MIN_TAG_NUM_IN_DISK, all_time_max_tag_size[i] / piece_size));
-        
+        piece_num_per_tag[i] = piece_num;        
 
-        if (i == 8) {
-            piece_num = 3;
-        }
 
-        if (i == 12) {
-            piece_num = 3;
-        }
+        // if (i == 8) {
+        //     piece_num = 3;
+        // }
 
-        if (i == 1) {
-            piece_num = 4;
-        }
+        // if (i == 12) {
+        //     piece_num = 3;
+        // }
+
+        // if (i == 1) {
+        //     piece_num = 4;
+        // }
         
         int cur_size = max_cur_tag_size[stage][i];
         int std_size = (max_cur_tag_size[stage][i] + piece_num - 1) / piece_num;
@@ -844,6 +877,18 @@ inline void distribute_tag_in_disk_new_version_1(int stage)
                 // std::cerr << "DISTRIBUTE : " << disk_id << " " << tag << std::endl;
                 break;
             }
+        }
+    }
+
+    /*预设保护区大小*/
+    if (USE_NEW_DISTRIBUTION == DISTRIBUTION_VERSION2) {
+        const int inf = 1e6;
+        for (int tag_id = 1; tag_id <= M; ++tag_id) {
+            protection_len[tag_id] = inf;
+            for (int period = PRE_PROTECTION_TIME; period <= all_stage; ++period) {
+                protection_len[tag_id] = std::min(protection_len[tag_id], Info[period][tag_id].sum_object);
+            }
+            protection_len[tag_id] /= piece_num_per_tag[tag_id];
         }
     }
 
@@ -902,10 +947,31 @@ inline void distribute_tag_in_disk_new_version_1(int stage)
                 cur_disk.tag_distribution_pointer[cur_tag] = pre_distribution + cur_tag_distribution;
             }
 
+            if (USE_NEW_DISTRIBUTION == DISTRIBUTION_VERSION2) {
+                //int mid_pos = pre_distribution + cur_tag_distribution / 2;
+                int lpos = pre_distribution + 1, rpos = pre_distribution + cur_tag_distribution;
+                int midpos = lpos + rpos >> 1;
+                protection_pos[i][cur_tag][0] = std::max((lpos + midpos) / 2, midpos - protection_len[cur_tag] / 2);
+                protection_pos[i][cur_tag][1] = std::min((midpos + rpos) / 2, midpos + protection_len[cur_tag] / 2);
+                cur_disk.transformer.cover(protection_pos[i][cur_tag][0], protection_pos[i][cur_tag][1], cur_tag);
+                std::cerr << "protection_len of: " << (protection_pos[i][cur_tag][1] - protection_pos[i][cur_tag][0] + 1) * 100 / (double)(rpos - lpos + 1) << "%" << std::endl;
+            }
+
             pre_distribution += cur_tag_distribution;
         }
 
         std::cerr << std::endl;
+
+        if (USE_NEW_DISTRIBUTION == DISTRIBUTION_VERSION2) {
+            int rest_size = cur_disk.transformer.build_transformer();
+
+            cur_disk.rest_empty_pos.init(rest_size);
+            for (int j = 1; j <= tag_num; ++j) {
+                int cur_tag = cur_disk.tag_order[j];
+
+                cur_disk.tag_protected_area[cur_tag].init(protection_pos[i][cur_tag][0], protection_pos[i][cur_tag][1], cur_disk.transformer.get_tag_protect_pointer(cur_tag));
+            }
+        }
     }
 }
 
@@ -1157,6 +1223,7 @@ inline void do_object_delete(int object_id)
     for (int i = 1; i <= REP_NUM; ++i) {
         for (int j = 1; j <= objects[object_id].size; ++j) {
             auto [disk_id, pos] = objects[object_id].unit_pos[i][j];
+            auto& cur_disk = disk[disk_id];
 
             //维护空位置
             disk[disk_id].empty_pos.delete_unit(1, 1, V, pos);
@@ -1164,6 +1231,17 @@ inline void do_object_delete(int object_id)
             if (USE_NEW_DISTRIBUTION) {
                 disk[disk_id].tag_density[cur_tag].add(pos, -1);
                 // add_tag_density(disk_id, cur_tag, pos, -1);
+
+                if (USE_NEW_DISTRIBUTION == DISTRIBUTION_VERSION2) {
+                    auto [l, r, _] = disk[disk_id].tag_protected_area[cur_tag].get_info();
+                    if (disk[disk_id].transformer.is_in_protected_area(pos, cur_tag)) {
+                        pos -= l - 1;
+                        disk[disk_id].tag_protected_area[cur_tag].add(pos, -1);
+                    } else {
+                        int pos_in_rest = cur_disk.transformer.transform_pos_to_rest(pos);
+                        cur_disk.rest_empty_pos.add(pos_in_rest, -1);
+                    }
+                }
             }
             
             //清除request
@@ -1308,7 +1386,7 @@ inline int write_unit_in_disk_use_protect_area(int disk_id, int tag)
 {   
     auto& cur_disk = disk[disk_id];
     if (!cur_disk.tag_distribution_size[tag]) {
-        return cur_disk.transformer.transform_pos(cur_disk.rest_empty_pos.find_next(1));
+        return cur_disk.transformer.transform_pos_to_out(cur_disk.rest_empty_pos.find_next(1));
     }
 
     auto [l, r, pointer] = cur_disk.tag_protected_area[tag].get_info();
@@ -1327,10 +1405,10 @@ inline int write_unit_in_disk_use_protect_area(int disk_id, int tag)
     
 
     if (get_dist(pre, l) < get_dist(nxt, r)) {
-        return cur_disk.transformer.transform_pos(pre);
+        return cur_disk.transformer.transform_pos_to_out(pre);
     } 
 
-    return cur_disk.transformer.transform_pos(nxt);
+    return cur_disk.transformer.transform_pos_to_out(nxt);
 }
 
 void write_action()
@@ -1339,7 +1417,7 @@ void write_action()
     scanf("%d", &n_write);
     // std::cerr << "n_write: " << n_write << std::endl;
     for (int i = 1; i <= n_write; ++i) {
-        // std::cerr << "write : "  << i << std::endl;
+        std::cerr << "write : "  << i << std::endl;
         int id, size, tag;
         scanf("%d %d %d", &id, &size, &tag);
         objects[id].size = size;
@@ -1402,7 +1480,7 @@ void write_action()
 
                 printf("%d ", disk_id);
                 vised[disk_id] = 1;
-                // std::cerr << "disk_id : " << disk_id << " ";
+                std::cerr << "disk_id : " << disk_id << " ";
 
                 tag_size_in_disk[tag][disk_id] += size;
                 for (int k = 1; k <= size; ++k) {
@@ -1422,13 +1500,13 @@ void write_action()
                     }
                     
 
-                    // std::cerr << "Nxt : " << nxt << " ";
+                    std::cerr << "Nxt : " << nxt << " ";
                     write_unit(id, disk_id, k, nxt, j);
                     printf("%d ", nxt);
                 }
 
                 printf("\n");
-                // std::cerr << std::endl;
+                std::cerr << std::endl;
                 ++now;
             }
 
@@ -2103,11 +2181,11 @@ int main()
         }
     }
 
-    // for (int i = 1; i <= M; ++i) {
-    //     for (int j = 1; j <= all_stage; ++j) {
-    //         Info[j][i].sum_object = Info[j - 1][i].sum_object - Info[j - 1][i].delete_object + Info[j][i].add_object;
-    //     }
-    // }
+    for (int i = 1; i <= M; ++i) {
+        for (int j = 1; j <= all_stage; ++j) {
+            Info[j][i].sum_object = Info[j - 1][i].sum_object - Info[j - 1][i].delete_object + Info[j][i].add_object;
+        }
+    }
 
     // std::cerr << "end input global information" << std::endl;
 
