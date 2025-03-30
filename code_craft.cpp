@@ -43,21 +43,21 @@ int TEST_DENSITY_LEN = 1200;
 
 
 //这三个量需要调整   需要退火
-const int WRITE_TEST_DENSITY_LEN = 45;
-const int WRITE_TAG_DENSITY_DIVIDE = 26;
-const int MIN_TEST_TAG_DENSITY_LEN = 96;
-const double JUMP_MIN = 1.1;
-const int MIN_ROUND_TIME = 2;
-const int TEST_READ_TIME = 2;
-const int CUR_REQUEST_DIVIDE = 292;
-const int MIN_TEST_DENSITY_LEN = 403;
+const int WRITE_TEST_DENSITY_LEN = 27;
+const int WRITE_TAG_DENSITY_DIVIDE = 24;
+const int MIN_TEST_TAG_DENSITY_LEN = 84;
+const double JUMP_MIN = 2.2;
+const int MIN_ROUND_TIME = 3;
+const int TEST_READ_TIME = 3;
+const int CUR_REQUEST_DIVIDE = 810;
+const int MIN_TEST_DENSITY_LEN = 452;
 const int JUMP_MORE_TIME = 0;
-const int PRE_DISTRIBUTION_TIME = 27;
+const int PRE_DISTRIBUTION_TIME = 24;
 const int PRE_PROTECTION_TIME = 30;
-const double DP_ROUND_TIME = 3.0;
+const double DP_ROUND_TIME = 2.5;
 const int SKIP_LOW_REQUEST_UNIT_TIME = 20000; //2e4-4e4
 const int NUM_PIECE_QUEUE = 64;
-const int NUM_MAX_POINT = 12;
+const int NUM_MAX_POINT = 3;
 
 
 
