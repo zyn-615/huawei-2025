@@ -747,12 +747,14 @@ struct Segment_tree_max_enhanced : Segment_tree_max {
         if (pos < half_len) {
             int rest_num = half_len - pos;
             add(1, 1, V, V - rest_num + 1, V, value);
+            pre_pos = V - rest_num + 1;
         }
         int max_pos = std::min(V, pos + half_len - 1);
         add(1, 1, V, pos, max_pos, value);
         if (pos + half_len - 1 > V) {
             int rest_num = pos + half_len - 1 - V;
             add(1, 1, V, 1, rest_num, value);
+            max_pos = rest_num;
         }
         std::pair<int, int> check_pos = get_end_point(pos);
         assert(check_pos.first == pre_pos && check_pos.second == max_pos);
@@ -1700,9 +1702,9 @@ void delete_small_protection(DISK &cur_disk, int cur_tag, int l, int r) {
             const auto [pre_pos, max_pos] = cur_disk.tag_density_enhanced[cur_tag].get_end_point(p);
             //int l = p - cur_disk.tag_density_enhanced[cur_tag].window_len / 2 + 1;
             //int r = p - cur_disk.tag_density_enhanced[cur_tag].window_len / 2 - 1;
-            int res = cur_disk.tag_in_disk[cur_tag].query(pre_pos, end_pos);
+            int res = cur_disk.tag_in_disk[cur_tag].query(pre_pos, max_pos);
             //int res = cur_disk.tag_density_enhanced[cur_tag]
-            //cur_disk.tag_density_enhanced[cur_tag].modify(1, 1, V, p, -inf);
+            cur_disk.tag_density_enhanced[cur_tag].modify(1, 1, V, p, res);
         }
     }
 }
