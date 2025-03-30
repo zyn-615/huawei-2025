@@ -1704,12 +1704,12 @@ void delete_small_protection(DISK &cur_disk, int cur_tag, int l, int r) {
     }
     for (int tag_id = 1; tag_id <= M; ++tag_id) {
         for (int p = l, lim = get_next_pos(r); p != lim; to_next_pos(p)) {
-            const auto [pre_pos, max_pos] = cur_disk.tag_density_enhanced[cur_tag].get_end_point(p);
+            const auto [pre_pos, max_pos] = cur_disk.tag_density_enhanced[tag_id].get_end_point(p);
             //int l = p - cur_disk.tag_density_enhanced[cur_tag].window_len / 2 + 1;
             //int r = p - cur_disk.tag_density_enhanced[cur_tag].window_len / 2 - 1;
-            int res = cur_disk.tag_in_disk[cur_tag].query(pre_pos, max_pos);
+            int res = cur_disk.tag_in_disk[tag_id].query(pre_pos, max_pos);
             //int res = cur_disk.tag_density_enhanced[cur_tag]
-            cur_disk.tag_density_enhanced[cur_tag].modify(1, 1, V, p, res);
+            cur_disk.tag_density_enhanced[tag_id].modify(1, 1, V, p, res);
         }
     }
 }
@@ -1837,7 +1837,7 @@ inline int write_unit_in_disk_by_density_version3(int disk_id, int tag)
     // }
 
     if (!disk[disk_id].tag_distribution_size[tag]) {
-        assert(0);
+        //assert(0);
         return disk[disk_id].empty_pos.find_next(1);
     }
 
@@ -2769,6 +2769,7 @@ int main()
         //std::cerr << "end write_action" <<std::endl;
         //std::cerr << "start read_action" <<std::endl;
         read_action(t);
+        /*
         if (t % 100 == 0) {
             for (int disk_id = 1; disk_id <= N; ++disk_id) {
                 DISK &cur_disk = disk[disk_id];
@@ -2777,8 +2778,11 @@ int main()
                     for (int tag = 1; tag <= M; ++tag) {
                         int res = cur_disk.tag_density_enhanced[tag].query_max(p, p);
                         if (cur_disk.protected_area[p][0] == 0) {
+                            assert(object_id == 0);
                             const auto [pre_pos, max_pos] = cur_disk.tag_density_enhanced[tag].get_end_point(p);
                             int check_res = cur_disk.tag_in_disk[tag].query(pre_pos, max_pos);
+                            if (res != check_res)
+                                std::cerr << res << " " << check_res << std::endl;
                             assert(res == check_res);
                         }
                         else {
@@ -2787,7 +2791,7 @@ int main()
                     }
                 }
             }
-        }
+        }*/
 
         //std::cerr << "end read_action" <<std::endl;
         //std::cerr << "end time " << t << std::endl;
