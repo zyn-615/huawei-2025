@@ -1540,6 +1540,22 @@ inline void write_unit(int object_id, int disk_id, int unit_id, int write_pos, i
 inline int write_unit_in_disk_strategy_1(int disk_id, int tag)
 {
     if (USE_ENHANCED_SEGMENT_TREE) {
+        int tag_pointer = disk[disk_id].tag_distribution_pointer[tag];
+        int best_pos_out_of_protected_area;
+        if (!disk[disk_id].inner_tag_inverse[tag]) {
+            int best_pos_in_protected_area = disk[disk_id].protected_tag_density[tag].find_next(tag_pointer);
+            if (best_pos_in_protected_area != -1)
+                return best_pos_in_protected_area;
+            best_pos_out_of_protected_area = disk[disk_id].empty_pos.find_next(disk[disk_id].tag_distribution_pointer[tag]);
+            // to_next_pos(disk[disk_id].tag_distribution_pointer[tag]);
+        } else {
+            int best_pos_in_protected_area = disk[disk_id].protected_tag_density[tag].find_pre(tag_pointer);
+            if (best_pos_in_protected_area != -1)
+                return best_pos_in_protected_area;
+            best_pos_out_of_protected_area = disk[disk_id].empty_pos.find_pre(disk[disk_id].tag_distribution_pointer[tag]);
+            // to_pre_pos(disk[disk_id].tag_distribution_pointer[tag]);
+        }
+        return best_pos_out_of_protected_area;
         //tag_distribution_pointer[tag]
     }
     if (USE_NEW_DISTRIBUTION == DISTRIBUTION_VERSION2) 
@@ -1602,11 +1618,12 @@ void add_small_protection(DISK &cur_disk, int cur_tag, int l, int r) {
     for (int p = l, lim = get_next_pos(r); p != lim; to_next_pos(p)) {
         std::cerr << "update unit " << p << std::endl;
         assert(cur_disk.protected_tag_density[cur_tag].find_next(p) != p);
-        cur_disk.protected_tag_density[cur_tag].add(p, 1);  
+        cur_disk.protected_tag_density[cur_tag].modify(p, 1);  
         cur_disk.protected_area[p][0] = cur_tag;
         cur_disk.protected_area[p][1] = 0;
         cur_disk.protected_area[p][2] = l;
-        cur_disk.protected_area[p][2] = r;
+        cur_disk.protected_area[p][3] = r;
+        cur_disk.empty_pos.modify(p, 0);
     }
     for (int tag_id = 1; tag_id <= M; ++tag_id) {
         for (int p = l; p !=  r; to_next_pos(p))
@@ -1626,7 +1643,8 @@ void delete_small_protection(DISK &cur_disk, int cur_tag, int l, int r) {
         assert(cur_disk.protected_area[p][3] == r);
         for (int j = 0; j < 4; ++j)
             cur_disk.protected_area[p][j] = 0;
-        cur_disk.protected_tag_density[cur_tag].add(p, -1);
+        cur_disk.protected_tag_density[cur_tag].modify(p, 0);
+        cur_disk.empty_pos.modify(p, 0);
     }
     for (int tag_id = 1; tag_id <= M; ++tag_id) {
         for (int p = l; p <= r; ++p)
@@ -1899,7 +1917,7 @@ void write_action()
                 }
 
                 printf("%d ", disk_id);
-                vised[disk_id] = 1;
+                vised[disk_id] = 1; 
                 // std::cerr << "disk_id : " << disk_id << " ";
 
                 tag_size_in_disk[tag][disk_id] += size;
