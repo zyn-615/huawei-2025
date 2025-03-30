@@ -77,7 +77,7 @@ const int MIX_DISTRIBUTION_VERSION = 3;
 const bool OUPUT_AVERAGE_DIST = true;
 
 const int USE_ENHANCED_SEGMENT_TREE = 1;
-const int SMALL_PROTECTTION_AREA_MAX_LEN = 10;
+const int SMALL_PROTECTTION_AREA_MAX_LEN = 5;
 const int SMALL_PROTECTTION_AREA_MIN_LEN = 1;
 struct _Object {
     //(磁盘编号，磁盘内位置)
@@ -1548,6 +1548,8 @@ inline int write_unit_in_disk_strategy_1(int disk_id, int tag)
 {
     if (USE_ENHANCED_SEGMENT_TREE) {
         int tag_pointer = disk[disk_id].tag_distribution_pointer[tag];
+        if (tag_pointer == 0)
+            tag_pointer = 1;
         int best_pos_out_of_protected_area;
         if (!disk[disk_id].inner_tag_inverse[tag]) {
             int best_pos_in_protected_area = disk[disk_id].protected_tag_density[tag].find_next(tag_pointer);
@@ -1641,7 +1643,7 @@ void add_small_protection(DISK &cur_disk, int cur_tag, int l, int r) {
 
 void delete_small_protection(DISK &cur_disk, int cur_tag, int l, int r) {
     //check 删除保护区要求全空
-    for (int p = l; p <= r; ++p) {
+    for (int p = l, lim = get_next_pos(r); p != lim; ++p) {
         const auto [object_id, unit_id] = cur_disk.unit_object[p];
         assert(object_id == 0);
         assert(cur_disk.protected_area[p][0] == cur_tag);
@@ -1752,6 +1754,7 @@ inline int write_unit_in_disk_by_density_version2(int disk_id, int tag)
 
 inline int write_unit_in_disk_by_density_version3(int disk_id, int tag)
 {
+    assert(0);
     // if (USE_NEW_DISTRIBUTION == DISTRIBUTION_VERSION2) 
     // {
     //     if (!disk[disk_id].tag_distribution_size[tag]) {
@@ -1894,7 +1897,7 @@ void write_action()
                 };
 
                 while (check_normal(pos[now])) {
-                    disk_id = pos[++now];
+                    ++now;
                     
                     if (now >= N) {
                         if (!OVER)
@@ -1913,12 +1916,20 @@ void write_action()
                             }
                         }
 
+                        if (now >= N) {
+                            std::cerr << "tag: " << tag << std::endl << "empty_pos.query_rest_unit: " << std::endl;
+                            for (int p = 1; p <= N; ++p) {
+                                std::cerr << disk[p].empty_pos.query_rest_unit() << std::endl;
+                            }
+                            assert(0);
+                        }
+
                         disk_id = pos[now];
                         assert(check_abnormal(disk_id));
 
                         // std::cerr << "FIND pos ->  : " << disk_id << " " << disk[disk_id].empty_pos.query_rest_unit() << std::endl;
                         break;
-                    }
+                    } else disk_id = pos[now];
                     
                     assert(now < N);
                 }
@@ -1939,8 +1950,11 @@ void write_action()
                         if (now_stage <= PRE_DISTRIBUTION_TIME) {
                             nxt = write_unit_in_disk_strategy_1(disk_id, tag);
                         } else {
-                            nxt = write_unit_in_disk_by_density_version2(disk_id, tag);
-                            // nxt = write_unit_in_disk_by_density(disk_id, tag);
+                            if (USE_ENHANCED_SEGMENT_TREE == 0)
+                                nxt = write_unit_in_disk_by_density_version2(disk_id, tag);
+                            else
+                                nxt = write_unit_in_disk_by_density_version3(disk_id, tag);
+                                // nxt = write_unit_in_disk_by_density(disk_id, tag);
                         }
 
                     }
