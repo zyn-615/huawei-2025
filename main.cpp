@@ -1407,11 +1407,23 @@ inline void do_object_delete(int object_id)
                     }
                 }
             }
+            
+            //清除request
+            modify_unit_request(disk_id, pos, 0);
+            disk[disk_id].unit_object[pos] = {0, 0};
+
+            tag_size_in_disk[objects[object_id].tag][disk_id] -= 1;
+            //更新tag_set
 
             if (USE_ENHANCED_SEGMENT_TREE == 1) {
                 disk[disk_id].tag_density_enhanced[cur_tag].add_tag_density(pos, -1);
                 const int cur_tag = objects[object_id].tag;
                 if (cur_disk.protected_area[pos][0] != 0) {
+                    int l = cur_disk.protected_area[pos][2];
+                    int r = cur_disk.protected_area[pos][3];
+                    for (int p = l, lim = get_next_pos(r); p != lim; to_next_pos(p)) {
+                        cur_disk.protected_area[p][1]--;
+                    }
                     disk[disk_id].protected_tag_density[cur_tag].modify(pos, 1);
                     assert(cur_disk.protected_area[pos][0] == objects[object_id].tag);
                     if (cur_disk.protected_area[pos][1] == 0)
@@ -1420,13 +1432,6 @@ inline void do_object_delete(int object_id)
                         disk[disk_id].empty_pos.modify(pos, 0);
                 }
             }
-            
-            //清除request
-            modify_unit_request(disk_id, pos, 0);
-            disk[disk_id].unit_object[pos] = {0, 0};
-
-            tag_size_in_disk[objects[object_id].tag][disk_id] -= 1;
-            //更新tag_set
         }
     }
 
@@ -1643,7 +1648,7 @@ void add_small_protection(DISK &cur_disk, int cur_tag, int l, int r) {
 
 void delete_small_protection(DISK &cur_disk, int cur_tag, int l, int r) {
     //check 删除保护区要求全空
-    for (int p = l, lim = get_next_pos(r); p != lim; ++p) {
+    for (int p = l, lim = get_next_pos(r); p != lim; to_next_pos(p)) {
         const auto [object_id, unit_id] = cur_disk.unit_object[p];
         assert(object_id == 0);
         assert(cur_disk.protected_area[p][0] == cur_tag);
@@ -1754,7 +1759,6 @@ inline int write_unit_in_disk_by_density_version2(int disk_id, int tag)
 
 inline int write_unit_in_disk_by_density_version3(int disk_id, int tag)
 {
-    assert(0);
     // if (USE_NEW_DISTRIBUTION == DISTRIBUTION_VERSION2) 
     // {
     //     if (!disk[disk_id].tag_distribution_size[tag]) {
@@ -1840,7 +1844,7 @@ inline int write_unit_in_disk_use_protect_area(int disk_id, int tag)
     return cur_disk.transformer.transform_pos_to_out(nxt);
 }
 
-void write_action()
+void write_action(int time)
 {
     int n_write;
     scanf("%d", &n_write);
@@ -1917,10 +1921,14 @@ void write_action()
                         }
 
                         if (now >= N) {
+                            std::cerr << "time: " << time << std::endl;
                             std::cerr << "tag: " << tag << std::endl << "empty_pos.query_rest_unit: " << std::endl;
                             for (int p = 1; p <= N; ++p) {
                                 std::cerr << disk[p].empty_pos.query_rest_unit() << std::endl;
                             }
+                            for (int k = 0; k < 4; ++k)
+                                std::cerr << disk[1].protected_area[2935][k] << " ";
+                            std::cerr << std::endl;
                             assert(0);
                         }
 
@@ -2705,7 +2713,7 @@ int main()
         //std::cerr << "end delete_action" <<std::endl;
         //std::cerr << "start write_action" <<std::endl;
 
-        write_action();
+        write_action(t);
 
         //std::cerr << "end write_action" <<std::endl;
         //std::cerr << "start read_action" <<std::endl;
