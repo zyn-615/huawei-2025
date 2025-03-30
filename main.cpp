@@ -1382,7 +1382,6 @@ inline void do_object_delete(int object_id)
 
             if (USE_NEW_DISTRIBUTION) {
                 disk[disk_id].tag_density[cur_tag].add_tag_density(pos, -1);
-                disk[disk_id].tag_density_enhanced[cur_tag].add_tag_density(pos, -1);
                 /*
                 for (int tag_id = 1; tag_id <= M; ++tag_id) {
                     if (tag_id != cur_tag) {
@@ -1410,10 +1409,15 @@ inline void do_object_delete(int object_id)
             }
 
             if (USE_ENHANCED_SEGMENT_TREE == 1) {
+                disk[disk_id].tag_density_enhanced[cur_tag].add_tag_density(pos, -1);
                 const int cur_tag = objects[object_id].tag;
                 if (cur_disk.protected_area[pos][0] != 0) {
+                    disk[disk_id].protected_tag_density[cur_tag].modify(pos, 1);
                     assert(cur_disk.protected_area[pos][0] == objects[object_id].tag);
-                    delete_small_protection(cur_disk, cur_tag, cur_disk.protected_area[pos][2], cur_disk.protected_area[pos][3]);
+                    if (cur_disk.protected_area[pos][1] == 0)
+                        delete_small_protection(cur_disk, cur_tag, cur_disk.protected_area[pos][2], cur_disk.protected_area[pos][3]);
+                    else
+                        disk[disk_id].empty_pos.modify(pos, 0);
                 }
             }
             
@@ -1469,8 +1473,10 @@ void delete_action()
 
 inline void write_unit(int object_id, int disk_id, int unit_id, int write_pos, int repeat_id) 
 {
+    //std::cerr << "write_unit: " << object_id << " " << disk_id << " " << unit_id << " " << write_pos << std::endl;
     // disk[disk_id].empty_pos.add_unit(1, 1, V, 1);
-    disk[disk_id].empty_pos.add(1, 1, V, write_pos, -1);
+    //disk[disk_id].empty_pos.add(1, 1, V, write_pos, -1);
+    disk[disk_id].empty_pos.modify(write_pos, 0);
     auto& cur_disk = disk[disk_id];
     int cur_tag = objects[object_id].tag;
     
@@ -1525,8 +1531,9 @@ inline void write_unit(int object_id, int disk_id, int unit_id, int write_pos, i
                     int r = cur_disk.protected_area[write_pos][3];
                     for (int p = l, lim = get_next_pos(r); p != lim; to_next_pos(p))
                         ++cur_disk.protected_area[p][1];
+                    disk[disk_id].protected_tag_density[cur_tag].modify(write_pos, 0);
                 }
-                std::cerr << "sart update tag_density_enhanced" << std::endl;
+                //std::cerr << "sart update tag_density_enhanced" << std::endl;
                 disk[disk_id].tag_density_enhanced[cur_tag].add_tag_density(write_pos, 1);
             }
             // add_tag_density(disk_id, objects[object_id].tag, write_pos, 1);
@@ -1608,7 +1615,7 @@ inline int write_unit_in_disk_strategy_1(int disk_id, int tag)
 
 //USE_ENHANCED_SEGMENT_TREE == 1时用到
 void add_small_protection(DISK &cur_disk, int cur_tag, int l, int r) {
-    std::cerr << "start add small protection: " << l << " " << r << " " << std::endl;
+    //std::cerr << "start add small protection: " << l << " " << r << " " << std::endl;
     //check 添加保护区要求事先全空
     for (int p = l, lim = get_next_pos(r); p != lim; to_next_pos(p)) {
         const auto [object_id, unit_id] = cur_disk.unit_object[p];
@@ -1616,7 +1623,7 @@ void add_small_protection(DISK &cur_disk, int cur_tag, int l, int r) {
     }
     
     for (int p = l, lim = get_next_pos(r); p != lim; to_next_pos(p)) {
-        std::cerr << "update unit " << p << std::endl;
+       // std::cerr << "update unit " << p << std::endl;
         assert(cur_disk.protected_tag_density[cur_tag].find_next(p) != p);
         cur_disk.protected_tag_density[cur_tag].modify(p, 1);  
         cur_disk.protected_area[p][0] = cur_tag;
@@ -1626,10 +1633,10 @@ void add_small_protection(DISK &cur_disk, int cur_tag, int l, int r) {
         cur_disk.empty_pos.modify(p, 0);
     }
     for (int tag_id = 1; tag_id <= M; ++tag_id) {
-        for (int p = l; p !=  r; to_next_pos(p))
+        for (int p = l, lim = get_next_pos(r); p != lim; to_next_pos(p))
             cur_disk.tag_density_enhanced[cur_tag].modify(1, 1, V, p, -inf);
     }
-    std::cerr <<"end add small protection" << std::endl;
+    //std::cerr <<"end add small protection" << std::endl;
 }
 
 void delete_small_protection(DISK &cur_disk, int cur_tag, int l, int r) {
@@ -1644,7 +1651,7 @@ void delete_small_protection(DISK &cur_disk, int cur_tag, int l, int r) {
         for (int j = 0; j < 4; ++j)
             cur_disk.protected_area[p][j] = 0;
         cur_disk.protected_tag_density[cur_tag].modify(p, 0);
-        cur_disk.empty_pos.modify(p, 0);
+        cur_disk.empty_pos.modify(p, 1);
     }
     for (int tag_id = 1; tag_id <= M; ++tag_id) {
         for (int p = l; p <= r; ++p)
@@ -1940,10 +1947,10 @@ void write_action()
                     
 
                     // std::cerr << "Nxt : " << nxt << " ";
-                    std::cerr << "start write unit" << std::endl;
+                    //std::cerr << "start write unit" << std::endl;
                     assert(nxt > 0 && nxt <= V);
                     write_unit(id, disk_id, k, nxt, j);
-                    std::cerr << "end write unit" << std::endl;
+                    //std::cerr << "end write unit" << std::endl;
                     printf("%d ", nxt);
                 }
 
@@ -2672,26 +2679,26 @@ int main()
         now_stage = get_now_stage(t);
         update_request_num(t);
 
-        std::cerr << "start time " << t << std::endl;
-        std::cerr << "start timestamp_action" <<std::endl;
+        //std::cerr << "start time " << t << std::endl;
+        //std::cerr << "start timestamp_action" <<std::endl;
 
         timestamp_action();
 
-        std::cerr << "end timestamp_action" <<std::endl;
-        std::cerr << "start delete_action" <<std::endl;
+        //std::cerr << "end timestamp_action" <<std::endl;
+        //std::cerr << "start delete_action" <<std::endl;
         delete_action();
 
-        std::cerr << "end delete_action" <<std::endl;
-        std::cerr << "start write_action" <<std::endl;
+        //std::cerr << "end delete_action" <<std::endl;
+        //std::cerr << "start write_action" <<std::endl;
 
         write_action();
 
-        std::cerr << "end write_action" <<std::endl;
-        std::cerr << "start read_action" <<std::endl;
+        //std::cerr << "end write_action" <<std::endl;
+        //std::cerr << "start read_action" <<std::endl;
         read_action(t);
 
-        std::cerr << "end read_action" <<std::endl;
-        std::cerr << "end time " << t << std::endl;
+        //std::cerr << "end read_action" <<std::endl;
+        //std::cerr << "end time " << t << std::endl;
     }
     for (int i = 1; i <= N; ++i)
         std::cerr << "jump_cnt" << "[" << i << "]" << ": " << jump_cnt_tot[i] << std::endl;
