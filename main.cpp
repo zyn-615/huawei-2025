@@ -216,6 +216,7 @@ struct Segment_tree_max {
 
     void add(int o, int l, int r, int x, int y, int ad) 
     {
+        if (x > y) return;
         // std::cerr << o << " " << l << " " << r << std::endl;
         if (x <= l && y >= r) {
             return apply(o, ad);
@@ -754,7 +755,7 @@ struct Segment_tree_max_enhanced : Segment_tree_max {
             pre_pos = V - rest_num + 1;
         }
         int max_pos = std::min(V, pos + half_len - 1);
-        add(1, 1, V, pos, max_pos, value);
+        add(1, 1, V, pos + 1, max_pos, value);
         if (pos + half_len - 1 > V) {
             int rest_num = pos + half_len - 1 - V;
             add(1, 1, V, 1, rest_num, value);
@@ -2770,13 +2771,18 @@ int main()
         read_action(t);
         if (t % 100 == 0) {
             for (int disk_id = 1; disk_id <= N; ++disk_id) {
-                const DISK &cur_disk = disk[disk_id];
+                DISK &cur_disk = disk[disk_id];
                 for (int p = 1; p <= V; ++p) {
                     const auto [object_id, unit_id] = cur_disk.unit_object[p];
                     for (int tag = 1; tag <= M; ++tag) {
                         int res = cur_disk.tag_density_enhanced[tag].query_max(p, p);
                         if (cur_disk.protected_area[p][0] == 0) {
-                            //const auto [pre_pos, max_pos] = cur_disk.
+                            const auto [pre_pos, max_pos] = cur_disk.tag_density_enhanced[tag].get_end_point(p);
+                            int check_res = cur_disk.tag_in_disk[tag].query(pre_pos, max_pos);
+                            assert(res == check_res);
+                        }
+                        else {
+                            assert(res < 0);
                         }
                     }
                 }
