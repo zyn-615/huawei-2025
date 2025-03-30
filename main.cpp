@@ -427,6 +427,13 @@ struct Segment_tree_add {
         return res;
     }
 
+    inline int query(int x, int y)
+    {
+        if (x < y)
+            return query(1, 1, V, x, y);
+        return query(1, 1, V, x, V) + query(1, 1, V, 1, y);
+    }
+
     inline void add(int p, int v) 
     {
         add(1, 1, Len, p, v);
