@@ -1055,11 +1055,12 @@ inline void distribute_tag_in_disk_new_version_1(int stage)
             cur_disk.tag_density[j].preference_left = false;
             cur_disk.tag_density[j].init(V);
             cur_disk.tag_density[j].build();
-            
-            cur_disk.tag_density_enhanced[j].preference_left = false;
-            cur_disk.tag_density_enhanced[j].init(V);
-            cur_disk.tag_density_enhanced[j].build();
-            cur_disk.protected_tag_density[j].init(V, 0);
+            if (USE_ENHANCED_SEGMENT_TREE) {
+                cur_disk.tag_density_enhanced[j].preference_left = false;
+                cur_disk.tag_density_enhanced[j].init(V);
+                cur_disk.tag_density_enhanced[j].build();
+                cur_disk.protected_tag_density[j].init(V, 0);
+            }
         }
         
 
@@ -1073,11 +1074,11 @@ inline void distribute_tag_in_disk_new_version_1(int stage)
             cur_disk.tag_density[cur_tag].preference_left = cur_disk.inner_tag_inverse[cur_tag] ^ 1;
             cur_disk.tag_density[cur_tag].init(V);
             cur_disk.tag_density[cur_tag].build();
-            
-            cur_disk.tag_density_enhanced[cur_tag].preference_left = cur_disk.inner_tag_inverse[cur_tag] ^ 1;
-            cur_disk.tag_density_enhanced[cur_tag].init(V);
-            cur_disk.tag_density_enhanced[cur_tag].build();
-            
+            if (USE_ENHANCED_SEGMENT_TREE) {
+                cur_disk.tag_density_enhanced[cur_tag].preference_left = cur_disk.inner_tag_inverse[cur_tag] ^ 1;
+                cur_disk.tag_density_enhanced[cur_tag].init(V);
+                cur_disk.tag_density_enhanced[cur_tag].build();
+            }
             int cur_tag_distribution = (1.0 * cur_disk.tag_distribution_size[cur_tag] / all_need) * rest_unit;
 
             if (pre_distribution + cur_tag_distribution > rest_unit) {
@@ -1231,6 +1232,7 @@ inline int get_now_stage(int now_time)
 
 inline void reset_disk_window_len(int disk_id)
 {   
+    return;
     auto& cur_disk = disk[disk_id];
     int n = cur_disk.tag_num;
     for (int i = 1; i <= n; ++i) {
@@ -1238,9 +1240,10 @@ inline void reset_disk_window_len(int disk_id)
         cur_disk.max_density.update_window_len();
         cur_disk.tag_density[j].build();
         cur_disk.tag_density[j].window_len = std::max(MIN_TEST_TAG_DENSITY_LEN, int(tag_size_in_disk[j][disk_id] / WRITE_TAG_DENSITY_DIVIDE));
-        
-        cur_disk.tag_density_enhanced[j].build();
-        cur_disk.tag_density_enhanced[j].window_len = std::max(MIN_TEST_TAG_DENSITY_LEN, int(tag_size_in_disk[j][disk_id] / WRITE_TAG_DENSITY_DIVIDE));
+        if (USE_ENHANCED_SEGMENT_TREE) {
+            cur_disk.tag_density_enhanced[j].build();
+            cur_disk.tag_density_enhanced[j].window_len = std::max(MIN_TEST_TAG_DENSITY_LEN, int(tag_size_in_disk[j][disk_id] / WRITE_TAG_DENSITY_DIVIDE));
+        }
     }
 
     for (int i = 1; i <= V; ++i) {
@@ -1248,7 +1251,8 @@ inline void reset_disk_window_len(int disk_id)
         int tag = objects[object_id].tag;
         if (object_id) {
             cur_disk.tag_density[tag].add_tag_density(i, 1);
-            cur_disk.tag_density_enhanced[tag].add_tag_density(i, 1);
+            if (USE_ENHANCED_SEGMENT_TREE)
+                cur_disk.tag_density_enhanced[tag].add_tag_density(i, 1);
         }
     }
 }
@@ -1488,7 +1492,8 @@ inline void write_unit(int object_id, int disk_id, int unit_id, int write_pos, i
     if (USE_NEW_DISTRIBUTION == DISTRIBUTION_VERSION2) {
         ++disk[disk_id].tag_cnt[cur_tag];
         disk[disk_id].tag_density[cur_tag].add_tag_density(write_pos, 1);
-        disk[disk_id].tag_density_enhanced[cur_tag].add_tag_density(write_pos, 1);
+        assert(0);
+        //disk[disk_id].tag_density_enhanced[cur_tag].add_tag_density(write_pos, 1);
 
         auto [l, r, _] = cur_disk.tag_protected_area[cur_tag].get_info();
 
@@ -1527,9 +1532,11 @@ inline void write_unit(int object_id, int disk_id, int unit_id, int write_pos, i
                     int l = write_pos, r = pointer;
                     if (cur_disk.inner_tag_inverse[cur_tag] == 1)
                         std::swap(l, r);
-                    if (get_dist(l, r) >= SMALL_PROTECTTION_AREA_MIN_LEN) {
+                    if (get_dist(l, r) + 1 >= SMALL_PROTECTTION_AREA_MIN_LEN) {
                         add_small_protection(cur_disk, cur_tag, l, r);
-                    } 
+                    }
+                    else
+                        assert(0);
                 }
                 if (cur_disk.protected_area[write_pos][0] != 0) {
                     int l = cur_disk.protected_area[write_pos][2];
@@ -1640,8 +1647,8 @@ void add_small_protection(DISK &cur_disk, int cur_tag, int l, int r) {
         cur_disk.empty_pos.modify(p, 0);
     }
     for (int tag_id = 1; tag_id <= M; ++tag_id) {
-        for (int p = l, lim = get_next_pos(r); p != lim; to_next_pos(p))
-            cur_disk.tag_density_enhanced[cur_tag].modify(1, 1, V, p, -inf);
+            for (int p = l, lim = get_next_pos(r); p != lim; to_next_pos(p))
+                cur_disk.tag_density_enhanced[tag_id].modify(1, 1, V, p, -inf);
     }
     //std::cerr <<"end add small protection" << std::endl;
 }
@@ -1661,8 +1668,11 @@ void delete_small_protection(DISK &cur_disk, int cur_tag, int l, int r) {
         cur_disk.empty_pos.modify(p, 1);
     }
     for (int tag_id = 1; tag_id <= M; ++tag_id) {
-        for (int p = l; p <= r; ++p)
-            cur_disk.tag_density_enhanced[cur_tag].modify(1, 1, V, p, -inf);
+        for (int p = l, lim = get_next_pos(r); p != lim; to_next_pos(p)) {
+            待修改
+            //int res = cur_disk.tag_density_enhanced[cur_tag]
+            //cur_disk.tag_density_enhanced[cur_tag].modify(1, 1, V, p, -inf);
+        }
     }
 }
 
@@ -1789,10 +1799,12 @@ inline int write_unit_in_disk_by_density_version3(int disk_id, int tag)
     // }
 
     if (!disk[disk_id].tag_distribution_size[tag]) {
+        assert(0);
         return disk[disk_id].empty_pos.find_next(1);
     }
 
-    int best_pos = disk[disk_id].tag_density[tag].find_max_point();
+    //不清楚是否除去自己的保护区
+    int best_pos = disk[disk_id].tag_density_enhanced[tag].find_max_point(); 
     int best_pos_in_protected_area = find_nearest_protected_area(disk[disk_id], tag, best_pos);
     if (best_pos_in_protected_area != -1)
         return best_pos_in_protected_area;
@@ -1802,7 +1814,8 @@ inline int write_unit_in_disk_by_density_version3(int disk_id, int tag)
     // } else {
     //     best_pos = disk[disk_id].empty_pos.find_next(best_pos);
     // }
-    return best_pos;
+    assert(disk[disk_id].protected_area[best_pos][0] == 0);
+    return best_pos;    
 }
 
 inline int write_unit_in_disk_use_protect_area(int disk_id, int tag)
