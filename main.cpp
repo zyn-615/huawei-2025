@@ -766,6 +766,7 @@ struct DISK {
     Protected_area tag_protected_area[MAX_TAG_NUM];
     Segment_tree_add rest_empty_pos;
     Transformer transformer;
+    Segment_tree_add tag_in_disk[MAX_TAG_NUM];
     // DensityManager tag_in_disk[MAX_TAG_NUM];
 };
 
@@ -1055,6 +1056,7 @@ inline void distribute_tag_in_disk_new_version_1(int stage)
             cur_disk.tag_density[j].preference_left = false;
             cur_disk.tag_density[j].init(V);
             cur_disk.tag_density[j].build();
+            cur_disk.tag_in_disk[j].init(V, 0);
             if (USE_ENHANCED_SEGMENT_TREE) {
                 cur_disk.tag_density_enhanced[j].preference_left = false;
                 cur_disk.tag_density_enhanced[j].init(V);
@@ -1386,6 +1388,7 @@ inline void do_object_delete(int object_id)
 
             if (USE_NEW_DISTRIBUTION) {
                 disk[disk_id].tag_density[cur_tag].add_tag_density(pos, -1);
+                disk[disk_id].tag_in_disk[cur_tag].add(pos, -1);
                 /*
                 for (int tag_id = 1; tag_id <= M; ++tag_id) {
                     if (tag_id != cur_tag) {
@@ -1514,6 +1517,9 @@ inline void write_unit(int object_id, int disk_id, int unit_id, int write_pos, i
         // }
             ++disk[disk_id].tag_cnt[cur_tag];
             disk[disk_id].tag_density[cur_tag].add_tag_density(write_pos, 1);
+            disk[disk_id].tag_in_disk[cur_tag].add(write_pos, 1);
+
+
             if (USE_ENHANCED_SEGMENT_TREE == 1) {
                 assert(cur_disk.protected_area[write_pos][0] == 0 || cur_disk.protected_area[write_pos][0] == cur_tag);
                 if (cur_disk.protected_area[write_pos][0] == 0) {
