@@ -54,7 +54,7 @@ const int CUR_REQUEST_DIVIDE = 344;
 const int MIN_TEST_DENSITY_LEN = 370;
 const int JUMP_MORE_TIME = 0;
 const int PRE_DISTRIBUTION_TIME = 20;
-const int PRE_PROTECTION_TIME = 30;
+const int PRE_PROTECTION_TIME = 10;
 const double DP_ROUND_TIME = 1.5;
 const int SKIP_LOW_REQUEST_UNIT_TIME = 2e4; //2e4-4e4
 const int NUM_PIECE_QUEUE = 90;
@@ -77,7 +77,7 @@ const int MIX_DISTRIBUTION_VERSION = 3;
 const bool OUPUT_AVERAGE_DIST = true;
 
 const int USE_ENHANCED_SEGMENT_TREE = 1;
-const int SMALL_PROTECTTION_AREA_MAX_LEN = 4;
+const int SMALL_PROTECTTION_AREA_MAX_LEN = 7;
 const int SMALL_PROTECTTION_AREA_MIN_LEN = 1;
 struct _Object {
     //(磁盘编号，磁盘内位置)
@@ -1567,7 +1567,7 @@ inline void write_unit(int object_id, int disk_id, int unit_id, int write_pos, i
                     int l = write_pos, r = pointer;
                     if (cur_disk.inner_tag_inverse[cur_tag] == 1)
                         std::swap(l, r);
-                    if (cur_disk.tag_distribution_size[cur_tag] == 0 || cur_tag == 8 || cur_tag == 12) {
+                    if (cur_disk.tag_distribution_size[cur_tag] == 0 || (cur_tag != 3 && cur_tag != 16)) {
                         l = r = write_pos;
                     }
                     if (get_dist(l, r) + 1 >= SMALL_PROTECTTION_AREA_MIN_LEN) {
