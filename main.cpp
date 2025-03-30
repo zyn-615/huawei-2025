@@ -717,6 +717,19 @@ struct Segment_tree_max_enhanced : Segment_tree_max {
         build(o << 1 | 1, mid + 1, r);
         push_up(o);
     }
+
+    std::pair<int, int> get_end_point(int pos) {
+        int half_len = window_len / 2;
+        int pre_pos = pos - half_len + 1;
+        if (pre_pos <= 0)
+            pre_pos += V;
+        int max_pos = pos + half_len - 1;
+        if (max_pos > V)
+            max_pos -= V;
+        assert(1 <= pre_pos && pre_pos <= V);
+        assert(1 <= max_pos && max_pos <= V);
+        return std::make_pair(pre_pos, max_pos);
+    }
     
     void add_tag_density(int pos, int value) override
     {
@@ -734,6 +747,8 @@ struct Segment_tree_max_enhanced : Segment_tree_max {
             int rest_num = pos + half_len - 1 - V;
             add(1, 1, V, 1, rest_num, value);
         }
+        std::pair<int, int> check_pos = get_end_point(pos);
+        assert(check_pos.first == pre_pos && check_pos.second == max_pos);
     }
 };
 
@@ -1675,7 +1690,10 @@ void delete_small_protection(DISK &cur_disk, int cur_tag, int l, int r) {
     }
     for (int tag_id = 1; tag_id <= M; ++tag_id) {
         for (int p = l, lim = get_next_pos(r); p != lim; to_next_pos(p)) {
-            待修改
+            const auto [pre_pos, max_pos] = cur_disk.tag_density_enhanced[cur_tag].get_end_point(p);
+            //int l = p - cur_disk.tag_density_enhanced[cur_tag].window_len / 2 + 1;
+            //int r = p - cur_disk.tag_density_enhanced[cur_tag].window_len / 2 - 1;
+            int res = cur_disk.tag_in_disk[cur_tag].query(pre_pos, end_pos);
             //int res = cur_disk.tag_density_enhanced[cur_tag]
             //cur_disk.tag_density_enhanced[cur_tag].modify(1, 1, V, p, -inf);
         }
