@@ -244,6 +244,10 @@ struct Segment_tree_max {
         return res;    
     }
 
+    int query_max(int l, int r) {
+        return query_max(1, 1, V, l, r).max;
+    }
+
     int find_max_point() {
         return query_max(1, 1, V, 1, V).pos;
     }
@@ -2764,6 +2768,20 @@ int main()
         //std::cerr << "end write_action" <<std::endl;
         //std::cerr << "start read_action" <<std::endl;
         read_action(t);
+        if (t % 100 == 0) {
+            for (int disk_id = 1; disk_id <= N; ++disk_id) {
+                const DISK &cur_disk = disk[disk_id];
+                for (int p = 1; p <= V; ++p) {
+                    const auto [object_id, unit_id] = cur_disk.unit_object[p];
+                    for (int tag = 1; tag <= M; ++tag) {
+                        int res = cur_disk.tag_density_enhanced[tag].query_max(p, p);
+                        if (cur_disk.protected_area[p][0] == 0) {
+                            //const auto [pre_pos, max_pos] = cur_disk.
+                        }
+                    }
+                }
+            }
+        }
 
         //std::cerr << "end read_action" <<std::endl;
         //std::cerr << "end time " << t << std::endl;
