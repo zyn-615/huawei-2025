@@ -77,7 +77,7 @@ const int MIX_DISTRIBUTION_VERSION = 3;
 const bool OUPUT_AVERAGE_DIST = true;
 
 const int USE_ENHANCED_SEGMENT_TREE = 1;
-const int SMALL_PROTECTTION_AREA_MAX_LEN = 5;
+const int SMALL_PROTECTTION_AREA_MAX_LEN = 4;
 const int SMALL_PROTECTTION_AREA_MIN_LEN = 1;
 struct _Object {
     //(磁盘编号，磁盘内位置)
@@ -1548,8 +1548,8 @@ inline void write_unit(int object_id, int disk_id, int unit_id, int write_pos, i
             disk[disk_id].tag_density[cur_tag].add_tag_density(write_pos, 1);
             disk[disk_id].tag_in_disk[cur_tag].add(write_pos, 1);
 
-
             if (USE_ENHANCED_SEGMENT_TREE == 1) {
+                
                 assert(cur_disk.protected_area[write_pos][0] == 0 || cur_disk.protected_area[write_pos][0] == cur_tag);
                 if (cur_disk.protected_area[write_pos][0] == 0) {
                     int pointer = write_pos;
@@ -1567,6 +1567,9 @@ inline void write_unit(int object_id, int disk_id, int unit_id, int write_pos, i
                     int l = write_pos, r = pointer;
                     if (cur_disk.inner_tag_inverse[cur_tag] == 1)
                         std::swap(l, r);
+                    if (cur_disk.tag_distribution_size[cur_tag] == 0 || cur_tag == 8 || cur_tag == 12) {
+                        l = r = write_pos;
+                    }
                     if (get_dist(l, r) + 1 >= SMALL_PROTECTTION_AREA_MIN_LEN) {
                         add_small_protection(cur_disk, cur_tag, l, r);
                     }
