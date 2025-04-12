@@ -24,7 +24,7 @@
 #define EXTRA_TIME (105)
 #define MAX_OBJECT_SIZE (5 + 1)
 #define MAX_TAG_NUM (16 + 1)
-#define MAX_STAGE (55)
+#define MAX_STAGE (65)
 #define MAX_TOKEN (1000 + 2)
 #define MAX_PIECE_QUEUE (105 + 1)
 #define INF_TOKEN (10000000)
@@ -54,6 +54,7 @@ const int TEST_READ_TIME = 4;
 const int CUR_REQUEST_DIVIDE = 144;
 const int MIN_TEST_DENSITY_LEN = 889;
 const int JUMP_MORE_TIME = 0;
+const int BUST_LIMIT_TIME = 105;
 
 
 
@@ -1762,7 +1763,7 @@ void read_action(int time)
         requests[request_id].request_time = time;
         requests[request_id].request_id = request_id;
         request_queue_in_time_order[1].push(requests[request_id]);
-        overload_queue[0].push(requests[request_id]);
+        overload_queue[1].push(requests[request_id]);
         request_queue_id[request_id] = 1;
         update_unsolved_request(request_id, object_id);
     }
@@ -1835,11 +1836,12 @@ void read_action(int time)
 
     //busy request
     
-    while(!overload_queue[EXTRA_TIME].empty())
+    while(!overload_queue[BUST_LIMIT_TIME].empty())
     {
-        _Request now_request = overload_queue[EXTRA_TIME].front();
-        overload_queue[EXTRA_TIME].pop();
+        _Request now_request = overload_queue[BUST_LIMIT_TIME].front();
+        overload_queue[BUST_LIMIT_TIME].pop();
         if(request_rest_unit[now_request.request_id] <= 0) continue;
+        request_rest_unit[now_request.request_id] = -1;
         output_busy_request.push_back(now_request.request_id);
     }
     printf("%d\n",output_busy_request.size());
@@ -1874,7 +1876,7 @@ inline void update_request_num(int time) {
             }
         }    
     }
-    for(int i = EXTRA_TIME - 1; i >= 0; --i)
+    for(int i = BUST_LIMIT_TIME - 1; i >= 1; --i)
     {
         while(!overload_queue[i].empty())
         {
@@ -1924,11 +1926,9 @@ int main()
             // scanf("%*d");
         }
     }
-    
-    // std::cerr <<
+
     for (int i = 1; i <= ceil((T + EXTRA_TIME) * 1.0 / 1800); ++i) {
         scanf("%d", &adG[i]);
-        // std::cerr << adG << std::endl;
     }
 
     // for (int i = 1; i <= M; ++i) {
@@ -1937,12 +1937,12 @@ int main()
     //     }
     // }
 
-    // std::cerr << "end input global information" << std::endl;
+    std::cerr << "end input global information" << std::endl;
 
     init();
     printf("OK\n");
     fflush(stdout);
-    std::cerr << "no error" << std::endl;
+    // std::cerr << "no error" << std::endl;
 
     for (int t = 1; t <= T + EXTRA_TIME; t++) {
         now_stage = get_now_stage(t);
@@ -1969,6 +1969,8 @@ int main()
         if (t % 1800 == 0) {
             garbage_collection();
         }
+
+        if(t == 304) std::cerr << "request_time: " << requests[343].request_time << std::endl;
 
         // std::cerr << "end read_action" <<std::endl;
         // std::cerr << "end time " << t << std::endl;
