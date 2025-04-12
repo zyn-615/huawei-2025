@@ -106,8 +106,9 @@ std::vector <int> output_busy_request;
 
 //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!注意，objects加了复数
 _Object objects[MAX_OBJECT_NUM];
+int adG[MAX_STAGE + 1];
 
-int T, M, N, V, G, all_stage, now_stage, cur_request, limK;
+int T, M, N, V, G, all_stage, now_stage, cur_request, limK, premitive_G;
 
 inline int get_pre_kth(int x, int k) 
 {
@@ -804,6 +805,7 @@ inline void distribute_tag_in_disk_new_version_1(int stage)
 /*预处理操作*/
 void init() 
 {
+    G = premitive_G;
     int cur_time_out_of_queue = EXTRA_TIME;
     int delta_time_out_of_queue = EXTRA_TIME / NUM_PIECE_QUEUE;
     for(int i = NUM_PIECE_QUEUE; i >= 1; i--)
@@ -900,6 +902,11 @@ inline int get_now_stage(int now_time)
     return std::min((now_time + FRE_PER_SLICING - 1) / FRE_PER_SLICING, all_stage);
 }
 
+inline int get_now_ID(int now_time) 
+{
+    return ceil((now_time * 1.0) / 1800);
+}
+
 inline void reset_disk_window_len(int disk_id)
 {   
     auto& cur_disk = disk[disk_id];
@@ -925,6 +932,7 @@ void timestamp_action()
     int timestamp;
     scanf("%*s%d", &timestamp);
     printf("TIMESTAMP %d\n", timestamp);
+    G = premitive_G + adG[get_now_ID(timestamp)];
 
     TEST_DENSITY_LEN = std::max(cur_request / CUR_REQUEST_DIVIDE, MIN_TEST_DENSITY_LEN);
     //READ_ROUND_TIME = std::max(TEST_DENSITY_LEN / LEN_TIME_DIVIDE, MIN_ROUND_TIME);
@@ -1885,10 +1893,10 @@ inline void garbage_collection() {
 int main()
 {
     // std::cerr << "start input global information" << std::endl;
-    scanf("%d%d%d%d%d%d", &T, &M, &N, &V, &G, &limK);
+    scanf("%d%d%d%d%d%d", &T, &M, &N, &V, &premitive_G, &limK);
     // srand(666666);
     //srand(time(0) ^ clock());
-
+    // exit(0);    
     all_stage = (T - 1) / FRE_PER_SLICING + 1;
     for (int i = 1; i <= M; i++) {
         for (int j = 1; j <= all_stage; j++) {
@@ -1911,6 +1919,10 @@ int main()
         }
     }
 
+    for (int i = 1; i <= ceil((T + 105) * 1.0 / 1800); ++i) {
+        scanf("%d", &adG[i]);
+    }
+
     // for (int i = 1; i <= M; ++i) {
     //     for (int j = 1; j <= all_stage; ++j) {
     //         Info[j][i].sum_object = Info[j - 1][i].sum_object - Info[j - 1][i].delete_object + Info[j][i].add_object;
@@ -1923,7 +1935,6 @@ int main()
     printf("OK\n");
     fflush(stdout);
 
-exit(0);
     for (int t = 1; t <= T + EXTRA_TIME; t++) {
         now_stage = get_now_stage(t);
         update_request_num(t);
