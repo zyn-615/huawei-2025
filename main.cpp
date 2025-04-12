@@ -74,7 +74,7 @@ const int MIN_TAG_NUM_IN_DISK = 6;
 //int READ_ROUND_TIME = 40; //一轮读取的时间
 const int READ_ROUND_TIME = 3;
 
-
+int count_jump;
 
 struct _Object {
     //(磁盘编号，磁盘内位置)
@@ -97,6 +97,8 @@ struct _Request {
 };
 
 int tag_size_in_disk[MAX_TAG_NUM][MAX_DISK_NUM];
+int count_read_have = 0;
+int count_read_empty = 0;
 
 _Request requests[MAX_REQUEST_NUM];
 std::queue <_Request> request_queue_in_time_order[MAX_PIECE_QUEUE];
@@ -109,6 +111,7 @@ std::vector <int> output_busy_request;
 _Object objects[MAX_OBJECT_NUM];
 
 int T, M, N, V, G, all_stage, now_stage, cur_request, limK, primitive_G;
+int count_pass;
 
 inline int get_pre_kth(int x, int k) 
 {
@@ -938,12 +941,18 @@ void timestamp_action()
     TEST_DENSITY_LEN = std::max(cur_request / CUR_REQUEST_DIVIDE, MIN_TEST_DENSITY_LEN);
 
     G = primitive_G + adG[get_time_stage(timestamp)];
+    // std::cerr << G << '\n';
     //READ_ROUND_TIME = std::max(TEST_DENSITY_LEN / LEN_TIME_DIVIDE, MIN_ROUND_TIME);
     //READ_ROUND_TIME = 3;
 
     if (get_now_stage(timestamp) != get_now_stage(timestamp - 1)) {
         std::cerr << "CER_REQUEST : " << cur_request << std::endl;
         std::cerr << "DIST : " << go_disk_dist << std::endl;
+        std::cerr << "JUMP : " << count_jump << std::endl;
+        std::cerr << "pass : " << count_pass << std::endl;
+        std::cerr << "read empty : " << count_read_empty << std::endl;
+        std::cerr << "read have : " << count_read_have << std::endl;
+
         if (!USE_NEW_DISTRIBUTION) {
             for (int i = 1; i <= N; ++i) {
                 if (get_now_stage(timestamp) <= PRE_DISTRIBUTION_TIME && get_now_stage(timestamp) % 10 == 0);
@@ -1323,6 +1332,7 @@ inline void update_unsolved_request(int request_id, int object_id)
 void do_pointer_jump(DISK &cur_disk, int destination, int o) 
 {
     printf("j %d\n", destination);
+    ++count_jump;
     cur_disk.pointer[o] = destination;
     cur_disk.rest_token = 0;
     cur_disk.last_read_cnt = 0;
@@ -1334,6 +1344,8 @@ void do_pointer_jump(DISK &cur_disk, int destination, int o)
 1 success
 0 fail
 */
+
+
 int do_pointer_pass(DISK &cur_disk, int o)
 {
     if (!cur_disk.rest_token)
@@ -1341,6 +1353,7 @@ int do_pointer_pass(DISK &cur_disk, int o)
     printf("p");
     assert(cur_disk.max_density.get(cur_disk.pointer[o]) == 0);
     ++go_disk_dist;
+    ++count_pass;
     cur_disk.pointer[o] = cur_disk.pointer[o] % V + 1;
     cur_disk.rest_token--;
     cur_disk.last_read_cnt = 0;
@@ -1362,6 +1375,7 @@ inline void read_unit_update(int object_id, int unit_id,int time)
     }
 }
 
+
 int do_pointer_read(DISK &cur_disk, int time, int o) 
 {
     int read_cost = cur_disk.last_read_cnt?
@@ -1377,7 +1391,8 @@ int do_pointer_read(DISK &cur_disk, int time, int o)
     
     if (object_id != 0) {
         read_unit_update(object_id, unit_id, time);
-    }
+        ++count_read_have;
+    } else ++count_read_empty;
 
     pos = pos % V + 1;
     ++cur_disk.last_read_cnt;
@@ -1901,6 +1916,53 @@ inline void update_overload_queue(int time)
         }
     }
 }
+
+void disk_swap(int disk_id, int pos1, int pos2)
+{
+    auto& cur_disk = disk[disk_id];
+    
+    auto [object1_id, object1_unit_id] = cur_disk.unit_object[pos1];
+    auto [object2_id, object2_unit_id] = cur_disk.unit_object[pos2];
+
+    assert(object1_id != 0);
+    assert(object2_id != 0);
+
+    std::swap(unsolve_request[disk_id][pos1], unsolve_request[disk_id][pos2]);
+    
+    int rep_1 = 0;
+    for (int i = 1; i <= 3; ++i) {
+        if (objects[object1_id].unit_pos[i][object1_unit_id].first == disk_id) {
+            rep_1 = i;
+            break;
+        }
+    }
+
+    int rep_2 = 0;
+    for (int i = 1; i <= 3; ++i) {
+        if (objects[object2_id].unit_pos[i][object2_unit_id].first == disk_id) {
+            rep_2 = i;
+            break;
+        }
+    }
+
+    objects[object1_id].unit_pos[rep_1][object1_unit_id].second = pos2;
+    objects[object2_id].unit_pos[rep_2][object2_unit_id].second = pos1;
+
+    int tag_1 = objects[object1_id].tag;
+    int tag_2 = objects[object2_id].tag;
+
+    cur_disk.tag_density[tag_1].add_tag_density(pos1, -1);
+    cur_disk.tag_density[tag_1].add_tag_density(pos2, 1);
+    cur_disk.tag_density[tag_2].add_tag_density(pos2, -1);
+    cur_disk.tag_density[tag_2].add_tag_density(pos1, 1);
+
+    int req1 = cur_disk.max_density.get(pos1);
+    int req2 = cur_disk.max_density.get(pos2);
+
+    cur_disk.max_density.modify(pos2, req1);
+    cur_disk.max_density.modify(pos1, req2);
+}
+
 inline void garbage_collection() {
     scanf("%*s %*s");
     printf("GARBAGE COLLECTION\n");
