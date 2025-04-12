@@ -107,7 +107,7 @@ std::vector <int> output_busy_request;
 //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!注意，objects加了复数
 _Object objects[MAX_OBJECT_NUM];
 
-int T, M, N, V, G, all_stage, now_stage, cur_request, limK;
+int T, M, N, V, G, all_stage, now_stage, cur_request, limK, primitive_G;
 
 inline int get_pre_kth(int x, int k) 
 {
@@ -582,6 +582,8 @@ int request_rest_unit[MAX_REQUEST_NUM];
 int request_rest_unit_state[MAX_REQUEST_NUM];
 std::vector <int> solved_request;
 
+int adG[MAX_STAGE + 10];
+
 char read_oper[MAX_TOKEN]; //存储读操作
 //dp_without_skip存储dp值
 //info_without_skip最后一位存储0 pass 1 read,除去最后一位存储上一位的状态
@@ -901,6 +903,11 @@ inline int get_now_stage(int now_time)
     return std::min((now_time + FRE_PER_SLICING - 1) / FRE_PER_SLICING, all_stage);
 }
 
+inline int get_time_stage(int now_time) 
+{
+    return ceil(now_time * 1.0 / 1800);
+}
+
 inline void reset_disk_window_len(int disk_id)
 {   
     auto& cur_disk = disk[disk_id];
@@ -928,6 +935,8 @@ void timestamp_action()
     printf("TIMESTAMP %d\n", timestamp);
 
     TEST_DENSITY_LEN = std::max(cur_request / CUR_REQUEST_DIVIDE, MIN_TEST_DENSITY_LEN);
+
+    G = primitive_G + adG[get_time_stage(timestamp)];
     //READ_ROUND_TIME = std::max(TEST_DENSITY_LEN / LEN_TIME_DIVIDE, MIN_ROUND_TIME);
     //READ_ROUND_TIME = 3;
 
@@ -1890,6 +1899,7 @@ int main()
 {
     // std::cerr << "start input global information" << std::endl;
     scanf("%d%d%d%d%d%d", &T, &M, &N, &V, &G, &limK);
+    primitive_G = G;
     // srand(666666);
     //srand(time(0) ^ clock());
 
@@ -1913,6 +1923,10 @@ int main()
             scanf("%d", &Info[j][i].read_object);
             // scanf("%*d");
         }
+    }
+
+    for (int i = 1; i <= ceil((T + EXTRA_TIME) * 1.0 / 1800); ++i) {
+        scanf("%d", &adG[i]);
     }
 
     // for (int i = 1; i <= M; ++i) {
