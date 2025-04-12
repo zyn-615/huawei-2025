@@ -1843,6 +1843,16 @@ void read_action(int time)
         if(request_rest_unit[now_request.request_id] <= 0) continue;
         request_rest_unit[now_request.request_id] = -1;
         output_busy_request.push_back(now_request.request_id);
+
+        for (int j = 1; j <= objects[now_request.object_id].size; ++j) {   
+                if(((1 << j) & request_rest_unit_state[now_request.request_id]))
+                        continue;
+                for (int i = 1; i <= REP_NUM; ++i) {
+                    auto [disk_id, unit_id] = objects[now_request.object_id].unit_pos[i][j];
+                    // add_unit_request(disk_id, unit_id, -(objects[now_request.object_id].size - request_rest_unit[now_request.request_id] + 1));
+                    add_unit_request(disk_id, unit_id, -1);
+                }
+            }
     }
     printf("%d\n",output_busy_request.size());
     for(int x : output_busy_request)
@@ -1876,6 +1886,10 @@ inline void update_request_num(int time) {
             }
         }    
     }
+}
+
+inline void update_overload_queue(int time)
+{
     for(int i = BUSY_TIME_LIMIT - 1; i >= 0; --i)
     {
         while(!overload_queue[i].empty())
@@ -1887,7 +1901,6 @@ inline void update_request_num(int time) {
         }
     }
 }
-
 inline void garbage_collection() {
     scanf("%*s %*s");
     printf("GARBAGE COLLECTION\n");
@@ -1947,6 +1960,7 @@ int main()
     for (int t = 1; t <= T + EXTRA_TIME; t++) {
         now_stage = get_now_stage(t);
         update_request_num(t);
+        update_overload_queue(t);
 
         // std::cerr << "start time " << t << std::endl;
         // std::cerr << "start timestamp_action" <<std::endl;
@@ -1969,8 +1983,6 @@ int main()
         if (t % 1800 == 0) {
             garbage_collection();
         }
-
-        if(t == 304) std::cerr << "request_time: " << requests[343].request_time << std::endl;
 
         // std::cerr << "end read_action" <<std::endl;
         // std::cerr << "end time " << t << std::endl;
