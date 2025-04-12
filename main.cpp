@@ -540,7 +540,7 @@ struct DISK {
     int tag_order[MAX_TAG_NUM]; //每个标签在这个磁盘的固定顺序
     int tag_distribution_pointer[MAX_TAG_NUM];
     int tag_distribution_size[MAX_TAG_NUM];
-    std::pair <int, int> unit_object[MAX_DISK_SIZE];
+    std::pair <int, int> unit_object[MAX_DISK_SIZE]; // need to change
     bool inner_tag_inverse[MAX_TAG_NUM];
     bool is_reverse;
     int distribution_strategy;
@@ -548,7 +548,7 @@ struct DISK {
     int tag_num;
     int tag_cnt[MAX_TAG_NUM]; //每个磁盘每个标签的数量
 
-    Segment_tree_add all_request;
+    // Segment_tree_add all_request;
     Segment_tree_add empty_pos; //维护空位置
     // Segment_tree_max request_num; //维护每个点的request数量
     //Segment_tree_max max_density; //用于获取每个段的request总和
@@ -1927,11 +1927,8 @@ int main()
         }
     }
 
-    // std::cerr << "start input adG" << std::endl;
-    // std::cerr << "ceil((T + EXTRA_TIME) * 1.0 / 1800) = " << ceil((T + EXTRA_TIME) * 1.0 / 1800) << std::endl;
     for (int i = 1; i <= ceil((T + EXTRA_TIME) * 1.0 / 1800); ++i) {
         scanf("%d", &adG[i]);
-        // std::cerr << "adG[" << i << "] = " << adG[i] << std::endl;
     }
 
     // for (int i = 1; i <= M; ++i) {
