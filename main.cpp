@@ -1888,6 +1888,52 @@ inline void update_request_num(int time) {
     }
 }
 
+void disk_swap(int disk_id, int pos1, int pos2)
+{
+    auto& cur_disk = disk[disk_id];
+    
+    auto [object1_id, object1_unit_id] = cur_disk.unit_object[pos1];
+    auto [object2_id, object2_unit_id] = cur_disk.unit_object[pos2];
+
+    assert(object1_id != 0);
+    assert(object2_id != 0);
+
+    std::swap(unsolve_request[disk_id][pos1], unsolve_request[disk_id][pos2]);
+    
+    int rep_1 = 0;
+    for (int i = 1; i <= 3; ++i) {
+        if (objects[object1_id].unit_pos[i][object1_unit_id].first == disk_id) {
+            rep_1 = i;
+            break;
+        }
+    }
+
+    int rep_2 = 0;
+    for (int i = 1; i <= 3; ++i) {
+        if (objects[object2_id].unit_pos[i][object2_unit_id].first == disk_id) {
+            rep_2 = i;
+            break;
+        }
+    }
+
+    objects[object1_id].unit_pos[rep_1][object1_unit_id].second = pos2;
+    objects[object2_id].unit_pos[rep_2][object2_unit_id].second = pos1;
+
+    int tag_1 = objects[object1_id].tag;
+    int tag_2 = objects[object2_id].tag;
+
+    cur_disk.tag_density[tag_1].add_tag_density(pos1, -1);
+    cur_disk.tag_density[tag_1].add_tag_density(pos2, 1);
+    cur_disk.tag_density[tag_2].add_tag_density(pos2, -1);
+    cur_disk.tag_density[tag_2].add_tag_density(pos1, 1);
+
+    int req1 = cur_disk.max_density.get(pos1);
+    int req2 = cur_disk.max_density.get(pos2);
+
+    cur_disk.max_density.modify(pos2, req1);
+    cur_disk.max_density.modify(pos1, req2);
+}
+
 inline void garbage_collection() {
     scanf("%*s %*s");
     printf("GARBAGE COLLECTION\n");
