@@ -1923,7 +1923,6 @@ int main()
     printf("OK\n");
     fflush(stdout);
 
-exit(0);
     for (int t = 1; t <= T + EXTRA_TIME; t++) {
         now_stage = get_now_stage(t);
         update_request_num(t);
