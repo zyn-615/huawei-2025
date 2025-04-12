@@ -1879,6 +1879,7 @@ inline void garbage_collection() {
     for (int i = 1; i <= N; ++i) {
         printf("0\n");
     }
+    fflush(stdout);
 }
 
 int main()
@@ -1922,6 +1923,7 @@ int main()
     printf("OK\n");
     fflush(stdout);
 
+exit(0);
     for (int t = 1; t <= T + EXTRA_TIME; t++) {
         now_stage = get_now_stage(t);
         update_request_num(t);
