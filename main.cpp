@@ -1883,6 +1883,7 @@ inline void update_request_num(int time) {
 }
 
 inline void garbage_collection() {
+    scanf("%*s");
     printf("GARBAGE COLLECTION\n");
     for (int i = 1; i <= N; ++i) {
         printf("0\n");
