@@ -10,28 +10,13 @@ import json
 
 # 定义需要调整的参数及其范围
 PARAMS = {
-    'WRITE_TEST_DENSITY_LEN': (30, 70),     # 当前值：50
-    'WRITE_TAG_DENSITY_DIVIDE': (20, 40),   # 当前值：30
-    'MIN_TEST_TAG_DENSITY_LEN': (30, 70),   # 当前值：50
-    'JUMP_MIN': (1.0, 3.0),                 # 当前值：1.6
-    'MIN_ROUND_TIME': (1, 5),               # 当前值：3
-    'TEST_READ_TIME': (1, 15),              # 当前值：10
-    'CUR_REQUEST_DIVIDE': (100, 500),       # 当前值：200
-    'MIN_TEST_DENSITY_LEN': (300, 1000),    # 当前值：500
-    'JUMP_MORE_TIME': (0, 3)                # 当前值：2
+
+    'SEED': (1, 10000000),     # 当前值：50
 }
 
 # 定义正则表达式模式
 REGEX_PATTERNS = {
-    'WRITE_TEST_DENSITY_LEN': r'(const\s+int\s+WRITE_TEST_DENSITY_LEN\s*=\s*)([0-9]+)',
-    'WRITE_TAG_DENSITY_DIVIDE': r'(const\s+int\s+WRITE_TAG_DENSITY_DIVIDE\s*=\s*)([0-9]+)',
-    'MIN_TEST_TAG_DENSITY_LEN': r'(const\s+int\s+MIN_TEST_TAG_DENSITY_LEN\s*=\s*)([0-9]+)',
-    'JUMP_MIN': r'(const\s+double\s+JUMP_MIN\s*=\s*)([0-9.]+)',
-    'MIN_ROUND_TIME': r'(const\s+int\s+MIN_ROUND_TIME\s*=\s*)([0-9]+)',
-    'TEST_READ_TIME': r'(const\s+int\s+TEST_READ_TIME\s*=\s*)([0-9]+)',
-    'CUR_REQUEST_DIVIDE': r'(const\s+int\s+CUR_REQUEST_DIVIDE\s*=\s*)([0-9]+)',
-    'MIN_TEST_DENSITY_LEN': r'(const\s+int\s+MIN_TEST_DENSITY_LEN\s*=\s*)([0-9]+)',
-    'JUMP_MORE_TIME': r'(const\s+int\s+JUMP_MORE_TIME\s*=\s*)([0-9]+)'
+    'SEED': r'(const\s+int\s+SEED\s*=\s*)([0-9]+)',
 }
 
 # 全局变量
@@ -394,7 +379,7 @@ if __name__ == "__main__":
     # 询问是否在practice数据集上测试
     use_practice = input("是否在extra数据集上测试? (y/n): ").lower() == 'y'
     if use_practice:
-        data_files = ['data/sample_extra.in']
+        data_files = ['data/sample_offical.in']
     else:
         data_files = ['data/sample.in']
     

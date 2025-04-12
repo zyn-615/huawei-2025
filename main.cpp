@@ -31,7 +31,7 @@
 
 const double JUMP_VISCOSITY = 0.9;
 const int LEN_TIME_DIVIDE = 40;
-const int PRE_DISTRIBUTION_TIME = 30;
+const int PRE_DISTRIBUTION_TIME = 20;
 const int READ_CNT_STATES = 8; //读入的状态，根据上一次连续read的个数确定
 int DISK_MIN_PASS = 9; //如果超过这个值放弃read pass过去
 int DISK_MIN_PASS_DP = 13;
@@ -39,20 +39,21 @@ const int MIN_TOKEN_STOP_DP = 130;
 const int NUM_PIECE_QUEUE = 2;
 const double TAG_DENSITY_DIVIDE = 2;
 const double UNIT_REQUEST_DIVIDE = 17;
+const int SEED = 3370669;
 
 const double DIVIDE_TAG_IN_DISK_VERSION1 = 0.1;
 int TEST_DENSITY_LEN = 1200;
 
 //这三个量需要调整   需要退火
-const int WRITE_TEST_DENSITY_LEN = 55;
-const int WRITE_TAG_DENSITY_DIVIDE = 34;
-const int MIN_TEST_TAG_DENSITY_LEN = 66;
-const double JUMP_MIN = 1.9;
-const int MIN_ROUND_TIME = 5;
-const int TEST_READ_TIME = 2;
-const int CUR_REQUEST_DIVIDE = 165;
-const int MIN_TEST_DENSITY_LEN = 922;
-const int JUMP_MORE_TIME = 3;
+const int WRITE_TEST_DENSITY_LEN = 51;
+const int WRITE_TAG_DENSITY_DIVIDE = 36;
+const int MIN_TEST_TAG_DENSITY_LEN = 41;
+const double JUMP_MIN = 1.5;
+const int MIN_ROUND_TIME = 4;
+const int TEST_READ_TIME = 4;
+const int CUR_REQUEST_DIVIDE = 144;
+const int MIN_TEST_DENSITY_LEN = 889;
+const int JUMP_MORE_TIME = 0;
 
 
 
@@ -100,11 +101,13 @@ _Request requests[MAX_REQUEST_NUM];
 std::queue <_Request> request_queue_in_time_order[MAX_PIECE_QUEUE];
 std::vector<int> time_out_of_queue(MAX_PIECE_QUEUE);
 std::vector<int> request_queue_id(MAX_REQUEST_NUM);
+std::queue<_Request> overload_queue[EXTRA_TIME + 1];
+std::vector <int> output_busy_request;
 
 //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!注意，objects加了复数
 _Object objects[MAX_OBJECT_NUM];
 
-int T, M, N, V, G, all_stage, now_stage, cur_request;
+int T, M, N, V, G, all_stage, now_stage, cur_request, limK;
 
 inline int get_pre_kth(int x, int k) 
 {
@@ -554,7 +557,7 @@ struct DISK {
 };
 
 DISK disk[MAX_DISK_NUM];
-std::mt19937 RAND(666666);
+std::mt19937 RAND(SEED);
 
 inline int random(int l, int r)
 {
@@ -943,9 +946,9 @@ void timestamp_action()
             }
         } else {
 
-            if (get_now_stage(timestamp) % 4 == 0 && get_now_stage(timestamp) > PRE_DISTRIBUTION_TIME) {
+            if (get_now_stage(timestamp) % 2 == 0 && get_now_stage(timestamp) > PRE_DISTRIBUTION_TIME) {
                for (int i = 1; i <= N; ++i) {
-                    // reset_disk_window_len(i);
+                    reset_disk_window_len(i);
                 } 
             }
             
@@ -999,7 +1002,7 @@ inline void do_object_delete(int object_id)
             disk[disk_id].empty_pos.delete_unit(1, 1, V, pos);
 
             if (USE_NEW_DISTRIBUTION) {
-                disk[disk_id].tag_density[cur_tag].add(pos, -1);
+                disk[disk_id].tag_density[cur_tag].add_tag_density(pos, -1);
                 // add_tag_density(disk_id, cur_tag, pos, -1);
             }
             
@@ -1748,6 +1751,7 @@ void read_action(int time)
         requests[request_id].request_time = time;
         requests[request_id].request_id = request_id;
         request_queue_in_time_order[1].push(requests[request_id]);
+        overload_queue[0].push(requests[request_id]);
         request_queue_id[request_id] = 1;
         update_unsolved_request(request_id, object_id);
     }
@@ -1817,6 +1821,20 @@ void read_action(int time)
     }
     // std::cerr << std::endl;
 
+    //busy request
+    
+    while(!overload_queue[EXTRA_TIME].empty())
+    {
+        _Request now_request = overload_queue[EXTRA_TIME].front();
+        overload_queue[EXTRA_TIME].pop();
+        if(request_rest_unit[now_request.request_id] <= 0) continue;
+        output_busy_request.push_back(now_request.request_id);
+    }
+    printf("%d\n",output_busy_request.size());
+    for(int x : output_busy_request)
+        printf("%d\n",x);
+    output_busy_request.clear();
+
     solved_request.clear();
     fflush(stdout);
 }
@@ -1844,13 +1862,29 @@ inline void update_request_num(int time) {
             }
         }    
     }
-    
+    for(int i = EXTRA_TIME - 1; i >= 0; --i)
+    {
+        while(!overload_queue[i].empty())
+        {
+            _Request now_request = overload_queue[i].front();
+            overload_queue[i].pop();
+            if(request_rest_unit[now_request.request_id] <= 0) continue;
+            overload_queue[i + 1].push(now_request);
+        }
+    }
+}
+
+inline void garbage_collection() {
+    printf("GARBAGE COLLECTION\n");
+    for (int i = 1; i <= N; ++i) {
+        printf("0\n");
+    }
 }
 
 int main()
 {
     // std::cerr << "start input global information" << std::endl;
-    scanf("%d%d%d%d%d", &T, &M, &N, &V, &G);
+    scanf("%d%d%d%d%d%d", &T, &M, &N, &V, &G, &limK);
     // srand(666666);
     //srand(time(0) ^ clock());
 
@@ -1909,6 +1943,10 @@ int main()
         // std::cerr << "end write_action" <<std::endl;
         // std::cerr << "start read_action" <<std::endl;
         read_action(t);
+        
+        if (t % 1800 == 0) {
+            garbage_collection();
+        }
 
         // std::cerr << "end read_action" <<std::endl;
         // std::cerr << "end time " << t << std::endl;
