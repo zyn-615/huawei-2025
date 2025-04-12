@@ -54,7 +54,7 @@ const int TEST_READ_TIME = 4;
 const int CUR_REQUEST_DIVIDE = 144;
 const int MIN_TEST_DENSITY_LEN = 889;
 const int JUMP_MORE_TIME = 0;
-const int BUSY_TIME_LIMIT = 105;
+const int BUSY_TIME_LIMIT = 0;
 
 
 
@@ -67,14 +67,15 @@ const int BUSY_TIME_LIMIT = 105;
 
 const int USE_NEW_DISTRIBUTION = 1;
 //不要调
-const int USE_DP = 1;
+const int USE_DP = 0;
 const int DP_VERSION1 = 1;
 const int DP_VERSION2 = 2;
 const int MIN_TAG_NUM_IN_DISK = 6;
 //int READ_ROUND_TIME = 40; //一轮读取的时间
-const int READ_ROUND_TIME = 3;
+const int READ_ROUND_TIME = 100;
 
 int count_jump;
+long long allreq;
 
 struct _Object {
     //(磁盘编号，磁盘内位置)
@@ -952,6 +953,7 @@ void timestamp_action()
         std::cerr << "pass : " << count_pass << std::endl;
         std::cerr << "read empty : " << count_read_empty << std::endl;
         std::cerr << "read have : " << count_read_have << std::endl;
+        std::cerr << "NOW req : " << allreq << std::endl;
 
         if (!USE_NEW_DISTRIBUTION) {
             for (int i = 1; i <= N; ++i) {
@@ -1769,6 +1771,7 @@ void read_action(int time)
     int n_read;
     int request_id, object_id;
     scanf("%d", &n_read);
+    allreq += n_read;
     // std::cerr << "n_read : " << n_read << std::endl;
     cur_request += n_read;
     for (int i = 1; i <= n_read; i++) {
