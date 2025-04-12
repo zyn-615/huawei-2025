@@ -938,6 +938,7 @@ void timestamp_action()
     TEST_DENSITY_LEN = std::max(cur_request / CUR_REQUEST_DIVIDE, MIN_TEST_DENSITY_LEN);
 
     G = primitive_G + adG[get_time_stage(timestamp)];
+    // std::cerr << G << '\n';
     //READ_ROUND_TIME = std::max(TEST_DENSITY_LEN / LEN_TIME_DIVIDE, MIN_ROUND_TIME);
     //READ_ROUND_TIME = 3;
 
