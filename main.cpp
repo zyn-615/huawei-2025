@@ -54,7 +54,7 @@ const int TEST_READ_TIME = 4;
 const int CUR_REQUEST_DIVIDE = 144;
 const int MIN_TEST_DENSITY_LEN = 889;
 const int JUMP_MORE_TIME = 0;
-const int BUST_LIMIT_TIME = 105;
+const int BUSY_TIME_LIMIT = 105;
 
 
 
@@ -1763,7 +1763,7 @@ void read_action(int time)
         requests[request_id].request_time = time;
         requests[request_id].request_id = request_id;
         request_queue_in_time_order[1].push(requests[request_id]);
-        overload_queue[1].push(requests[request_id]);
+        overload_queue[0].push(requests[request_id]);
         request_queue_id[request_id] = 1;
         update_unsolved_request(request_id, object_id);
     }
@@ -1836,10 +1836,10 @@ void read_action(int time)
 
     //busy request
     
-    while(!overload_queue[BUST_LIMIT_TIME].empty())
+    while(!overload_queue[BUSY_TIME_LIMIT].empty())
     {
-        _Request now_request = overload_queue[BUST_LIMIT_TIME].front();
-        overload_queue[BUST_LIMIT_TIME].pop();
+        _Request now_request = overload_queue[BUSY_TIME_LIMIT].front();
+        overload_queue[BUSY_TIME_LIMIT].pop();
         if(request_rest_unit[now_request.request_id] <= 0) continue;
         request_rest_unit[now_request.request_id] = -1;
         output_busy_request.push_back(now_request.request_id);
@@ -1876,7 +1876,7 @@ inline void update_request_num(int time) {
             }
         }    
     }
-    for(int i = BUST_LIMIT_TIME - 1; i >= 1; --i)
+    for(int i = BUSY_TIME_LIMIT - 1; i >= 0; --i)
     {
         while(!overload_queue[i].empty())
         {
