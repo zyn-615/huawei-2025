@@ -54,7 +54,7 @@ const int TEST_READ_TIME = 4;
 const int CUR_REQUEST_DIVIDE = 144;
 const int MIN_TEST_DENSITY_LEN = 889;
 const int JUMP_MORE_TIME = 0;
-const int BUSY_TIME_LIMIT = 0;
+const int BUSY_TIME_LIMIT = 105;
 
 
 
@@ -67,12 +67,12 @@ const int BUSY_TIME_LIMIT = 0;
 
 const int USE_NEW_DISTRIBUTION = 1;
 //不要调
-const int USE_DP = 0;
+const int USE_DP = 1;
 const int DP_VERSION1 = 1;
 const int DP_VERSION2 = 2;
 const int MIN_TAG_NUM_IN_DISK = 6;
 //int READ_ROUND_TIME = 40; //一轮读取的时间
-const int READ_ROUND_TIME = 100;
+const int READ_ROUND_TIME = 20000;
 
 int count_jump;
 long long allreq;
